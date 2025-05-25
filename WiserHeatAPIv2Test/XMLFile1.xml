@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<uidefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://prd-use-rad-assets.azurewebsites.net/ExtensionsSchemaDefinition.xsd">
+	<version ver="3.0" />
+	<tile icon="{IconProperty}" secondaryicon="{SecondaryIconProperty}" navigation="show:office" showinhomepage="#false" showinroompage="#true" action="command:tileaction" status="{StatusProperty}" />
+	<layouts>
+		<layout id="office" title="{Title1162}" subtitle="{Subtitle1162}" isdefaultlayout="#true">
+			<controls>
+				<thermostat id="GID1162CID2" title="{GID1162CID2Label}" toplefticon="{GID1162CID2Icon}" setpointheat="{GID1162CID2CMD15}" setpointcool="{GID1162CID2CMD16}" setpointauto="{GID1162CID2CMD17}" heatmodeenabled="{GID1162CID2HeatEnable}" coolmodeenabled="{GID1162CID2CoolEnable}" automodeenabled="{GID1162CID2AutoEnable}" modeicon="{GID1162CID2ModeIcon}" currenttemperature="{GID1162CID2CMD8}" currenttemperaturelabel="{GID1162CID2TempLabel}" temperatureunits="{GID1162CID2TempUnits}" visible="{GID1162CID2Visible}" enabled="{GID1162CID2Enable}"/>
+				<textdisplay id="GID1162CID3" title="{GID1162CID3Label}" line1label="{GID1162CID3LineOne}" line2label="{GID1162CID3LineTwo}" line3label="{GID1162CID3LineThree}" visible="{GID1162CID3Visible}"/>
+			</controls>
+		</layout>
+	</layouts>
+	<alerts></alerts>
+</uidefinition>
