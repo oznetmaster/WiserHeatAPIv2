@@ -1,4 +1,7 @@
-﻿// WiserHeatApiV2.cs
+﻿// Copyright © 2025 Nivloc Enterprises Ltd.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+// WiserHeatApiV2.cs
 using log4net;
 
 using Newtonsoft.Json;
@@ -2646,7 +2649,7 @@ namespace WiserHeatApiV2
 		protected bool _identifyActive;
 
 		public WiserLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
-			 : base (data, deviceTypeData)
+			 : base (wiserRestController, data, deviceTypeData)
 			{
 			_wiserRestController = wiserRestController;
 			_schedule = schedule;
