@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle ("WiserHeatAPIv2Test")]
 [assembly: AssemblyDescription ("")]
 [assembly: AssemblyConfiguration ("")]
-[assembly: AssemblyCompany ("")]
+[assembly: AssemblyCompany ("Nivloc Enterprises Ltd")]
 [assembly: AssemblyProduct ("WiserHeatAPIv2Test")]
-[assembly: AssemblyCopyright ("Copyright ©  2025")]
+[assembly: AssemblyCopyright ("Copyright ©  2025 Nivloc Enterprises Ltd")]
 [assembly: AssemblyTrademark ("")]
 [assembly: AssemblyCulture ("")]
 
