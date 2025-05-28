@@ -6,7 +6,42 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace WiserHeatApiV2
-	{
+	{	public class WiserDevice
+		{
+		protected readonly Dictionary<string, object> _data;
+		protected readonly WiserSignalStrength _signal;
+
+		public WiserDevice (Dictionary<string, object> data)
+			{
+			_data = data;
+			_signal = new WiserSignalStrength (data);
+			}
+
+		public virtual int DeviceTypeId => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+
+		public string FirmwareVersion => _data.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
+
+		public int Id => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+
+		public string Model => _data.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+
+		public string Name => $"{ProductType}-{Id}";
+
+		public int NodeId => _data.TryGetValue ("NodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
+
+		public string ProductIdentifier => _data.TryGetValue ("ProductIdentifier", out var id) ? id.ToString () : Constants.TEXT_UNKNOWN;
+
+		public string ProductModel => _data.TryGetValue ("ProductModel", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+
+		public int ParentNodeId => _data.TryGetValue ("ParentNodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
+
+		public string ProductType => _data.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+
+		public string SerialNumber => _data.TryGetValue ("SerialNumber", out var serial) ? serial.ToString () : Constants.TEXT_UNKNOWN;
+
+		public WiserSignalStrength Signal => _signal;
+		}
+
 	public class WiserDeviceCollection
 		{
 		private readonly WiserRestController _wiserRestController;

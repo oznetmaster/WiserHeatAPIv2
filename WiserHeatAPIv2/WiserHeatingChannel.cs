@@ -3,8 +3,35 @@
 
 namespace WiserHeatApiV2
 	{
+	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
+	public class WiserHeatingChannel
+		{
+		private readonly Dictionary<string, object> _data;
+
+		public WiserHeatingChannel (Dictionary<string, object> data)
+			{
+			_data = data;
+			}
+
+		public string DemandOnOffOutput => _data.TryGetValue ("DemandOnOffOutput", out var output) ? output.ToString () : Constants.TEXT_UNKNOWN;
+
+		public string HeatingRelayStatus => _data.TryGetValue ("HeatingRelayState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
+
+		public int Id => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+
+		public bool IsSmartValvePreventingDemand => _data.TryGetValue ("IsSmartValvePreventingDemand", out var preventing) && Convert.ToBoolean (preventing);
+
+		public string Name => _data.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
+
+		public int PercentageDemand => _data.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand) : 0;
+
+		public List<int> RoomIds => _data.TryGetValue ("RoomIds", out var roomIds) && roomIds is List<object> roomIdsList
+			 ? roomIdsList.Select (id => Convert.ToInt32 (id)).ToList ()
+			 : new List<int> ();
+		}
 
 	public class WiserHeatingChannelCollection
 		{

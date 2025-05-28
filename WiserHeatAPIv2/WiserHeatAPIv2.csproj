@@ -7,7 +7,7 @@
     <ProjectGuid>{98F00DB8-F1E8-4604-9D85-1842EBF90120}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>WiserHeatAPIv2</RootNamespace>
+    <RootNamespace>WiserHeatApiV2</RootNamespace>
     <AssemblyName>WiserHeatAPIv2</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -128,14 +128,21 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WiserAPIv2.cs" />
     <Compile Include="WiserDeviceCollection.cs" />
+    <Compile Include="WiserHeatingActuator.cs" />
     <Compile Include="WiserHeatingAPI.cs" />
-    <Compile Include="WiserHeatingChannelCollection.cs" />
+    <Compile Include="WiserHeatingChannel.cs" />
     <Compile Include="WiserHotwater.cs" />
-    <Compile Include="WiserMomentCollection.cs" />
+    <Compile Include="WiserLight.cs" />
+    <Compile Include="WiserMoment.cs" />
     <Compile Include="WiserRestController.cs" />
-    <Compile Include="WiserRoomCollection.cs" />
-    <Compile Include="WiserScheduleCollection.cs" />
+    <Compile Include="WiserRoom.cs" />
+    <Compile Include="WiserRoomStat.cs" />
+    <Compile Include="WiserSchedule.cs" />
+    <Compile Include="WiserShutter.cs" />
+    <Compile Include="WiserSmartPlug.cs" />
+    <Compile Include="WiserSmartValve.cs" />
     <Compile Include="WiserSystem.cs" />
+    <Compile Include="WiserUFHController.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
