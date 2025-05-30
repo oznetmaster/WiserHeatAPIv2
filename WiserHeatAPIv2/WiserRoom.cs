@@ -64,7 +64,7 @@ namespace WiserHeatApiV2
 			// Add device id to schedule
 			if (_schedule != null)
 				{
-				if (_schedule.Assignments.Count == 0 || oldId != Id || oldName != Name || _schedule.Assignments.Any (a => (int)a["id"] == oldId || (string)a["name"] == oldName))
+				if (_schedule.Assignments.Count != 0 || oldId != Id || oldName != Name /*|| _schedule.Assignments.Any (a => (int)a["id"] == oldId || (string)a["name"] == oldName)*/)
 					{
 					// Remove old assignment if the id or name has changed
 					_schedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
