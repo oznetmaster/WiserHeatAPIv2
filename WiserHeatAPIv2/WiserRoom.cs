@@ -4,6 +4,7 @@
 namespace WiserHeatApiV2
 	{
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
@@ -11,7 +12,7 @@ namespace WiserHeatApiV2
 	public class WiserRoom
 		{
 		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, object> _data;
+		private readonly ConcurrentDictionary<string, object> _data;
 		private WiserSchedule _schedule;
 		private readonly List<WiserDevice> _devices;
 		private string _mode;
@@ -21,7 +22,7 @@ namespace WiserHeatApiV2
 		public WiserRoom (WiserRestController wiserRestController, Dictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
 			{
 			_wiserRestController = wiserRestController;
-			_data = room;
+			_data = new ConcurrentDictionary<string, object> (room);
 			_schedule = schedule;
 			_devices = devices;
 			_mode = EffectiveHeatingMode (
@@ -42,17 +43,27 @@ namespace WiserHeatApiV2
 			var oldId = Id;
 			var oldName = Name;
 
-			_data.Clear ();
+			var dhs = _data.Keys.ToHashSet<string> ();
+			var newKeys = room.Keys.ToHashSet<string> ();
+			// Remove keys that are not in the new data
+			foreach (var key in dhs.Except (newKeys))
+				{
+				_data.TryRemove (key, out _);
+				}
+
 			foreach (var kvp in room)
 				{
 				_data[kvp.Key] = kvp.Value;
 				}
+
 			_schedule = schedule;
+
 			_devices.Clear ();
 			foreach (var device in devices)
 				{
 				_devices.Add (device);
 				}
+
 			_mode = EffectiveHeatingMode (
 				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : "",
 				 CurrentTargetTemperature
