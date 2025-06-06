@@ -1,14 +1,14 @@
 // Copyright © 2025 Nivloc Enterprises Ltd.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
 namespace WiserHeatApiV2
 	{
-	using System;
-	using System.Collections.Concurrent;
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Threading.Tasks;
-
 	public class WiserRoom
 		{
 		private readonly WiserRestController _wiserRestController;
