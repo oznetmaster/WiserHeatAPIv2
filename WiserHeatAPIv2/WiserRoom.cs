@@ -38,49 +38,56 @@ namespace WiserHeatApiV2
 				_schedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
 				}
 			}
+
+		object _lockUpdate = new object ();
 		public void Update (Dictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
 			{
-			var oldId = Id;
-			var oldName = Name;
-
-			var dhs = _data.Keys.ToHashSet<string> ();
-			var newKeys = room.Keys.ToHashSet<string> ();
-			// Remove keys that are not in the new data
-			foreach (var key in dhs.Except (newKeys))
+			lock (_lockUpdate)
 				{
-				_data.TryRemove (key, out _);
-				}
+				var oldId = Id;
+				var oldName = Name;
 
-			foreach (var kvp in room)
-				{
-				_data[kvp.Key] = kvp.Value;
-				}
-
-			_schedule = schedule;
-
-			_devices.Clear ();
-			foreach (var device in devices)
-				{
-				_devices.Add (device);
-				}
-
-			_mode = EffectiveHeatingMode (
-				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : "",
-				 CurrentTargetTemperature
-				);
-
-			_name = room.TryGetValue ("Name", out var name) ? name.ToString () : "";
-			_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection);
-
-			// Add device id to schedule
-			if (_schedule != null)
-				{
-				if (_schedule.Assignments.Count != 0 || oldId != Id || oldName != Name /*|| _schedule.Assignments.Any (a => (int)a["id"] == oldId || (string)a["name"] == oldName)*/)
+				var dhs = _data.Keys.ToHashSet<string> ();
+				var newKeys = room.Keys.ToHashSet<string> ();
+				// Remove keys that are not in the new data
+				foreach (var key in dhs.Except (newKeys))
 					{
-					// Remove old assignment if the id or name has changed
-					_schedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
-					_schedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
+					_data.TryRemove (key, out _);
 					}
+
+				foreach (var kvp in room)
+					{
+					_data[kvp.Key] = kvp.Value;
+					}
+
+				_devices.Clear ();
+				foreach (var device in devices)
+					{
+					_devices.Add (device);
+					}
+
+				_mode = EffectiveHeatingMode (
+					 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : "",
+					 CurrentTargetTemperature
+					);
+
+				_name = room.TryGetValue ("Name", out var name) ? name.ToString () : "";
+				_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection);
+
+				var tschedule = schedule;
+
+				// Add device id to schedule
+				if (tschedule != null)
+					{
+					if (tschedule.Assignments.Count != 0 || oldId != Id || oldName != Name /*|| _schedule.Assignments.Any (a => (int)a["id"] == oldId || (string)a["name"] == oldName)*/)
+						{
+						// Remove old assignment if the id or name has changed
+						tschedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
+						tschedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
+						}
+					}
+
+				_schedule = tschedule;
 				}
 			}
 
