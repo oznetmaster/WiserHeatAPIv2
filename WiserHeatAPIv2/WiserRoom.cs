@@ -1,4 +1,5 @@
 // Copyright © 2025 Nivloc Enterprises Ltd.
+// Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System;
@@ -83,8 +84,8 @@ namespace WiserHeatApiV2
 						{
 						// Remove old assignment if the id or name has changed
 						tschedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
-						tschedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
 						}
+					tschedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
 					}
 
 				_schedule = tschedule;
@@ -122,8 +123,10 @@ namespace WiserHeatApiV2
 			 ? DateTimeOffset.FromUnixTimeSeconds (Convert.ToInt32 (time)).DateTime
 			 : DateTime.MinValue;
 
+		public DateTime BoostEndTimeLocal => BoostEndTime.ToLocalTime ();
+
 		public double BoostTimeRemaining => IsBoost
-			 ? (BoostEndTime - DateTime.Now).TotalSeconds
+			 ? (BoostEndTimeLocal - DateTime.Now).TotalSeconds
 			 : 0;
 
 		public int ComfortModeScore => _data.TryGetValue ("ComfortModeScore", out var score) ? Convert.ToInt32 (score) : 0;
