@@ -1,13 +1,17 @@
-// Copyright © 2025 Nivloc Enterprises Ltd.
-// Adapted from the Python implementation Copyright © 2021 Mark Parker
-// Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
+//-----------------------------------------------------------------------
+// <copyright file="WiserDeviceCollection.cs" company="">
+//     Author:  
+//     Copyright (c) . All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace WiserHeatApiV2
-	{	public class WiserDevice
+	{
+	public class WiserDevice
 		{
 		protected readonly Dictionary<string, object> _data;
 		protected readonly WiserSignalStrength _signal;
@@ -46,7 +50,7 @@ namespace WiserHeatApiV2
 	public class WiserDeviceCollection
 		{
 		private readonly WiserRestController _wiserRestController;
-		private Dictionary<string, object> _deviceData;
+		private ConcurrentDictionary<int, Dictionary<string, object>> _devicesList;
 		private Dictionary<string, object> _domainData;
 		private WiserScheduleCollection _schedules;
 
@@ -67,159 +71,147 @@ namespace WiserHeatApiV2
 		public WiserDeviceCollection (WiserRestController wiserRestController, Dictionary<string, object> domainData, WiserScheduleCollection schedules)
 			{
 			_wiserRestController = wiserRestController;
-			_deviceData = domainData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList
-				 ? new Dictionary<string, object> { { "Device", devicesList } }
-				 : new Dictionary<string, object> ();
+			if (domainData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList)
+				_devicesList = new ConcurrentDictionary<int, Dictionary<string, object>> (
+					devicesList.ToDictionary (d => Convert.ToInt32 (d["id"]), d => d)
+				);
+			else
+				_devicesList = new ConcurrentDictionary<int, Dictionary<string, object>> ();
 			_domainData = domainData;
 			_schedules = schedules;
 
-			Build ();
+			Build (_devicesList.Values);
 			}
 
-		private void Build ()
+		private void Build (IEnumerable<Dictionary<string, object>> deviceList)
 			{
-			if (_deviceData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList)
+			foreach (Dictionary<string, object> device in deviceList)
 				{
-				foreach (var deviceObj in devicesList)
+				var deviceId = Convert.ToInt32 (device["id"]);
+
+				// Add smart valve (iTRV) object to collection
+				if (device.TryGetValue ("ProductType", out var productType) && productType.ToString () == "iTRV")
 					{
-					if (deviceObj is Dictionary<string, object> device)
+					var smartvalveInfo = (_domainData.TryGetValue ("SmartValve", out var smartValves) && smartValves is List<Dictionary<string, object>> smartValvesList)
+						? smartValvesList.FirstOrDefault (sv => sv.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						: null;
+
+					if (smartvalveInfo != null)
 						{
-						// Add smart valve (iTRV) object to collection
-						if (device.TryGetValue ("ProductType", out var productType) && productType.ToString () == "iTRV")
-							{
-							var smartvalveInfo = _domainData.TryGetValue ("SmartValve", out var smartValves) && smartValves is List<Dictionary<string, object>> smartValvesList
-								 ? smartValvesList
-									  .Where (sv => sv.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
-									  .ToList ()
-								 : new List<Dictionary<string, object>> ();
+						smartvalveInfo["RoomId"] = GetTempDeviceRoomId (_domainData, deviceId);
+						_smartvalvesCollection.All.Add (
+							new WiserSmartValve (
+								_wiserRestController,
+								device,
+								smartvalveInfo
+							)
+						);
+						}
+					}
 
-							if (smartvalveInfo.Count > 0)
-								{
-								smartvalveInfo[0]["RoomId"] = GetTempDeviceRoomId (_domainData, Convert.ToInt32 (device["id"]));
-								_smartvalvesCollection.All.Add (
-									 new WiserSmartValve (
-										  _wiserRestController,
-										  device,
-										  smartvalveInfo[0]
-									 )
-								);
-								}
-							}
+				// Add room stat object to collection
+				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "RoomStat")
+					{
+					var roomstatInfo = (_domainData.TryGetValue ("RoomStat", out var roomStats) && roomStats is List<Dictionary<string, object>> roomStatsList)
+						? roomStatsList.FirstOrDefault (rs => rs.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						: null;
 
-						// Add room stat object to collection
-						else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "RoomStat")
-							{
-							var roomstatInfo = _domainData.TryGetValue ("RoomStat", out var roomStats) && roomStats is List<Dictionary<string, object>> roomStatsList
-								 ? roomStatsList
-									  .Where (rs => rs.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
-									  .ToList ()
-								 : new List<Dictionary<string, object>> ();
+					if (roomstatInfo != null)
+						{
+						roomstatInfo["RoomId"] = GetTempDeviceRoomId (_domainData, deviceId);
+						_roomstatsCollection.All.Add (
+							new WiserRoomStat (
+								_wiserRestController,
+								device,
+								roomstatInfo
+							)
+						);
+						}
+					}
 
-							if (roomstatInfo.Count > 0)
-								{
-								roomstatInfo[0]["RoomId"] = GetTempDeviceRoomId (_domainData, Convert.ToInt32 (device["id"]));
-								_roomstatsCollection.All.Add (
-									 new WiserRoomStat (
-										  _wiserRestController,
-										  device,
-										  roomstatInfo[0]
-									 )
-								);
-								}
-							}
+				// Add smart plug object to collection
+				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "SmartPlug")
+					{
+					var smartplugInfo = (_domainData.TryGetValue ("SmartPlug", out var smartPlugs) && smartPlugs is List<Dictionary<string, object>> smartPlugsList)
+						? smartPlugsList.FirstOrDefault (sp => sp.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						: null;
 
-						// Add smart plug object to collection
-						else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "SmartPlug")
-							{
-							var smartplugInfo = _domainData.TryGetValue ("SmartPlug", out var smartPlugs) && smartPlugs is List<Dictionary<string, object>> smartPlugsList
-								 ? smartPlugsList
-									  .Where (sp => sp.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
-									  .ToList ()
-								 : new List<Dictionary<string, object>> ();
+					if (smartplugInfo != null)
+						{
+						var smartplugSchedule = _schedules.GetByType (WiserScheduleTypeEnum.OnOff)
+							 .FirstOrDefault (s => s.Id == (smartplugInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
 
-							if (smartplugInfo.Count > 0)
-								{
-								var smartplugSchedule = _schedules.GetByType (WiserScheduleTypeEnum.OnOff)
-									 .Where (s => s.Id == (smartplugInfo[0].TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0))
-									 .ToList ();
-
-								_smartplugsCollection.All.Add (
-									 new WiserSmartPlug (
-										  _wiserRestController,
-										  device,
-										  smartplugInfo[0],
-										  smartplugSchedule.Count > 0 ? smartplugSchedule[0] : null
-									 )
-								);
-								}
-							}
+						//smartplugInfo["RoomId"] = GetTempDeviceRoomId (_domainData, deviceId);
+						_smartplugsCollection.All.Add (
+							 new WiserSmartPlug (
+								  _wiserRestController,
+								  device,
+								  smartplugInfo,
+								  smartplugSchedule
+							 )
+						);
+						}
+					}
 
 #if HEATACTUATOR
 						// Add heating actuator object to collection
 						else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "HeatingActuator")
 							{
-							var heatingActuatorInfo = _domainData.TryGetValue ("HeatingActuator", out var heatingActuators) && heatingActuators is List<Dictionary<string, object>> heatingActuatorsList
-								 ? heatingActuatorsList
-									  .Where (ha => ha.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
-									  .ToList ()
-								 : new List<Dictionary<string, object>> ();
+							var heatingActuatorInfo = (_domainData.TryGetValue("HeatingActuator", out var heatingActuators) && heatingActuators is List<Dictionary<string, object>> heatingActuatorsList)
+								? heatingActuatorsList.FirstOrDefault(ha => ha.TryGetValue("id", out var id) && Convert.ToInt32(id) == Convert.ToInt32(device["id"]))
+								: null;
 
-							if (heatingActuatorInfo.Count > 0)
+							if (heatingActuatorInfo != null)
 								{
-								heatingActuatorInfo[0]["RoomId"] = GetTempDeviceRoomId (_domainData, Convert.ToInt32 (device["id"]));
+								heatingActuatorInfo["RoomId"] = GetTempDeviceRoomId (_domainData, Convert.ToInt32 (device["id"]));
 								_heatingActuatorsCollection.All.Add (
 									 new WiserHeatingActuator (
 										  _wiserRestController,
 										  device,
-										  heatingActuatorInfo[0]
+										  heatingActuatorInfo
 									 )
 								);
 								}
 							}
 #endif
-						// Add ufh controller object to collection
-						else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "UnderFloorHeating")
-							{
-							var ufhControllerInfo = _domainData.TryGetValue ("UnderFloorHeating", out var ufhControllers) && ufhControllers is List<Dictionary<string, object>> ufhControllersList
-								 ? ufhControllersList
-									  .Where (ufh => ufh.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
-									  .ToList ()
-								 : new List<Dictionary<string, object>> ();
+				// Add ufh controller object to collection
+				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "UnderFloorHeating")
+					{
+					var ufhControllerInfo = (_domainData.TryGetValue ("UnderFloorHeating", out var ufhControllers) && ufhControllers is List<Dictionary<string, object>> ufhControllersList)
+						? ufhControllersList.FirstOrDefault (ufh => ufh.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						: null;
 
-							if (ufhControllerInfo.Count > 0)
-								{
-								ufhControllerInfo[0]["RoomId"] = GetTempDeviceRoomId (_domainData, Convert.ToInt32 (device["id"]));
-								_ufhControllersCollection.All.Add (
-									 new WiserUFHController (
-										  _wiserRestController,
-										  device,
-										  ufhControllerInfo[0]
-									 )
-								);
-								}
-							}
+					if (ufhControllerInfo != null)
+						{
+						ufhControllerInfo["RoomId"] = GetTempDeviceRoomId (_domainData, deviceId);
+						_ufhControllersCollection.All.Add (
+							 new WiserUFHController (
+								  _wiserRestController,
+								  device,
+								  ufhControllerInfo
+							 )
+						);
+						}
+					}
 #if SHUTTER
 						// Add shutter object to collection
 						else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "Shutter")
 							{
-							var shutterInfo = _domainData.TryGetValue ("Shutter", out var shutters) && shutters is List<Dictionary<string, object>> shuttersList
-								 ? shuttersList
-									  .Where (s => s.TryGetValue ("DeviceId", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
-									  .ToList ()
-								 : new List<Dictionary<string, object>> ();
+							var shutterInfo = (_domainData.TryGetValue("Shutter", out var shutters) && shutters is List<Dictionary<string, object>> shuttersList)
+								? shuttersList.FirstOrDefault(s => s.TryGetValue("DeviceId", out var id) && Convert.ToInt32(id) == Convert.ToInt32(device["id"]))
+								: null;
 
-							if (shutterInfo.Count > 0)
+							if (shutterInfo != null)
 								{
 								var shutterSchedule = _schedules.GetByType (WiserScheduleTypeEnum.Level)
-									 .Where (s => s.Id == (shutterInfo[0].TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0))
-									 .ToList ();
+									 .FirstOrDefault(s => s.Id == (shutterInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
 
 								_shuttersCollection.All.Add (
 									 new WiserShutter (
 										  _wiserRestController,
 										  device,
-										  shutterInfo[0],
-										  shutterSchedule.Count > 0 ? shutterSchedule[0] : null
+										  shutterInfo,
+										  shutterSchedule
 									 )
 								);
 								}
@@ -230,17 +222,14 @@ namespace WiserHeatApiV2
 						else if (device.TryGetValue ("ProductType", out productType) &&
 								  (productType.ToString () == "OnOffLight" || productType.ToString () == "DimmableLight"))
 							{
-							var lightInfo = _domainData.TryGetValue ("Light", out var lights) && lights is List<Dictionary<string, object>> lightsList
-								 ? lightsList
-									  .Where (l => l.TryGetValue ("DeviceId", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
-									  .ToList ()
-								 : new List<Dictionary<string, object>> ();
+							var lightInfo = (_domainData.TryGetValue("Light", out var lights) && lights is List<Dictionary<string, object>> lightsList)
+								? lightsList.FirstOrDefault(l => l.TryGetValue("DeviceId", out var id) && Convert.ToInt32(id) == Convert.ToInt32(device["id"]))
+								: null;
 
-							if (lightInfo.Count > 0)
+							if (lightInfo != null)
 								{
 								var lightSchedule = _schedules.GetByType (WiserScheduleTypeEnum.Level)
-									 .Where (s => s.Id == (lightInfo[0].TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0))
-									 .ToList ();
+									 .FirstOrDefault(s => s.Id == (lightInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
 
 								if (productType.ToString () == "DimmableLight")
 									{
@@ -248,8 +237,8 @@ namespace WiserHeatApiV2
 										 new WiserDimmableLight (
 											  _wiserRestController,
 											  device,
-											  lightInfo[0],
-											  lightSchedule.Count > 0 ? lightSchedule[0] : null
+											  lightInfo,
+											  lightSchedule
 										 )
 									);
 									}
@@ -259,54 +248,92 @@ namespace WiserHeatApiV2
 										 new WiserLight (
 											  _wiserRestController,
 											  device,
-											  lightInfo[0],
-											  lightSchedule.Count > 0 ? lightSchedule[0] : null
+											  lightInfo,
+											  lightSchedule
 										 )
 									);
 									}
 								}
 							}
 #endif
-						}
-					}
 				}
 			}
 
 		public void Update (Dictionary<string, object> domainData, WiserScheduleCollection schedules)
 			{
-			_deviceData = domainData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList
-				 ? new Dictionary<string, object> { { "Device", devicesList } }
-				 : new Dictionary<string, object> ();
 			_domainData = domainData;
 			_schedules = schedules;
+			if (domainData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList)
+				{
+				var dlh = new HashSet<int> (_devicesList.Keys);
+				var newDeviceHash = new HashSet<int> (devicesList.Select (d => Convert.ToInt32 (d["id"])));
+				var removedDevicesHash = dlh.Except (newDeviceHash).ToHashSet<int> ();
+				var addedDevicesHash = newDeviceHash.Except (dlh).ToHashSet<int> ();
+				if (removedDevicesHash.Count > 0)
+					{
+					// Remove devices that are no longer present
+					foreach (var id in removedDevicesHash)
+						_devicesList.TryRemove (id, out _);
 
-			Build ();
+					// Remove from collections
+					_smartvalvesCollection.All.RemoveAll (d => removedDevicesHash.Contains (d.Id));
+					_roomstatsCollection.All.RemoveAll (d => removedDevicesHash.Contains (d.Id));
+					_smartplugsCollection.All.RemoveAll (d => removedDevicesHash.Contains (d.Id));
+					}
+				// Add new devices
+				if (addedDevicesHash.Count > 0)
+					{
+					var newDevices = devicesList.Where (d => addedDevicesHash.Contains (Convert.ToInt32 (d["id"])));
+					foreach (var newDevice in newDevices)
+						_devicesList[Convert.ToInt32 (newDevice["id"])] = newDevice;
+
+					// Rebuild collections with new devices
+					Build (newDevices);
+					}
+				}
+			else
+				_devicesList = new ConcurrentDictionary<int, Dictionary<string, object>> ();
 			}
 
 		private int GetTempDeviceRoomId (Dictionary<string, object> domainData, int deviceId)
 			{
 			if (domainData.TryGetValue ("Room", out var rooms) && rooms is List<Dictionary<string, object>> roomsList)
 				{
-				foreach (var roomObj in roomsList)
+				foreach (var room in roomsList)
 					{
-					if (roomObj is Dictionary<string, object> room)
+					int roomId = Convert.ToInt32 (room["id"]);
+
+					if (room.TryGetValue ("SmartValveIds", out var smartValveIds) && smartValveIds is List<object> smartValveIdsList)
 						{
-						var roomDeviceList = new List<int> ();
-
-						if (room.TryGetValue ("SmartValveIds", out var smartValveIds) && smartValveIds is List<object> smartValveIdsList)
-							roomDeviceList.AddRange (smartValveIdsList.Select (id => Convert.ToInt32 (id)));
-
-						if (room.TryGetValue ("HeatingActuatorIds", out var heatingActuatorIds) && heatingActuatorIds is List<object> heatingActuatorIdsList)
-							roomDeviceList.AddRange (heatingActuatorIdsList.Select (id => Convert.ToInt32 (id)));
-
-						if (room.TryGetValue ("RoomStatId", out var roomStatId))
-							roomDeviceList.Add (Convert.ToInt32 (roomStatId));
-
-						if (room.TryGetValue ("UnderFloorHeatingId", out var ufhId))
-							roomDeviceList.Add (Convert.ToInt32 (ufhId));
-
-						if (roomDeviceList.Contains (deviceId))
-							return Convert.ToInt32 (room["id"]);
+						foreach (var id in smartValveIdsList)
+							{
+							if (Convert.ToInt32 (id) == deviceId)
+								return roomId;
+							}
+						}
+#if HEATACTUATOR
+						if (room.TryGetValue("HeatingActuatorIds", out var heatingActuatorIds) && heatingActuatorIds is List<object> heatingActuatorIdsList)
+							{
+								foreach (var id in heatingActuatorIdsList)
+								{
+									if (Convert.ToInt32(id) == deviceId)
+										return roomId;
+								}
+							}
+#endif
+					if (room.TryGetValue ("RoomStatId", out var roomStatId))
+						{
+						if (Convert.ToInt32 (roomStatId) == deviceId)
+							return roomId;
+						}
+					if (room.TryGetValue ("UnderFloorHeatingId", out var ufhId))
+						{
+						if (Convert.ToInt32 (ufhId) == deviceId)
+							return roomId;
+						}
+					if (Smartplugs.All.FirstOrDefault (sp => sp.Id == deviceId && sp.RoomId == roomId) != null)
+						{
+						return roomId;
 						}
 					}
 				}

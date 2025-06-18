@@ -52,10 +52,10 @@ namespace WiserHeatApiV2
 			}
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? Convert.ToInt32 (setPoint) : 0);
+			 _deviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0);
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? Convert.ToInt32 (temp) : 0, "current");
+			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
 
 		public bool Identify => _identifyActive;
 		public async Task<bool> SetIdentifyAsync (bool value)

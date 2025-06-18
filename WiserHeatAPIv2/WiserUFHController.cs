@@ -48,7 +48,7 @@ namespace WiserHeatApiV2
 			}
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? Convert.ToInt32 (temp) : Constants.TEMP_OFF, "current");
+			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TEMP_OFF, "current");
 
 		public bool DeviceLockEnabled => _deviceLockEnabled;
 		public async Task<bool> SetDeviceLockEnabledAsync (bool value)

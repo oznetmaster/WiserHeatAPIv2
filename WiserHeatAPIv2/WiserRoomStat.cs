@@ -40,10 +40,10 @@ namespace WiserHeatApiV2
 		public int CurrentHumidity => _deviceTypeData.TryGetValue ("MeasuredHumidity", out var humidity) ? Convert.ToInt32 (humidity) : 0;
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? Convert.ToInt32 (setPoint) : 0);
+			 _deviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0);
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? Convert.ToInt32 (temp) : 0, "current");
+			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
 
 		public bool DeviceLockEnabled => _deviceLockEnabled;
 		public async Task<bool> SetDeviceLockEnabledAsync (bool value)

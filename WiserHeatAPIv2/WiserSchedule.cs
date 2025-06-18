@@ -134,7 +134,7 @@ namespace WiserHeatApiV2
 				if (_type == WiserScheduleTypeEnum.Heating.ToString ())
 					{
 					return WiserTemperatureFunctions.FromWiserTemp (
-						 _scheduleData.TryGetValue ("CurrentSetpoint", out var setpoint) ? Convert.ToInt32 (setpoint) : Constants.TEMP_MINIMUM);
+						 _scheduleData.TryGetValue ("CurrentSetpoint", out var setpoint) ? setpoint : Constants.TEMP_MINIMUM);
 					}
 				if (_type == WiserScheduleTypeEnum.OnOff.ToString ())
 					{
@@ -445,7 +445,7 @@ namespace WiserHeatApiV2
 						  {
 								{ Constants.TEXT_TIME, time },
 								{ genericSetpoint ? Constants.TEXT_SETPOINT : Constants.TEXT_TEMP,
-								  WiserTemperatureFunctions.FromWiserTemp(Convert.ToInt32(temps[i])) }
+								  WiserTemperatureFunctions.FromWiserTemp(temps[i]) }
 						  });
 					}
 				}

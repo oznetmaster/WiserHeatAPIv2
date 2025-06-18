@@ -135,6 +135,24 @@ namespace WiserHeatAPIv2Test
 						  roomStat.CurrentHumidity,
 						  roomStat.Battery.Percent);
 					}
+
+				var smartPlugs = wapi.Devices.Smartplugs.All.Where (x => x.RoomId == roomTest.Id).ToList ();
+				if (smartPlugs.Count > 0)
+					{
+					Console.WriteLine ("\tSmartplugs in this room:");
+					foreach (var smartPlug in smartPlugs)
+						{
+						Console.WriteLine ("\t\tSmartplug ({0}) {1}, state={2}, scheduled state={3}",
+							  smartPlug.Name,
+							  smartPlug.Id,
+							  smartPlug.IsOn ? "On" : "Off",
+							  smartPlug.ScheduledState);
+						}
+					}
+				else
+					{
+					Console.WriteLine ("\tNo Smartplugs in this room");
+					}
 				}
 
 				{
@@ -185,7 +203,7 @@ namespace WiserHeatAPIv2Test
 				var settings = slots["DegreesC"] as List<object>;
 				for (int i = 0; i < times.Count; i++)
 					{
-					Console.WriteLine ($"\tTime: {times[i]}, Setting: {WiserTemperatureFunctions.FromWiserTemp(Convert.ToInt32(settings[i]))}");
+					Console.WriteLine ($"\tTime: {times[i]}, Setting: {WiserTemperatureFunctions.FromWiserTemp(settings[i])}");
 					}
 				}
 			//Console.WriteLine ($"Next schedule change: {next.Time}, Level: {next.Setting}");

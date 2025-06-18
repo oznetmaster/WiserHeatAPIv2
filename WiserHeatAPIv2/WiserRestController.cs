@@ -37,7 +37,9 @@ namespace WiserHeatApiV2
 		public const string WISERSMARTVALVE = "SmartValve/{0}";
 		public const string WISERROOMSTAT = "RoomStat/{0}";
 		public const string WISERSMARTPLUG = "SmartPlug/{0}";
+#if HEATACTUATOR
 		public const string WISERHEATINGACTUATOR = "HeatingActuator/{0}";
+#endif
 		public const string WISERUFHCONTROLLER = "UnderFloorHeating/{0}";
 #if SHUTTER
 		public const string WISERSHUTTER = "Shutter/{0}";
@@ -66,8 +68,14 @@ namespace WiserHeatApiV2
 	// Connection Info Class
 	public class WiserConnection
 		{
-		public string Host { get; set; }
-		public string Secret { get; set; }
+		public string Host
+			{
+			get; set;
+			}
+		public string Secret
+			{
+			get; set;
+			}
 		public WiserUnitsEnum Units { get; set; } = WiserUnitsEnum.Metric; // Default to Metric
 		}
 

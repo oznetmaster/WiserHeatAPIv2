@@ -1,7 +1,9 @@
-// Copyright © 2025 Nivloc Enterprises Ltd.
-// Adapted from the Python implementation Copyright © 2021 Mark Parker
-// Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
+//-----------------------------------------------------------------------
+// <copyright file="WiserRoom.cs" company="">
+//     Author:  
+//     Copyright (c) . All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -27,10 +29,10 @@ namespace WiserHeatApiV2
 			_schedule = schedule;
 			_devices = devices;
 			_mode = EffectiveHeatingMode (
-				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : "",
+				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : string.Empty,
 				 CurrentTargetTemperature
 			);
-			_name = room.TryGetValue ("Name", out var name) ? name.ToString () : "";
+			_name = room.TryGetValue ("Name", out var name) ? name.ToString () : string.Empty;
 			_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection);
 
 			// Add device id to schedule
@@ -61,34 +63,45 @@ namespace WiserHeatApiV2
 					_data[kvp.Key] = kvp.Value;
 					}
 
-				_devices.Clear ();
-				foreach (var device in devices)
+				var dhi = _devices.Select (d => d.Id).ToHashSet ();
+				var newDeviceIds = devices.Select (d => d.Id).ToHashSet ();
+				var deletedDevices = dhi.Except (newDeviceIds).ToList ();
+				var addedDevices = newDeviceIds.Except (dhi).ToList ();
+				// Remove devices that are not in the new data
+				_devices.RemoveAll (d => deletedDevices.Contains (d.Id));
+
+				foreach (var device in devices) 
 					{
-					_devices.Add (device);
+					if (!dhi.Contains (device.Id))
+						{
+						// Add new device if it doesn't already exist
+						_devices.Add (device);
+						}
 					}
 
 				_mode = EffectiveHeatingMode (
-					 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : "",
+					 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : string.Empty,
 					 CurrentTargetTemperature
 					);
 
-				_name = room.TryGetValue ("Name", out var name) ? name.ToString () : "";
+				_name = room.TryGetValue ("Name", out var name) ? name.ToString () : string.Empty;
 				_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection);
 
-				var tschedule = schedule;
-
 				// Add device id to schedule
-				if (tschedule != null)
+				if (schedule != null)
 					{
-					if (tschedule.Assignments.Count != 0 || oldId != Id || oldName != Name /*|| _schedule.Assignments.Any (a => (int)a["id"] == oldId || (string)a["name"] == oldName)*/)
+					if (schedule.Assignments.Count != 0 && (oldId != Id || oldName != Name) /*|| _schedule.Assignments.Any (a => (int)a["id"] == oldId || (string)a["name"] == oldName)*/)
 						{
 						// Remove old assignment if the id or name has changed
-						tschedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
+						schedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
 						}
-					tschedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
+					if (!schedule.Assignments.Any (a => (int)a["id"] == Id && (string)a["name"] == Name))
+						{
+						// Add new assignment if it doesn't already exist
+						schedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
+						}
 					}
 
-				_schedule = tschedule;
 				}
 			}
 
@@ -134,10 +147,10 @@ namespace WiserHeatApiV2
 		public string ControlDirection => _data.TryGetValue ("ControlDirection", out var direction) ? direction.ToString () : Constants.TEXT_UNKNOWN;
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("CurrentSetPoint", out var setPoint) ? Convert.ToInt32 (setPoint) : Constants.TEMP_MINIMUM);
+			 _data.TryGetValue ("CurrentSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM);
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("CalculatedTemperature", out var temp) ? Convert.ToInt32 (temp) : Constants.TEMP_MINIMUM, "current");
+			 _data.TryGetValue ("CalculatedTemperature", out var temp) ? temp : Constants.TEMP_MINIMUM, "current");
 
 		public int? CurrentHumidity
 			{
@@ -159,12 +172,13 @@ namespace WiserHeatApiV2
 		public List<WiserDevice> Devices => _devices;
 
 		public double DisplayedSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("DisplayedSetPoint", out var setPoint) ? Convert.ToInt32 (setPoint) : Constants.TEMP_MINIMUM, "current");
+			 _data.TryGetValue ("DisplayedSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM, "current");
 
+#if HEATACTUATOR
 		public List<int> HeatingActuatorIds => _data.TryGetValue ("HeatingActuatorIds", out var ids) && ids is List<object> idsList
 			 ? idsList.Select (id => Convert.ToInt32 (id)).OrderBy (id => id).ToList ()
 			 : new List<int> ();
-
+#endif
 		public string HeatingRate => _data.TryGetValue ("HeatingRate", out var rate) ? rate.ToString () : Constants.TEXT_UNKNOWN;
 
 		public string HeatingType => _data.TryGetValue ("HeatingType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
@@ -184,7 +198,7 @@ namespace WiserHeatApiV2
 		public bool IsHeating => _data.TryGetValue ("ControlOutputState", out var state) && state.ToString () == Constants.TEXT_ON;
 
 		public double ManualTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? Convert.ToInt32 (setPoint) : Constants.TEMP_MINIMUM);
+			 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM);
 
 		public string Mode
 			{
@@ -250,7 +264,9 @@ namespace WiserHeatApiV2
 				}
 			}
 
+#if HEATACTUATOR
 		public int NumberOfHeatingActuators => HeatingActuatorIds.Count;
+#endif
 
 		public int NumberOfSmartvalves => SmartvalveIds.Count;
 
@@ -267,7 +283,7 @@ namespace WiserHeatApiV2
 		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
 
 		public double ScheduledTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("ScheduledSetPoint", out var setPoint) ? Convert.ToInt32 (setPoint) : Constants.TEMP_MINIMUM);
+			 _data.TryGetValue ("ScheduledSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM);
 
 		public List<int> SmartvalveIds => _data.TryGetValue ("SmartValveIds", out var ids) && ids is List<object> idsList
 			 ? idsList.Select (id => Convert.ToInt32 (id)).OrderBy (id => id).ToList ()

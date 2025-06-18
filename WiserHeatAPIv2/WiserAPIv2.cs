@@ -160,6 +160,20 @@ namespace WiserHeatApiV2
 			return (int)temp;
 			}
 
+		public static double FromWiserTemp (object temp, string type = "set_heating", WiserUnitsEnum units = WiserUnitsEnum.Metric)
+			{
+			if (temp == null || temp is DBNull)
+				return 0;
+			if (temp is int intTemp)
+				return FromWiserTemp (intTemp, type, units);
+			if (temp is long longTemp)
+				return FromWiserTemp ((int)longTemp, type, units);
+			if (temp is double doubleTemp)
+				return FromWiserTemp ((int)Math.Round (doubleTemp * 10), type, units);
+
+			throw new ArgumentException ("Invalid temperature value type. Expected int or double.");
+			}
+
 		public static double FromWiserTemp (int? temp, string type = "set_heating", WiserUnitsEnum units = WiserUnitsEnum.Metric)
 			{
 			if (!temp.HasValue)
@@ -183,6 +197,8 @@ namespace WiserHeatApiV2
 
 			return realTemp;
 			}
+
+
 
 		private static double ValidateTemperature (double temp, string type = "set_heating")
 			{
@@ -681,13 +697,13 @@ namespace WiserHeatApiV2
 		public double ChPressureBar => _data.TryGetValue ("ChPressureBar", out var value) ? Convert.ToDouble (value) / 10 : 0;
 
 		public double ChFlowTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("Ch1FlowTemperature", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("Ch1FlowTemperature", out var value) ? value : (int?)null, "current");
 
 		public double ChReturnTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("ChReturnTemperature", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("ChReturnTemperature", out var value) ? value : (int?)null, "current");
 
 		public double HwTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("Dhw1Temperature", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("Dhw1Temperature", out var value) ? value : (int?)null, "current");
 
 		public int? RelativeModulationLevel => _data.TryGetValue ("RelativeModulationLevel", out var value) ? (int?)Convert.ToInt32 (value) : null;
 
@@ -706,20 +722,20 @@ namespace WiserHeatApiV2
 			}
 
 		public double ChFlowActiveLowerSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("chFlowActiveLowerSetpoint", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("chFlowActiveLowerSetpoint", out var value) ? value : (int?)null, "current");
 
 		public double ChFlowActiveUpperSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("chFlowActiveUpperSetpoint", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("chFlowActiveUpperSetpoint", out var value) ? value : (int?)null, "current");
 
 		public bool Ch1FlowEnabled => _data.TryGetValue ("ch1FlowEnable", out var value) && Convert.ToBoolean (value);
 
 		public double Ch1FlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("ch1FlowSetpoint", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("ch1FlowSetpoint", out var value) ? value : (int?)null, "current");
 
 		public bool Ch2FlowEnabled => _data.TryGetValue ("ch2FlowEnable", out var value) && Convert.ToBoolean (value);
 
 		public double Ch2FlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("ch2FlowSetpoint", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("ch2FlowSetpoint", out var value) ? value : (int?)null, "current");
 
 		public string ConnectionStatus => _enabledStatus;
 
@@ -728,7 +744,7 @@ namespace WiserHeatApiV2
 		public bool HwEnabled => _data.TryGetValue ("dhwEnable", out var value) && Convert.ToBoolean (value);
 
 		public double HwFlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("dhwFlowSetpoint", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("dhwFlowSetpoint", out var value) ? value : (int?)null, "current");
 
 		public string OperatingMode => _data.TryGetValue ("operatingMode", out var value) ? value.ToString () : null;
 
@@ -757,10 +773,10 @@ namespace WiserHeatApiV2
 			}
 
 		public double RoomSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("roomSetpoint", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("roomSetpoint", out var value) ? value : (int?)null, "current");
 
 		public double RoomTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("roomTemperature", out var value) ? Convert.ToInt32 (value) : (int?)null, "current");
+			 _data.TryGetValue ("roomTemperature", out var value) ? value : (int?)null, "current");
 
 		public int? TrackedRoomId => _data.TryGetValue ("TrackedRoomId", out var value) ? (int?)Convert.ToInt32 (value) : null;
 		}
@@ -896,7 +912,7 @@ namespace WiserHeatApiV2
 				{
 				if (_scheduleType == Constants.TEXT_HEATING)
 					{
-					return WiserTemperatureFunctions.FromWiserTemp (_data.TryGetValue ("DegreesC", out var temp) ? Convert.ToInt32 (temp) : 0);
+					return WiserTemperatureFunctions.FromWiserTemp (_data.TryGetValue ("DegreesC", out var temp) ? temp : 0);
 					}
 				if (_scheduleType == Constants.TEXT_ONOFF)
 					{
