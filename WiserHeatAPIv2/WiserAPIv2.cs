@@ -962,6 +962,47 @@ namespace WiserHeatApiV2
 			}
 		}
 
+	public static class WiserTimeExtensions
+		{
+		public static string ToWiserTime (this TimeSpan time)
+			{
+			return time.ToString (@"hh\:mm");
+			}
+		public static TimeSpan FromWiserTime (this string timeStr)
+			{
+			if (string.IsNullOrWhiteSpace (timeStr) || timeStr.Length != 5)
+				throw new ArgumentException ("Invalid time format. Expected 'HH:MM' format.");
+			int hours = int.Parse (timeStr.Substring (0, 2));
+			int minutes = int.Parse (timeStr.Substring (3, 2));
+			return new TimeSpan (hours, minutes, 0);
+			}
+
+		public static string ToWiserTime (this long time)
+			{
+			if (time < 0 || time > 2359)
+				throw new ArgumentOutOfRangeException ("Time must be between 0 and 2359.");
+			string timeStr = time.ToString ("D4");
+			return timeStr.Substring (0, 2) + ":" + timeStr.Substring (2, 2);
+			}
+
+		public static string ToWiserTime (this object timeObj)
+			{
+			if (timeObj is long timeLong)
+				{
+				return ToWiserTime (timeLong);
+				}
+			if (timeObj is TimeSpan timeSpan)
+				{
+				return ToWiserTime (timeSpan);
+				}
+			if (timeObj is string timeStr && timeStr.Length == 5)
+				{
+				return timeStr;
+				}
+			throw new ArgumentException ("Invalid time object type. Expected long, TimeSpan, or string in 'HH:MM' format.");
+			}
+		}
+
 	public static class StringExtensions
 		{
 		public static string Title (this string str)

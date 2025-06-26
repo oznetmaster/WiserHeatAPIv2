@@ -110,12 +110,13 @@ namespace WiserHeatAPIv2Test
 						var smartValve = wapi.Devices.Smartvalves.All.FirstOrDefault (x => x.Id == smartValveId);
 						if (smartValve != null)
 							{
-							Console.WriteLine ("\t\tSmartvalve ({0}) {1}, setpoint={2}C, current temp={3}C, battery={4}%",
+							Console.WriteLine ("\t\tSmartvalve ({0}) {1}, setpoint={2}C, current temp={3}C, battery={4}% {5}",
 								  smartValve.Name,
 								  smartValve.Id,
 								  smartValve.CurrentTargetTemperature,
 								  smartValve.CurrentTemperature,
-								  smartValve.Battery.Percent
+								  smartValve.Battery.Percent,
+								  smartValve.Battery.Level
 							 );
 							}
 						else
@@ -127,13 +128,14 @@ namespace WiserHeatAPIv2Test
 				if (roomTest.RoomstatId != null)
 					{
 					var roomStat = wapi.Devices.Roomstats.All.FirstOrDefault (x => x.Id == roomTest.RoomstatId);
-					Console.WriteLine ("\tRoomstat ({0}) {1}, setpoint={2}C, current temp={3}C, current humidity={4}% battery={5}%",
+					Console.WriteLine ("\tRoomstat ({0}) {1}, setpoint={2}C, current temp={3}C, current humidity={4}% battery={5}% {6}",
 						  roomStat.Name,
 						  roomStat.Id,
 						  roomStat.CurrentTargetTemperature,
 						  roomStat.CurrentTemperature,
 						  roomStat.CurrentHumidity,
-						  roomStat.Battery.Percent);
+						  roomStat.Battery.Percent,
+						  roomStat.Battery.Level);
 					}
 
 				var smartPlugs = wapi.Devices.Smartplugs.All.Where (x => x.RoomId == roomTest.Id).ToList ();
@@ -152,6 +154,13 @@ namespace WiserHeatAPIv2Test
 				else
 					{
 					Console.WriteLine ("\tNo Smartplugs in this room");
+					}
+
+				var lowBattery = (roomTest.RoomstatId.HasValue && wapi.Devices.Roomstats.GetById (roomTest.RoomstatId.Value)?.Battery.Level == "Low")
+					|| (roomTest.SmartvalveIds?.Count > 0 && roomTest.SmartvalveIds.Any (svid => wapi.Devices.Smartvalves.GetById (svid).Battery.Level == "Low"));
+				if (lowBattery)
+					{
+					Console.WriteLine($"\tLow battery warning in room: {roomTest.Name}");
 					}
 				}
 
@@ -203,7 +212,7 @@ namespace WiserHeatAPIv2Test
 				var settings = slots["DegreesC"] as List<object>;
 				for (int i = 0; i < times.Count; i++)
 					{
-					Console.WriteLine ($"\tTime: {times[i]}, Setting: {WiserTemperatureFunctions.FromWiserTemp(settings[i])}");
+					Console.WriteLine ($"\tTime: {times[i].ToWiserTime ()}, Setting: {WiserTemperatureFunctions.FromWiserTemp(settings[i]):f1}");
 					}
 				}
 			//Console.WriteLine ($"Next schedule change: {next.Time}, Level: {next.Setting}");
