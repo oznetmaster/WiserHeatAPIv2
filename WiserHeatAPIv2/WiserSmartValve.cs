@@ -12,11 +12,11 @@ namespace WiserHeatApiV2
 	public class WiserSmartValve : WiserDevice
 		{
 		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, object> _deviceTypeData;
+		private readonly IDictionary<string, object> _deviceTypeData;
 		private bool _deviceLockEnabled;
 		private bool _identifyActive;
 
-		public WiserSmartValve (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData)
+		public WiserSmartValve (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData)
 			 : base (data)
 			{
 			_wiserRestController = wiserRestController;

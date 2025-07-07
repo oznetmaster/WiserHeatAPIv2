@@ -253,9 +253,9 @@ namespace WiserHeatApiV2
 
 	public class WiserBattery
 		{
-		private readonly Dictionary<string, object> _data;
+		private readonly IDictionary<string, object> _data;
 
-		public WiserBattery (Dictionary<string, object> data)
+		public WiserBattery (IDictionary<string, object> data)
 			{
 			_data = data;
 			}
@@ -296,9 +296,9 @@ namespace WiserHeatApiV2
 
 	public class WiserSignalStrength
 		{
-		private readonly Dictionary<string, object> _data;
+		private readonly IDictionary<string, object> _data;
 
-		public WiserSignalStrength (Dictionary<string, object> data)
+		public WiserSignalStrength (IDictionary<string, object> data)
 			{
 			_data = data;
 			}
@@ -667,6 +667,7 @@ namespace WiserHeatApiV2
 		public string SSID => _data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : Constants.TEXT_UNKNOWN;
 		}
 
+#if OPENTHERM
 	public class WiserOpenThermBoilerParameters
 		{
 		private readonly Dictionary<string, object> _data;
@@ -712,10 +713,10 @@ namespace WiserHeatApiV2
 
 	public class WiserOpentherm
 		{
-		internal readonly Dictionary<string, object> _data;
+		internal readonly IDictionary<string, object> _data;
 		private readonly string _enabledStatus;
 
-		public WiserOpentherm (Dictionary<string, object> data, string enabledStatus)
+		public WiserOpentherm (IDictionary<string, object> data, string enabledStatus)
 			{
 			_data = data;
 			_enabledStatus = enabledStatus;
@@ -780,6 +781,7 @@ namespace WiserHeatApiV2
 
 		public int? TrackedRoomId => _data.TryGetValue ("TrackedRoomId", out var value) ? (int?)Convert.ToInt32 (value) : null;
 		}
+#endif
 
 	public class WiserZigbee
 		{
@@ -995,10 +997,16 @@ namespace WiserHeatApiV2
 				{
 				return ToWiserTime (timeSpan);
 				}
-			if (timeObj is string timeStr && timeStr.Length == 5)
-				{
-				return timeStr;
-				}
+			if (timeObj is string timeStr)
+				if (timeStr.Length == 5 && timeStr[2] == ':') // Check for 'HH:MM' format
+					{
+					return timeStr;
+					}
+				else if (timeStr.Length == 4 && int.TryParse (timeStr, out int timeInt) && timeInt >= 0 && timeInt <= 2359)
+					{
+					return ToWiserTime (timeInt);
+					}
+
 			throw new ArgumentException ("Invalid time object type. Expected long, TimeSpan, or string in 'HH:MM' format.");
 			}
 		}

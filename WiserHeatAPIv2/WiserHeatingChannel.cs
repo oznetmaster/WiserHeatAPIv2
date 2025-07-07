@@ -10,9 +10,9 @@ namespace WiserHeatApiV2
 	{
 	public class WiserHeatingChannel
 		{
-		private readonly Dictionary<string, object> _data;
+		private readonly IDictionary<string, object> _data;
 
-		public WiserHeatingChannel (Dictionary<string, object> data)
+		public WiserHeatingChannel (IDictionary<string, object> data)
 			{
 			_data = data;
 			}

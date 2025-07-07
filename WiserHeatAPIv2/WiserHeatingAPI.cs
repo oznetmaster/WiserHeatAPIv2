@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 using WiserHeatApiV2;
@@ -76,10 +77,26 @@ namespace WiserHeatingAPI
 			if (!string.IsNullOrEmpty (_wiserApiConnection.Host) && !string.IsNullOrEmpty (_wiserApiConnection.Secret))
 				{
 				_wiserRestController = new WiserRestController (_wiserApiConnection);
-				ReadHubDataAsync ().Wait ();
 				}
 			else
 				throw new WiserHubConnectionException ("Missing or incomplete connection information");
+			}
+
+		public async Task InitializeAsync (CancellationToken cancellationToken = default)
+			{
+			try
+				{
+				if (await ReadHubDataAsync ().ConfigureAwait (false))
+					return;
+				_LOGGER.Error ("Failed to read hub data. Please check your connection settings.");
+				// If we reach here, it means the hub data could not be read
+				throw new WiserHubConnectionException ("Failed to read hub data. Please check your connection settings.");
+				}
+			catch (Exception ex)
+				{
+				_LOGGER.Error ("Error initializing Wiser API", ex);
+				throw new WiserHubConnectionException ("Failed to initialize Wiser API: " + ex.Message);
+				}
 			}
 
 		/// <summary>
@@ -140,12 +157,22 @@ namespace WiserHeatingAPI
 					{
 					if (hotWaterData.Count > 0)
 						{
-						int scheduleId = hotWaterData[0].ContainsKey ("ScheduleId") ? Convert.ToInt32 (hotWaterData[0]["ScheduleId"]) : 0;
+						int scheduleId;
+						// If there are multiple hot water data items, use the first one
+						if (hotWaterData.Count > 1)
+							_LOGGER.Warn($"Multiple hot water data items found, using the first one. Count: {hotWaterData.Count}");
+						var firstHotWaterData = hotWaterData[0];
+						// If ScheduleId is not present, default to 0
+						// Check if ScheduleId exists in the first hot water data item
+						if (firstHotWaterData.TryGetValue ("ScheduleId", out var scheduleIdObj))
+							scheduleId = Convert.ToInt32 (scheduleIdObj);
+						else
+							scheduleId = 0;
 						var schedule = _schedules.GetById (WiserScheduleTypeEnum.OnOff, scheduleId);
 						if (_hotwater != null)
-							_hotwater.Update (hotWaterData[0], schedule);
+							_hotwater.Update (firstHotWaterData, schedule);
 						else
-							_hotwater = new WiserHotwater (_wiserRestController, hotWaterData[0], schedule);
+							_hotwater = new WiserHotwater (_wiserRestController, firstHotWaterData, schedule);
 						}
 					}
 

@@ -12,9 +12,9 @@ namespace WiserHeatApiV2
 	public class WiserMoment
 		{
 		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, object> _momentData;
+		private readonly IDictionary<string, object> _momentData;
 
-		public WiserMoment (WiserRestController wiserRestController, Dictionary<string, object> momentData)
+		public WiserMoment (WiserRestController wiserRestController, IDictionary<string, object> momentData)
 			{
 			_wiserRestController = wiserRestController;
 			_momentData = momentData;

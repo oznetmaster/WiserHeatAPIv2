@@ -45,12 +45,23 @@ namespace WiserHeatAPIv2Test
 
 
 			wapi = new WiserAPI (wiserip, wiserkey);
+			if (wapi != null) {
+				Console.WriteLine ("WiserAPI created successfully");
+				}
+			else
+				{
+				Console.WriteLine ("Failed to create WiserAPI instance");
+				return;
+				}
+			// Read the hub data
+			await wapi.InitializeAsync (CancellationToken.None);
 
 			Console.WriteLine ("-------------------------------");
 			Console.WriteLine ("Running tests on Version {0}", wapi.System.ActiveSystemVersion);
 			Console.WriteLine ("-------------------------------");
 			Console.WriteLine ("Model # {0}", wapi.System.Model);
 			Console.WriteLine ($"Hub Date/Time: {wapi.System.HubTime}");
+			Console.WriteLine ($"Hub ZigBee Channel: {wapi.System.Zigbee.NetworkChannel}");
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("Wiser Hub Capabilities");

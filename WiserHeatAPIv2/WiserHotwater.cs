@@ -12,11 +12,11 @@ namespace WiserHeatApiV2
 	public class WiserHotwater
 		{
 		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, object> _data;
+		private readonly IDictionary<string, object> _data;
 		private WiserSchedule _schedule;
 		private string _mode;
 
-		public WiserHotwater (WiserRestController wiserRestController, Dictionary<string, object> hwData, WiserSchedule schedule)
+		public WiserHotwater (WiserRestController wiserRestController, IDictionary<string, object> hwData, WiserSchedule schedule)
 			{
 			_wiserRestController = wiserRestController;
 			_data = hwData;
@@ -30,7 +30,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public void Update (Dictionary<string, object> hwData, WiserSchedule schedule)
+		public void Update (IDictionary<string, object> hwData, WiserSchedule schedule)
 			{
 			var oldId = Id;
 			var oldName = Name;

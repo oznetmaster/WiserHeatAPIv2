@@ -13,7 +13,7 @@ namespace WiserHeatApiV2
 	public class WiserSmartPlug : WiserDevice
 		{
 		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, object> _deviceTypeData;
+		private readonly IDictionary<string, object> _deviceTypeData;
 		private readonly WiserSchedule _schedule;
 		private string _awayAction;
 		private string _mode;
@@ -22,7 +22,7 @@ namespace WiserHeatApiV2
 		private string _outputState;
 		private bool _identifyActive;
 
-		public WiserSmartPlug (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
+		public WiserSmartPlug (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData, WiserSchedule schedule)
 			 : base (data)
 			{
 			_wiserRestController = wiserRestController;

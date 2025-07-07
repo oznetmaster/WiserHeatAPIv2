@@ -22,7 +22,7 @@ namespace WiserHeatApiV2
 		private string _name;
 		private bool _windowDetectionActive;
 
-		public WiserRoom (WiserRestController wiserRestController, Dictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
+		public WiserRoom (WiserRestController wiserRestController, IDictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
 			{
 			_wiserRestController = wiserRestController;
 			_data = new ConcurrentDictionary<string, object> (room);
@@ -43,7 +43,7 @@ namespace WiserHeatApiV2
 			}
 
 		object _lockUpdate = new object ();
-		public void Update (Dictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
+		public void Update (IDictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
 			{
 			lock (_lockUpdate)
 				{

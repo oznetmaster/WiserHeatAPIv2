@@ -12,13 +12,15 @@ namespace WiserHeatApiV2
 	public class WiserSystem
 		{
 		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, object> _data;
-		private Dictionary<string, object> _systemData;
+		private readonly IDictionary<string, object> _data;
+		private IDictionary<string, object> _systemData;
 		private WiserHubCapabilitiesInfo _capabilityData;
 		private WiserCloud _cloudData;
-		private Dictionary<string, object> _deviceData;
+		private IDictionary<string, object> _deviceData;
 		private WiserNetwork _networkData;
+#if OPENTHERM
 		private WiserOpentherm _openthermData;
+#endif
 		private WiserSignalStrength _signal;
 		private WiserFirmwareUpgradeInfo _upgradeData;
 		private WiserZigbee _zigbeeData;
@@ -33,9 +35,9 @@ namespace WiserHeatApiV2
 		private int _timezoneOffset;
 		private bool _valveProtectionEnabled;
 
-		public WiserSystem (WiserRestController wiserRestController, Dictionary<string, object> domainData,
-								Dictionary<string, object> networkData, List<Dictionary<string, object>> deviceData,
-								Dictionary<string, object> openthermData)
+		public WiserSystem (WiserRestController wiserRestController, IDictionary<string, object> domainData,
+								IDictionary<string, object> networkData, List<Dictionary<string, object>> deviceData,
+								IDictionary<string, object> openthermData)
 			{
 			_wiserRestController = wiserRestController;
 			_data = domainData;
@@ -43,7 +45,7 @@ namespace WiserHeatApiV2
 			Build (networkData, deviceData, openthermData);
 			}
 
-		private void Build (Dictionary<string, object> networkData, List<Dictionary<string, object>> deviceData, Dictionary<string, object> openthermData)
+		private void Build (IDictionary<string, object> networkData, List<Dictionary<string, object>> deviceData, IDictionary<string, object> openthermData)
 			{
 			_systemData = _data.TryGetValue ("System", out var system) && system is Dictionary<string, object> systemDict
 				 ? systemDict : new Dictionary<string, object> ();
@@ -59,8 +61,10 @@ namespace WiserHeatApiV2
 				 : new List<Dictionary<string, object>> ()*/ deviceData);
 			_networkData = new WiserNetwork (networkData.TryGetValue ("Station", out var station) && station is Dictionary<string, object> stationDict
 				 ? stationDict : new Dictionary<string, object> ());
+#if OPENTHERM
 			_openthermData = new WiserOpentherm (openthermData,
 				 _systemData.TryGetValue ("OpenThermConnectionStatus", out var otStatus) ? otStatus.ToString () : Constants.TEXT_UNKNOWN);
+#endif
 			_signal = new WiserSignalStrength (_deviceData);
 			_upgradeData = new WiserFirmwareUpgradeInfo (_data.TryGetValue ("UpgradeInfo", out var upgrade) && upgrade is List<object> upgradeList
 				 ? upgradeList.Cast<Dictionary<string, object>> ().ToList () : new List<Dictionary<string, object>> ());
@@ -79,7 +83,7 @@ namespace WiserHeatApiV2
 			_valveProtectionEnabled = _systemData.TryGetValue ("ValveProtectionEnabled", out var vpe) && Convert.ToBoolean (vpe);
 			}
 
-		public void Update (Dictionary<string, object> domainData, Dictionary<string, object> networkData, List<Dictionary<string, object>> deviceData, Dictionary<string, object> openthermData)
+		public void Update (IDictionary<string, object> domainData, IDictionary<string, object> networkData, List<Dictionary<string, object>> deviceData, IDictionary<string, object> openthermData)
 			{
 			if (domainData != null)
 				{
@@ -91,7 +95,7 @@ namespace WiserHeatApiV2
 			Build (networkData, deviceData, openthermData);
 			}
 
-		private Dictionary<string, object> GetSystemDevice (List<Dictionary<string, object>> deviceData)
+		private IDictionary<string, object> GetSystemDevice (List<Dictionary<string, object>> deviceData)
 			{
 			foreach (var device in deviceData)
 				{
@@ -259,7 +263,9 @@ namespace WiserHeatApiV2
 
 		public int NodeId => _deviceData.TryGetValue ("NodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
 
+#if OPENTHERM
 		public WiserOpentherm Opentherm => _openthermData;
+#endif
 
 		public string PairingStatus => _systemData.TryGetValue ("PairingStatus", out var status) ? status.ToString () : Constants.TEXT_UNKNOWN;
 

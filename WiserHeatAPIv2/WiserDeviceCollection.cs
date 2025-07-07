@@ -13,10 +13,10 @@ namespace WiserHeatApiV2
 	{
 	public class WiserDevice
 		{
-		protected readonly Dictionary<string, object> _data;
+		protected readonly IDictionary<string, object> _data;
 		protected readonly WiserSignalStrength _signal;
 
-		public WiserDevice (Dictionary<string, object> data)
+		public WiserDevice (IDictionary<string, object> data)
 			{
 			_data = data;
 			_signal = new WiserSignalStrength (data);
@@ -51,7 +51,7 @@ namespace WiserHeatApiV2
 		{
 		private readonly WiserRestController _wiserRestController;
 		private ConcurrentDictionary<int, Dictionary<string, object>> _devicesList;
-		private Dictionary<string, object> _domainData;
+		private IDictionary<string, object> _domainData;
 		private WiserScheduleCollection _schedules;
 
 		private readonly WiserSmartValveCollection _smartvalvesCollection = new WiserSmartValveCollection ();
@@ -68,7 +68,7 @@ namespace WiserHeatApiV2
 		private readonly WiserLightCollection _lightsCollection = new WiserLightCollection ();
 #endif
 
-		public WiserDeviceCollection (WiserRestController wiserRestController, Dictionary<string, object> domainData, WiserScheduleCollection schedules)
+		public WiserDeviceCollection (WiserRestController wiserRestController, IDictionary<string, object> domainData, WiserScheduleCollection schedules)
 			{
 			_wiserRestController = wiserRestController;
 			if (domainData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList)
@@ -83,7 +83,7 @@ namespace WiserHeatApiV2
 			Build (_devicesList.Values);
 			}
 
-		private void Build (IEnumerable<Dictionary<string, object>> deviceList)
+		private void Build (IEnumerable<IDictionary<string, object>> deviceList)
 			{
 			foreach (Dictionary<string, object> device in deviceList)
 				{
@@ -259,7 +259,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public void Update (Dictionary<string, object> domainData, WiserScheduleCollection schedules)
+		public void Update (IDictionary<string, object> domainData, WiserScheduleCollection schedules)
 			{
 			_domainData = domainData;
 			_schedules = schedules;
@@ -295,7 +295,7 @@ namespace WiserHeatApiV2
 				_devicesList = new ConcurrentDictionary<int, Dictionary<string, object>> ();
 			}
 
-		private int GetTempDeviceRoomId (Dictionary<string, object> domainData, int deviceId)
+		private int GetTempDeviceRoomId (IDictionary<string, object> domainData, int deviceId)
 			{
 			if (domainData.TryGetValue ("Room", out var rooms) && rooms is List<Dictionary<string, object>> roomsList)
 				{

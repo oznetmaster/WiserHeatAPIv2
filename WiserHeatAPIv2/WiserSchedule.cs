@@ -23,13 +23,13 @@ namespace WiserHeatApiV2
 		protected readonly WiserRestController _wiserRestController;
 		protected readonly string _type;
 		protected readonly ConcurrentDictionary<string, object> _scheduleData;
-		protected readonly Dictionary<string, string> _sunrises;
-		protected readonly Dictionary<string, string> _sunsets;
-		protected readonly List<Dictionary<string, object>> _assignments = new List<Dictionary<string, object>> ();
+		protected readonly IDictionary<string, string> _sunrises;
+		protected readonly IDictionary<string, string> _sunsets;
+		protected readonly List<IDictionary<string, object>> _assignments = new List<IDictionary<string, object>> ();
 		protected readonly List<int> _deviceIds = new List<int> ();
 
-		protected WiserSchedule (WiserRestController wiserRestController, string scheduleType, Dictionary<string, object> scheduleData,
-									  Dictionary<string, string> sunrises, Dictionary<string, string> sunsets)
+		protected WiserSchedule (WiserRestController wiserRestController, string scheduleType, IDictionary<string, object> scheduleData,
+									  IDictionary<string, string> sunrises, IDictionary<string, string> sunsets)
 			{
 			_wiserRestController = wiserRestController;
 			_type = scheduleType;
@@ -38,7 +38,7 @@ namespace WiserHeatApiV2
 			_sunsets = sunsets;
 			}
 
-		protected bool ValidateScheduleType (Dictionary<string, object> scheduleData)
+		protected bool ValidateScheduleType (IDictionary<string, object> scheduleData)
 			{
 			return (scheduleData.TryGetValue ("Type", out var type) && type.ToString () == ScheduleType) ||
 					 (scheduleData.TryGetValue ("SubType", out var subType) && subType.ToString () == ScheduleType);
@@ -49,7 +49,7 @@ namespace WiserHeatApiV2
 			return DateTime.TryParseExact (timeValue, "HH:mm", null, System.Globalization.DateTimeStyles.None, out _);
 			}
 
-		protected ConcurrentDictionary<string, object> EnsureType (ConcurrentDictionary<string, object> scheduleData)
+		protected IDictionary<string, object> EnsureType (IDictionary<string, object> scheduleData)
 			{
 			if (!scheduleData.ContainsKey ("Type"))
 				{
@@ -58,10 +58,11 @@ namespace WiserHeatApiV2
 			return scheduleData;
 			}
 
-		protected ConcurrentDictionary<string, object> RemoveScheduleElements (ConcurrentDictionary<string, object> scheduleData)
+		private static string[] removeList = new[] { "id", "CurrentSetpoint", "CurrentState", "Description", "CurrentLevel", "Name", "Next", "Type" };
+		
+		protected ConcurrentDictionary<string, object> ConcurrentRemoveScheduleElements (IDictionary<string, object> scheduleData)
 			{
 			var result = new ConcurrentDictionary<string, object> (scheduleData);
-			var removeList = new[] { "id", "CurrentSetpoint", "CurrentState", "Description", "CurrentLevel", "Name", "Next", "Type" };
 			foreach (var item in removeList)
 				{
 				//if (result.ContainsKey (item))
@@ -72,10 +73,9 @@ namespace WiserHeatApiV2
 			return result;
 			}
 
-		protected Dictionary<string, object> RemoveScheduleElements (Dictionary<string, object> scheduleData)
+		protected IDictionary<string, object> RemoveScheduleElements (IDictionary<string, object> scheduleData)
 			{
 			var result = new Dictionary<string, object> (scheduleData);
-			var removeList = new[] { "id", "CurrentSetpoint", "CurrentState", "Description", "CurrentLevel", "Name", "Next", "Type" };
 			foreach (var item in removeList)
 				{
 				if (result.ContainsKey (item))
@@ -86,26 +86,12 @@ namespace WiserHeatApiV2
 			return result;
 			}
 
-		protected abstract Dictionary<string, object> ConvertFromWiserSchedule (ConcurrentDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false);
-		protected abstract ConcurrentDictionary<string, object> ConvertToWiserSchedule (Dictionary<string, object> scheduleData);
-		protected abstract List<Dictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false);
-		protected abstract object ConvertYamlToWiserDay (List<Dictionary<string, object>> daySchedule);
+		protected abstract IDictionary<string, object> ConvertFromWiserSchedule (IDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false);
+		protected abstract IDictionary<string, object> ConvertToWiserSchedule (IDictionary<string, object> scheduleData);
+		protected abstract List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false);
+		protected abstract object ConvertYamlToWiserDay (List<IDictionary<string, object>> daySchedule);
 
-		protected async Task<bool> SendScheduleCommandAsync (string action, ConcurrentDictionary<string, object> scheduleData, int id = 0)
-			{
-			try
-				{
-				bool result = await _wiserRestController.SendScheduleCommandAsync (action, scheduleData, id != 0 ? id : Id, _type).ConfigureAwait (false);
-				return result;
-				}
-			catch (Exception ex)
-				{
-				_LOGGER.Error ($"Error in SendScheduleCommand: {ex.Message}");
-				throw;
-				}
-			}
-
-		protected async Task<bool> SendScheduleCommandAsync (string action, Dictionary<string, object> scheduleData, int id = 0)
+		protected async Task<bool> SendScheduleCommandAsync (string action, IDictionary<string, object> scheduleData, int id = 0)
 			{
 			try
 				{
@@ -121,7 +107,7 @@ namespace WiserHeatApiV2
 
 		public List<int> DeviceIds => _deviceIds;
 
-		public List<Dictionary<string, object>> Assignments => _assignments;
+		public List<IDictionary<string, object>> Assignments => _assignments;
 
 		public List<int> AssignmentIds => _assignments.Select (a => Convert.ToInt32 (a["id"])).ToList ();
 
@@ -164,9 +150,9 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public ConcurrentDictionary<string, object> ScheduleData => RemoveScheduleElements (new ConcurrentDictionary<string, object> (_scheduleData));
+		public IDictionary<string, object> ScheduleData => RemoveScheduleElements (_scheduleData);
 
-		public Dictionary<string, object> WsScheduleData
+		public IDictionary<string, object> WsScheduleData
 			{
 			get
 				{
@@ -194,7 +180,7 @@ namespace WiserHeatApiV2
 			{
 			try
 				{
-				await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (new ConcurrentDictionary<string, object> (_scheduleData)), toId).ConfigureAwait (false);
+				await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (_scheduleData), toId).ConfigureAwait (false);
 				return true;
 				}
 			catch (Exception ex)
@@ -210,7 +196,7 @@ namespace WiserHeatApiV2
 				{
 				if (Id != 1000)
 					{
-					await SendScheduleCommandAsync ("DELETE", new ConcurrentDictionary<string, object> ()).ConfigureAwait (false);
+					await SendScheduleCommandAsync ("DELETE", new Dictionary<string, object> ()).ConfigureAwait (false);
 					return true;
 					}
 				else
@@ -255,21 +241,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> SetScheduleAsync (ConcurrentDictionary<string, object> scheduleData)
-			{
-			try
-				{
-				await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (scheduleData)).ConfigureAwait (false);
-				return true;
-				}
-			catch (Exception ex)
-				{
-				_LOGGER.Error ($"Error setting schedule: {ex.Message}");
-				return false;
-				}
-			}
-
-		public async Task<bool> SetScheduleAsync (Dictionary<string, object> scheduleData)
+		public async Task<bool> SetScheduleAsync (IDictionary<string, object> scheduleData)
 			{
 			try
 				{
@@ -287,7 +259,7 @@ namespace WiserHeatApiV2
 			{
 			try
 				{
-				var scheduleData = JsonConvert.DeserializeObject<Dictionary<string, object>> (File.ReadAllText (scheduleFile));
+				var scheduleData = JsonConvert.DeserializeObject<IDictionary<string, object>> (File.ReadAllText (scheduleFile));
 				if (ValidateScheduleType (scheduleData))
 					{
 					await SetScheduleAsync (RemoveScheduleElements (scheduleData)).ConfigureAwait (false);
@@ -311,7 +283,7 @@ namespace WiserHeatApiV2
 			try
 				{
 				var deserializer = new YamlDotNet.Serialization.Deserializer ();
-				var scheduleData = deserializer.Deserialize<Dictionary<string, object>> (File.ReadAllText (scheduleYamlFile));
+				var scheduleData = deserializer.Deserialize<IDictionary<string, object>> (File.ReadAllText (scheduleYamlFile));
 
 				if (ValidateScheduleType (scheduleData))
 					{
@@ -332,7 +304,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> SetScheduleFromWsDataAsync (Dictionary<string, object> scheduleData)
+		public async Task<bool> SetScheduleFromWsDataAsync (IDictionary<string, object> scheduleData)
 			{
 			try
 				{
@@ -343,7 +315,7 @@ namespace WiserHeatApiV2
 						{
 						foreach (var entry in scheduleDataList)
 							{
-							if (entry is Dictionary<string, object> entryDict)
+							if (entry is IDictionary<string, object> entryDict)
 								{
 								scheduleJson[entryDict["day"].ToString ()] = entryDict["slots"];
 								}
@@ -370,8 +342,8 @@ namespace WiserHeatApiV2
 
 	public class WiserHeatingSchedule : WiserSchedule
 		{
-		public WiserHeatingSchedule (WiserRestController wiserRestController, string scheduleType, Dictionary<string, object> scheduleData,
-											Dictionary<string, string> sunrises, Dictionary<string, string> sunsets)
+		public WiserHeatingSchedule (WiserRestController wiserRestController, string scheduleType, IDictionary<string, object> scheduleData,
+											IDictionary<string, string> sunrises, IDictionary<string, string> sunsets)
 			 : base (wiserRestController, scheduleType, scheduleData, sunrises, sunsets)
 			{
 			}
@@ -427,9 +399,9 @@ namespace WiserHeatApiV2
 			return await AssignScheduleAsync (remainingRoomIds, false).ConfigureAwait (false);
 			}
 
-		protected override List<Dictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
+		protected override List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
 			{
-			var scheduleSetPoints = new List<Dictionary<string, object>> ();
+			var scheduleSetPoints = new List<IDictionary<string, object>> ();
 			var dayDict = daySchedule as Dictionary<string, object>;
 
 			if (dayDict != null &&
@@ -453,7 +425,7 @@ namespace WiserHeatApiV2
 			return scheduleSetPoints.OrderBy (t => t[Constants.TEXT_TIME].ToString ()).ToList ();
 			}
 
-		protected override object ConvertYamlToWiserDay (List<Dictionary<string, object>> daySchedule)
+		protected override object ConvertYamlToWiserDay (List<IDictionary<string, object>> daySchedule)
 			{
 			var times = new List<string> ();
 			var temps = new List<int> ();
@@ -489,7 +461,7 @@ namespace WiserHeatApiV2
 				};
 			}
 
-		protected override Dictionary<string, object> ConvertFromWiserSchedule (ConcurrentDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false)
+		protected override IDictionary<string, object> ConvertFromWiserSchedule (IDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false)
 			{
 			var scheduleOutput = new Dictionary<string, object>
 				{
@@ -518,7 +490,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		protected override ConcurrentDictionary<string, object> ConvertToWiserSchedule (Dictionary<string, object> scheduleData)
+		protected override IDictionary<string, object> ConvertToWiserSchedule (IDictionary<string, object> scheduleData)
 			{
 			var scheduleOutput = new ConcurrentDictionary<string, object> ();
 
@@ -529,7 +501,7 @@ namespace WiserHeatApiV2
 					string day = kvp.Key;
 					if (Constants.WEEKDAYS.Contains (day.Title ()) || Constants.WEEKENDS.Contains (day.Title ()) || Constants.SPECIAL_DAYS.Contains (day.Title ()))
 						{
-						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<Dictionary<string, object>>);
+						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<IDictionary<string, object>>);
 
 						// If using special days, convert to one entry for each weekday
 						if (Constants.SPECIAL_DAYS.Contains (day.Title ()))
@@ -569,8 +541,8 @@ namespace WiserHeatApiV2
 		{
 		private readonly List<int> _deviceTypeIds = new List<int> ();
 
-		public WiserOnOffSchedule (WiserRestController wiserRestController, string scheduleType, Dictionary<string, object> scheduleData,
-										 Dictionary<string, string> sunrises, Dictionary<string, string> sunsets)
+		public WiserOnOffSchedule (WiserRestController wiserRestController, string scheduleType, IDictionary<string, object> scheduleData,
+										 IDictionary<string, string> sunrises, IDictionary<string, string> sunsets)
 			 : base (wiserRestController, scheduleType, scheduleData, sunrises, sunsets)
 			{
 			}
@@ -628,9 +600,9 @@ namespace WiserHeatApiV2
 			return await AssignScheduleAsync (remainingDeviceIds, false).ConfigureAwait (false);
 			}
 
-		protected override List<Dictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
+		protected override List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
 			{
-			var scheduleSetPoints = new List<Dictionary<string, object>> ();
+			var scheduleSetPoints = new List<IDictionary<string, object>> ();
 			var dayList = daySchedule as List<object>;
 
 			if (dayList != null)
@@ -660,7 +632,7 @@ namespace WiserHeatApiV2
 			return scheduleSetPoints.OrderBy (t => t[Constants.TEXT_TIME].ToString ()).ToList ();
 			}
 
-		protected override object ConvertYamlToWiserDay (List<Dictionary<string, object>> daySchedule)
+		protected override object ConvertYamlToWiserDay (List<IDictionary<string, object>> daySchedule)
 			{
 			var times = new List<int> ();
 
@@ -696,7 +668,7 @@ namespace WiserHeatApiV2
 
 		// Fix for CS0029: Adjusting the return type to match the expected type in the method.
 
-		protected override Dictionary<string, object> ConvertFromWiserSchedule (ConcurrentDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false)
+		protected override IDictionary<string, object> ConvertFromWiserSchedule (IDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false)
 			{
 			var scheduleOutput = new Dictionary<string, object>
 			  {
@@ -725,7 +697,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		protected override ConcurrentDictionary<string, object> ConvertToWiserSchedule (Dictionary<string, object> scheduleData)
+		protected override IDictionary<string, object> ConvertToWiserSchedule (IDictionary<string, object> scheduleData)
 			{
 			var scheduleOutput = new ConcurrentDictionary<string, object> ();
 
@@ -736,7 +708,7 @@ namespace WiserHeatApiV2
 					string day = kvp.Key;
 					if (Constants.WEEKDAYS.Contains (day.Title ()) || Constants.WEEKENDS.Contains (day.Title ()) || Constants.SPECIAL_DAYS.Contains (day.Title ()))
 						{
-						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<Dictionary<string, object>>);
+						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<IDictionary<string, object>>);
 
 						// If using special days, convert to one entry for each weekday
 						if (Constants.SPECIAL_DAYS.Contains (day.Title ()))
@@ -774,8 +746,8 @@ namespace WiserHeatApiV2
 
 	public class WiserLevelSchedule : WiserSchedule
 		{
-		public WiserLevelSchedule (WiserRestController wiserRestController, string scheduleType, Dictionary<string, object> scheduleData,
-										 Dictionary<string, string> sunrises, Dictionary<string, string> sunsets)
+		public WiserLevelSchedule (WiserRestController wiserRestController, string scheduleType, IDictionary<string, object> scheduleData,
+										 IDictionary<string, string> sunrises, IDictionary<string, string> sunsets)
 			 : base (wiserRestController, scheduleType, scheduleData, sunrises, sunsets)
 			{
 			}
@@ -800,11 +772,11 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public new ConcurrentDictionary<string, object> ScheduleData
+		public new IDictionary<string, object> ScheduleData
 			{
 			get
 				{
-				var scheduleData = RemoveScheduleElements (new ConcurrentDictionary<string, object> (_scheduleData));
+				IDictionary<string, object> scheduleData = RemoveScheduleElements (_scheduleData);
 				if (scheduleData.Count > 0)
 					{
 					return scheduleData;
@@ -874,10 +846,10 @@ namespace WiserHeatApiV2
 			return await AssignScheduleAsync (remainingDeviceIds, false).ConfigureAwait (false);
 			}
 
-		protected override List<Dictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
+		protected override List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
 			{
-			var scheduleSetPoints = new List<Dictionary<string, object>> ();
-			var dayDict = daySchedule as Dictionary<string, object>;
+			var scheduleSetPoints = new List<IDictionary<string, object>> ();
+			var dayDict = daySchedule as IDictionary<string, object>;
 
 			if (dayDict != null &&
 				 dayDict.TryGetValue (Constants.TEXT_TIME, out var timeObj) && timeObj is List<object> times &&
@@ -917,7 +889,7 @@ namespace WiserHeatApiV2
 			return scheduleSetPoints.OrderBy (t => t[Constants.TEXT_TIME].ToString ()).ToList ();
 			}
 
-		protected override object ConvertYamlToWiserDay (List<Dictionary<string, object>> daySchedule)
+		protected override object ConvertYamlToWiserDay (List<IDictionary<string, object>> daySchedule)
 			{
 			var times = new List<int> ();
 			var levels = new List<int> ();
@@ -960,7 +932,7 @@ namespace WiserHeatApiV2
 				};
 			}
 
-		protected override Dictionary<string, object> ConvertFromWiserSchedule (ConcurrentDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false)
+		protected override IDictionary<string, object> ConvertFromWiserSchedule (IDictionary<string, object> scheduleData, bool replaceSpecialTimes = false, bool genericSetpoint = false)
 			{
 			var scheduleOutput = new Dictionary<string, object>
 				{
@@ -989,9 +961,9 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		protected override ConcurrentDictionary<string, object> ConvertToWiserSchedule (Dictionary<string, object> scheduleData)
+		protected override IDictionary<string, object> ConvertToWiserSchedule (IDictionary<string, object> scheduleData)
 			{
-			var scheduleOutput = new ConcurrentDictionary<string, object> ();
+			var scheduleOutput = new Dictionary<string, object> ();
 
 			try
 				{
@@ -1000,7 +972,7 @@ namespace WiserHeatApiV2
 					string day = kvp.Key;
 					if (Constants.WEEKDAYS.Contains (day.Title ()) || Constants.WEEKENDS.Contains (day.Title ()) || Constants.SPECIAL_DAYS.Contains (day.Title ()))
 						{
-						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<Dictionary<string, object>>);
+						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<IDictionary<string, object>>);
 
 						// If using special days, convert to one entry for each weekday
 						if (Constants.SPECIAL_DAYS.Contains (day.Title ()))
@@ -1040,14 +1012,16 @@ namespace WiserHeatApiV2
 		{
 		public static ILog _LOGGER = log4net.LogManager.GetLogger (typeof (WiserScheduleCollection));
 		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, string> _sunrises;
-		private readonly Dictionary<string, string> _sunsets;
+		private readonly IDictionary<string, string> _sunrises;
+		private readonly IDictionary<string, string> _sunsets;
 		private readonly List<WiserHeatingSchedule> _heatingSchedules = new List<WiserHeatingSchedule> ();
 		private readonly List<WiserOnOffSchedule> _onoffSchedules = new List<WiserOnOffSchedule> ();
+#if LIGHTING
 		private readonly List<WiserLevelSchedule> _levelSchedules = new List<WiserLevelSchedule> ();
+#endif
 
-		public WiserScheduleCollection (WiserRestController wiserRestController, Dictionary<string, object> scheduleData,
-												  Dictionary<string, string> sunrises, Dictionary<string, string> sunsets)
+		public WiserScheduleCollection (WiserRestController wiserRestController, IDictionary<string, object> scheduleData,
+												  IDictionary<string, string> sunrises, IDictionary<string, string> sunsets)
 			{
 			_wiserRestController = wiserRestController;
 			_sunrises = sunrises;
@@ -1055,7 +1029,7 @@ namespace WiserHeatApiV2
 			Build (scheduleData);
 			}
 
-		private void Build (Dictionary<string, object> scheduleData)
+		private void Build (IDictionary<string, object> scheduleData)
 			{
 			foreach (var scheduleType in scheduleData.Keys)
 				{
@@ -1063,7 +1037,7 @@ namespace WiserHeatApiV2
 					{
 					foreach (var schedule in schedules)
 						{
-						if (schedule is Dictionary<string, object> scheduleDict)
+						if (schedule is IDictionary<string, object> scheduleDict)
 							{
 							if (scheduleType == WiserScheduleTypeEnum.Heating.ToString ())
 								{
@@ -1073,23 +1047,27 @@ namespace WiserHeatApiV2
 								{
 								_onoffSchedules.Add (new WiserOnOffSchedule (_wiserRestController, scheduleType, scheduleDict, _sunrises, _sunsets));
 								}
+#if LIGHTING
 							if (scheduleType == WiserScheduleTypeEnum.Level.ToString ())
 								{
 								_levelSchedules.Add (new WiserLevelSchedule (_wiserRestController, scheduleType, scheduleDict, _sunrises, _sunsets));
 								}
+#endif
 							}
 						}
 					}
 				}
 			}
 
-		public void Update (Dictionary<string, object> scheduleData, Dictionary<string, string> sunrises, Dictionary<string, string> sunsets)
+		public void Update (IDictionary<string, object> scheduleData, IDictionary<string, string> sunrises, IDictionary<string, string> sunsets)
 			{
 			if (scheduleData != null)
 				{
 				_heatingSchedules.Clear ();
 				_onoffSchedules.Clear ();
+#if LIGHTING
 				_levelSchedules.Clear ();
+#endif
 				Build (scheduleData);
 				}
 			if (sunrises != null)
@@ -1106,7 +1084,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private async Task<bool> SendScheduleCommandAsync (string action, Dictionary<string, object> scheduleData, int id = 0)
+		private async Task<bool> SendScheduleCommandAsync (string action, IDictionary<string, object> scheduleData, int id = 0)
 			{
 			try
 				{
@@ -1122,31 +1100,39 @@ namespace WiserHeatApiV2
 
 		public List<WiserSchedule> All => _heatingSchedules.Cast<WiserSchedule> ()
 			 .Concat (_onoffSchedules.Cast<WiserSchedule> ())
+#if LIGHTING
 			 .Concat (_levelSchedules.Cast<WiserSchedule> ())
+#endif
 			 .ToList ();
 
 		public int Count => All.Count;
 
 		public List<WiserHeatingSchedule> HeatingSchedules => _heatingSchedules;
 
+#if LIGHTING
 		public List<WiserLevelSchedule> LevelSchedules => _levelSchedules;
+#endif
 
 		public List<WiserOnOffSchedule> OnoffSchedules => _onoffSchedules;
 
 		public WiserSchedule GetById (WiserScheduleTypeEnum scheduleType, int id)
 			{
+#if LIGHTING || SHUTTERS
 			// Adjust schedule type for lighting and shutters
 			if (scheduleType == WiserScheduleTypeEnum.Lighting || scheduleType == WiserScheduleTypeEnum.Shutters)
 				{
 				scheduleType = WiserScheduleTypeEnum.Level;
 				}
+#endif
 
 			try
 				{
+#if LIGHTING
 				if (scheduleType == WiserScheduleTypeEnum.Level)
 					{
 					return All.FirstOrDefault (s => s.ScheduleType == scheduleType.ToString () && s.Id == id);
 					}
+#endif
 				return All.FirstOrDefault (s => s.ScheduleType == scheduleType.ToString () && s.Id == id);
 				}
 			catch (IndexOutOfRangeException)
@@ -1171,7 +1157,11 @@ namespace WiserHeatApiV2
 			{
 			try
 				{
+#if LIGHTING
 				return _onoffSchedules.Concat<WiserSchedule> (_levelSchedules)
+#else
+				return _onoffSchedules
+#endif
 					 .FirstOrDefault (s => s.DeviceIds.Contains (deviceId));
 				}
 			catch (IndexOutOfRangeException)
@@ -1184,10 +1174,12 @@ namespace WiserHeatApiV2
 			{
 			try
 				{
+#if LIGHTING
 				if (scheduleType == WiserScheduleTypeEnum.Level)
 					{
 					return All.FirstOrDefault (s => s.ScheduleType == scheduleType.ToString () && s.Name == name);
 					}
+#endif
 				return All.FirstOrDefault (s => s.ScheduleType == scheduleType.ToString () && s.Name == name);
 				}
 			catch (IndexOutOfRangeException)
@@ -1206,11 +1198,12 @@ namespace WiserHeatApiV2
 				{
 				return _onoffSchedules.Cast<WiserSchedule> ().ToList ();
 				}
+#if LIGHTING
 			if (scheduleType == WiserScheduleTypeEnum.Level)
 				{
 				return _levelSchedules.Cast<WiserSchedule> ().ToList ();
 				}
-
+#endif
 			return All.Where (s => s.ScheduleType == scheduleType.ToString ()).ToList ();
 			}
 
@@ -1246,6 +1239,7 @@ namespace WiserHeatApiV2
 
 			var typeData = new Dictionary<string, object> { { "Name", name } };
 
+#if LIGHTING
 			if (scheduleType == WiserScheduleTypeEnum.Lighting || scheduleType == WiserScheduleTypeEnum.Level)
 				{
 				typeData["Type"] = 1;
@@ -1255,7 +1249,9 @@ namespace WiserHeatApiV2
 					}
 				scheduleType = WiserScheduleTypeEnum.Level;
 				}
+#endif
 
+#if SHUTTERS
 			if (scheduleType == WiserScheduleTypeEnum.Shutters)
 				{
 				typeData["Type"] = 2;
@@ -1265,6 +1261,7 @@ namespace WiserHeatApiV2
 					}
 				scheduleType = WiserScheduleTypeEnum.Level;
 				}
+#endif
 
 			var scheduleData = new Dictionary<string, object>
 				{
