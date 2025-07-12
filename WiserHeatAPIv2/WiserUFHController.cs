@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -37,26 +38,25 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false)
+		private Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false, CancellationToken cancellationToken = default)
 			{
 			string url = deviceLevel
 				 ? string.Format (RestConstants.WISERDEVICE, Id)
 				 : string.Format (RestConstants.WISERUFHCONTROLLER, Id);
 
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TEMP_OFF, "current");
 
 		public bool DeviceLockEnabled => _deviceLockEnabled;
-		public async Task<bool> SetDeviceLockEnabledAsync (bool value)
+		public async Task<bool> SetDeviceLockEnabledAsync (bool value, CancellationToken cancellationToken = default)
 			{
 			if (await SendCommandAsync (new
 				{
 				DeviceLockEnabled = value
-				}, true).ConfigureAwait (false))
+				}, true, cancellationToken).ConfigureAwait (false))
 				{
 				_deviceLockEnabled = value;
 				return true;
@@ -68,12 +68,12 @@ namespace WiserHeatApiV2
 		public bool? DewDetected => _deviceTypeData.TryGetValue ("DewDetected", out var detected) ? (bool?)Convert.ToBoolean (detected) : null;
 
 		public bool Identify => _identifyActive;
-		public async Task<bool> SetIdentifyAsync (bool value)
+		public async Task<bool> SetIdentifyAsync (bool value, CancellationToken cancellationToken = default)
 			{
 			if (await SendCommandAsync (new
 				{
 				Identify = value
-				}, true).ConfigureAwait (false))
+				}, true, cancellationToken).ConfigureAwait (false))
 				{
 				_identifyActive = value;
 				return true;

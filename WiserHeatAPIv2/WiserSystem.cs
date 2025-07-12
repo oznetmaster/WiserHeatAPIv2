@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -107,11 +108,10 @@ namespace WiserHeatApiV2
 			return new Dictionary<string, object> ();
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd, string path = null)
+		private Task<bool> SendCommandAsync (object cmd, string path = null, CancellationToken cancellationToken = default)
 			{
 			string url = path != null ? $"{RestConstants.WISERSYSTEM}/{path}" : RestConstants.WISERSYSTEM;
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
 		public string ActiveSystemVersion => _systemData.TryGetValue ("ActiveSystemVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
@@ -319,14 +319,14 @@ namespace WiserHeatApiV2
 
 		public WiserZigbee Zigbee => _zigbeeData;
 
-		public async Task<bool> AllowAddDeviceAsync (int allowTime = 120)
+		public Task<bool> AllowAddDeviceAsync (int allowTime = 120, CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (allowTime, "RequestPermitJoin").ConfigureAwait (false);
+			return SendCommandAsync (allowTime, "RequestPermitJoin", cancellationToken);
 			}
 
-		public async Task<bool> BoostAllRoomsAsync (double incTemp, int duration)
+		public Task<bool> BoostAllRoomsAsync (double incTemp, int duration, CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
@@ -334,21 +334,21 @@ namespace WiserHeatApiV2
 					DurationMinutes = duration,
 					IncreaseSetPointBy = WiserTemperatureFunctions.ToWiserTemp (incTemp, "delta")
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken);
 			}
 
-		public async Task<bool> CancelAllOverridesAsync ()
+		public Task<bool> CancelAllOverridesAsync (CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
 					Type = "CancelUserOverrides"
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken);
 			}
 
-		public async Task<bool> ConnectToNetworkAsync (string ssid, string password, int? channel = null, string securityMode = null)
+		public Task<bool> ConnectToNetworkAsync (string ssid, string password, int? channel = null, string securityMode = null, CancellationToken cancellationToken = default)
 			{
 			var cmdData = new Dictionary<string, object> { { "Enabled", true } };
 
@@ -368,7 +368,7 @@ namespace WiserHeatApiV2
 				cmdData["SecurityMode"] = securityMode;
 				}
 
-			return await _wiserRestController.SendCommandAsync ($"{RestConstants.WISERHUBNETWORK}/Station", cmdData).ConfigureAwait (false);
+			return _wiserRestController.SendCommandAsync ($"{RestConstants.WISERHUBNETWORK}/Station", cmdData, cancellationToken: cancellationToken);
 			}
 		}
 	}

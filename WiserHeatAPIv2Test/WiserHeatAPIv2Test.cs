@@ -57,9 +57,9 @@ namespace WiserHeatAPIv2Test
 			await wapi.InitializeAsync (CancellationToken.None);
 
 			Console.WriteLine ("-------------------------------");
-			Console.WriteLine ("Running tests on Version {0}", wapi.System.ActiveSystemVersion);
+			Console.WriteLine ($"Running tests on Version {wapi.System.ActiveSystemVersion}");
 			Console.WriteLine ("-------------------------------");
-			Console.WriteLine ("Model # {0}", wapi.System.Model);
+			Console.WriteLine ($"Model # {wapi.System.Model}");
 			Console.WriteLine ($"Hub Date/Time: {wapi.System.HubTime}");
 			Console.WriteLine ($"Hub ZigBee Channel: {wapi.System.Zigbee.NetworkChannel}");
 
@@ -83,9 +83,9 @@ namespace WiserHeatAPIv2Test
 			Console.WriteLine ("Some States");
 			Console.WriteLine ("--------------------------------");
 			// Heating State
-			Console.WriteLine ("Hot water status {0} ", wapi.Hotwater.IsHeating ? "Heating" : "Idle");
+			Console.WriteLine ($"Hot water status {(wapi.Hotwater.IsHeating ? "Heating" : "Idle")}");
 			// Assumes at least one roomstat
-			Console.WriteLine ("Roomstat humidity {0}%", wapi.Rooms.All[3].CurrentHumidity);
+			Console.WriteLine ($"Roomstat humidity {wapi.Rooms.All[3].CurrentHumidity}%");
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("List of Devices");
@@ -95,7 +95,7 @@ namespace WiserHeatAPIv2Test
 				{
 				var deviceId = device.Id;
 				var room = wapi.Rooms.GetByDeviceId (deviceId);
-				Console.WriteLine ("Device : Id {0} Room {1} Type {2}, SignalStrength {3}", deviceId, room.Name, device.ProductType, device.Signal.DisplayedSignalStrength);
+				Console.WriteLine ($"Device : Id {deviceId} Room {room.Name} Type {device.ProductType}, SignalStrength {device.Signal.DisplayedSignalStrength}");
 				}
 
 			Console.WriteLine ("--------------------------------");
@@ -105,48 +105,30 @@ namespace WiserHeatAPIv2Test
 				{
 				var smartValves = roomTest.SmartvalveIds;
 				if (smartValves is null || smartValves.Count == 0)
-					Console.WriteLine ("Room ({1}) {0} has no smartValves", roomTest.Name, roomTest.Id);
+					Console.WriteLine ($"Room ({roomTest.Id}) {roomTest.Name} has no smartValves");
 				else
 					{
 					Console.WriteLine (
-						 "Room ({3}) {0}, setpoint={1}C, current temp={2}C",
-							  roomTest.Name,
-							  roomTest.CurrentTargetTemperature,
-							  roomTest.CurrentTemperature,
-							  roomTest.Id
-						 );
+						 $"Room ({roomTest.Id}) {roomTest.Name}, setpoint={roomTest.CurrentTargetTemperature}C, current temp={roomTest.CurrentTemperature}C"
+					);
 					Console.WriteLine ("\tSmartvalves in this room:");
 					foreach (var smartValveId in smartValves)
 						{
 						var smartValve = wapi.Devices.Smartvalves.All.FirstOrDefault (x => x.Id == smartValveId);
 						if (smartValve != null)
 							{
-							Console.WriteLine ("\t\tSmartvalve ({0}) {1}, setpoint={2}C, current temp={3}C, battery={4}% {5}",
-								  smartValve.Name,
-								  smartValve.Id,
-								  smartValve.CurrentTargetTemperature,
-								  smartValve.CurrentTemperature,
-								  smartValve.Battery.Percent,
-								  smartValve.Battery.Level
-							 );
+							Console.WriteLine ($"\t\tSmartvalve ({smartValve.Name}) {smartValve.Id}, setpoint={smartValve.CurrentTargetTemperature}C, current temp={smartValve.CurrentTemperature}C, battery={smartValve.Battery.Percent}% {smartValve.Battery.Level}");
 							}
 						else
 							{
-							Console.WriteLine ("Smartvalve ({0}) not found", smartValveId);
+							Console.WriteLine ($"Smartvalve ({smartValveId}) not found");
 							}
 						}
 					}
 				if (roomTest.RoomstatId != null)
 					{
 					var roomStat = wapi.Devices.Roomstats.All.FirstOrDefault (x => x.Id == roomTest.RoomstatId);
-					Console.WriteLine ("\tRoomstat ({0}) {1}, setpoint={2}C, current temp={3}C, current humidity={4}% battery={5}% {6}",
-						  roomStat.Name,
-						  roomStat.Id,
-						  roomStat.CurrentTargetTemperature,
-						  roomStat.CurrentTemperature,
-						  roomStat.CurrentHumidity,
-						  roomStat.Battery.Percent,
-						  roomStat.Battery.Level);
+					Console.WriteLine ($"\tRoomstat ({roomStat.Name}) {roomStat.Id}, setpoint={roomStat.CurrentTargetTemperature}C, current temp={roomStat.CurrentTemperature}C, current humidity={roomStat.CurrentHumidity}% battery={roomStat.Battery.Percent}% {roomStat.Battery.Level}");
 					}
 
 				var smartPlugs = wapi.Devices.Smartplugs.All.Where (x => x.RoomId == roomTest.Id).ToList ();
@@ -155,11 +137,7 @@ namespace WiserHeatAPIv2Test
 					Console.WriteLine ("\tSmartplugs in this room:");
 					foreach (var smartPlug in smartPlugs)
 						{
-						Console.WriteLine ("\t\tSmartplug ({0}) {1}, state={2}, scheduled state={3}",
-							  smartPlug.Name,
-							  smartPlug.Id,
-							  smartPlug.IsOn ? "On" : "Off",
-							  smartPlug.ScheduledState);
+						Console.WriteLine ($"\t\tSmartplug ({smartPlug.Name}) {smartPlug.Id}, state={(smartPlug.IsOn ? "On" : "Off")}, scheduled state={smartPlug.ScheduledState}");
 						}
 					}
 				else
@@ -178,7 +156,6 @@ namespace WiserHeatAPIv2Test
 				{
 				var roomToTest = 5;
 				var room = wapi.Rooms.GetById (roomToTest);
-				var temp = room.CurrentTargetTemperature;
 				Console.WriteLine ($"Room {room.Name} setpoint is {room.CurrentTargetTemperature}");
 				Console.WriteLine ($"Room {room.Name} IsOverride is {room.IsOverride}, IsBoost is {room.IsBoost}");
 				await room.CancelBoostAsync ();
@@ -207,7 +184,7 @@ namespace WiserHeatAPIv2Test
 			int scheduleRoomTest = 5;
 			var schedule = wapi.Schedules.GetByRoomId (scheduleRoomTest);
 			Console.WriteLine ("--------------------------------");
-			Console.WriteLine ("Schedule for Room {0} [{1}] {2} Type = {3}", scheduleRoomTest, wapi.Rooms.GetById (scheduleRoomTest).Name, schedule.Name, schedule.ScheduleType);
+			Console.WriteLine ($"Schedule for Room {scheduleRoomTest} [{wapi.Rooms.GetById (scheduleRoomTest).Name}] {schedule.Name} Type = {schedule.ScheduleType}");
 			Console.WriteLine ("--------------------------------");
 
 			Console.WriteLine ($"Schedule.Next: DateTime {schedule.Next.DateTime} Day {schedule.Next.Day} Time {schedule.Next.Time} Setting {schedule.Next.Setting}");

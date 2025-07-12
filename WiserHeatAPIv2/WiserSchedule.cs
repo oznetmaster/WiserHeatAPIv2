@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -91,11 +92,11 @@ namespace WiserHeatApiV2
 		protected abstract List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false);
 		protected abstract object ConvertYamlToWiserDay (List<IDictionary<string, object>> daySchedule);
 
-		protected async Task<bool> SendScheduleCommandAsync (string action, IDictionary<string, object> scheduleData, int id = 0)
+		protected async Task<bool> SendScheduleCommandAsync (string action, IDictionary<string, object> scheduleData, int id = 0, CancellationToken cancellationToken = default)
 			{
 			try
 				{
-				bool result = await _wiserRestController.SendScheduleCommandAsync (action, scheduleData, id != 0 ? id : Id, _type).ConfigureAwait (false);
+				bool result = await _wiserRestController.SendScheduleCommandAsync (action, scheduleData, id != 0 ? id : Id, _type, cancellationToken).ConfigureAwait (false);
 				return result;
 				}
 			catch (Exception ex)
@@ -176,11 +177,11 @@ namespace WiserHeatApiV2
 
 		public string ScheduleType => _type;
 
-		public async Task<bool> CopyScheduleAsync (int toId)
+		public async Task<bool> CopyScheduleAsync (int toId, CancellationToken cancellationToken = default)
 			{
 			try
 				{
-				await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (_scheduleData), toId).ConfigureAwait (false);
+				await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (_scheduleData), toId, cancellationToken).ConfigureAwait (false);
 				return true;
 				}
 			catch (Exception ex)
@@ -190,13 +191,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> DeleteScheduleAsync ()
+		public async Task<bool> DeleteScheduleAsync (CancellationToken cancellationToken = default)
 			{
 			try
 				{
 				if (Id != 1000)
 					{
-					await SendScheduleCommandAsync ("DELETE", new Dictionary<string, object> ()).ConfigureAwait (false);
+					await SendScheduleCommandAsync ("DELETE", new Dictionary<string, object> (), cancellationToken: cancellationToken).ConfigureAwait (false);
 					return true;
 					}
 				else
@@ -241,11 +242,11 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> SetScheduleAsync (IDictionary<string, object> scheduleData)
+		public async Task<bool> SetScheduleAsync (IDictionary<string, object> scheduleData, CancellationToken cancellationToken = default)
 			{
 			try
 				{
-				await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (scheduleData)).ConfigureAwait (false);
+				await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (scheduleData), cancellationToken: cancellationToken).ConfigureAwait (false);
 				return true;
 				}
 			catch (Exception ex)
@@ -255,14 +256,14 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> SetScheduleFromFileAsync (string scheduleFile)
+		public async Task<bool> SetScheduleFromFileAsync (string scheduleFile, CancellationToken cancellationToken = default)
 			{
 			try
 				{
 				var scheduleData = JsonConvert.DeserializeObject<IDictionary<string, object>> (File.ReadAllText (scheduleFile));
 				if (ValidateScheduleType (scheduleData))
 					{
-					await SetScheduleAsync (RemoveScheduleElements (scheduleData)).ConfigureAwait (false);
+					await SetScheduleAsync (RemoveScheduleElements (scheduleData), cancellationToken).ConfigureAwait (false);
 					return true;
 					}
 				else
@@ -278,7 +279,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> SetScheduleFromYamlFileAsync (string scheduleYamlFile)
+		public async Task<bool> SetScheduleFromYamlFileAsync (string scheduleYamlFile, CancellationToken cancellationToken = default)
 			{
 			try
 				{
@@ -288,7 +289,7 @@ namespace WiserHeatApiV2
 				if (ValidateScheduleType (scheduleData))
 					{
 					var schedule = ConvertToWiserSchedule (scheduleData);
-					await SetScheduleAsync (schedule).ConfigureAwait (false);
+					await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
 					return true;
 					}
 				else
@@ -304,7 +305,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> SetScheduleFromWsDataAsync (IDictionary<string, object> scheduleData)
+		public async Task<bool> SetScheduleFromWsDataAsync (IDictionary<string, object> scheduleData, CancellationToken cancellationToken = default)
 			{
 			try
 				{
@@ -323,7 +324,7 @@ namespace WiserHeatApiV2
 						}
 
 					var schedule = ConvertToWiserSchedule (scheduleJson);
-					await SetScheduleAsync (schedule).ConfigureAwait (false);
+					await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
 					return true;
 					}
 				else
@@ -348,7 +349,7 @@ namespace WiserHeatApiV2
 			{
 			}
 
-		public async Task<bool> AssignScheduleAsync (List<int> roomIds, bool includeCurrent = true)
+		public async Task<bool> AssignScheduleAsync (List<int> roomIds, bool includeCurrent = true, CancellationToken cancellationToken = default)
 			{
 			if (roomIds == null)
 				{
@@ -373,7 +374,7 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				await SendScheduleCommandAsync ("ASSIGN", scheduleData).ConfigureAwait (false);
+				await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
 				return true;
 				}
 			catch (Exception ex)
@@ -383,7 +384,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> UnassignScheduleAsync (List<int> roomIds)
+		public Task<bool> UnassignScheduleAsync (List<int> roomIds, CancellationToken cancellationToken = default)
 			{
 			if (roomIds == null)
 				{
@@ -396,7 +397,7 @@ namespace WiserHeatApiV2
 				remainingRoomIds = AssignmentIds.Where (id => !roomIds.Contains (id)).ToList ();
 				}
 
-			return await AssignScheduleAsync (remainingRoomIds, false).ConfigureAwait (false);
+			return AssignScheduleAsync (remainingRoomIds, false, cancellationToken);
 			}
 
 		protected override List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
@@ -549,7 +550,7 @@ namespace WiserHeatApiV2
 
 		public List<int> DeviceTypeIds => _deviceTypeIds;
 
-		public async Task<bool> AssignScheduleAsync (List<int> deviceIds, bool includeCurrent = true)
+		public async Task<bool> AssignScheduleAsync (List<int> deviceIds, bool includeCurrent = true, CancellationToken cancellationToken = default)
 			{
 			if (deviceIds == null)
 				{
@@ -574,7 +575,7 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				await SendScheduleCommandAsync ("ASSIGN", scheduleData).ConfigureAwait (false);
+				await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
 				return true;
 				}
 			catch (Exception ex)
@@ -584,7 +585,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> UnassignScheduleAsync (List<int> deviceIds)
+		public Task<bool> UnassignScheduleAsync (List<int> deviceIds, CancellationToken cancellationToken = default)
 			{
 			if (deviceIds == null)
 				{
@@ -597,7 +598,7 @@ namespace WiserHeatApiV2
 				remainingDeviceIds = AssignmentIds.Where (id => !deviceIds.Contains (id)).ToList ();
 				}
 
-			return await AssignScheduleAsync (remainingDeviceIds, false).ConfigureAwait (false);
+			return AssignScheduleAsync (remainingDeviceIds, false, cancellationToken);
 			}
 
 		protected override List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
@@ -788,7 +789,7 @@ namespace WiserHeatApiV2
 
 		public new string ScheduleType => LevelType;
 
-		public async Task<bool> AssignScheduleAsync (List<int> deviceIds, bool includeCurrent = true)
+		public async Task<bool> AssignScheduleAsync (List<int> deviceIds, bool includeCurrent = true, CancellationToken cancellationToken = default)
 			{
 			if (deviceIds == null)
 				{
@@ -820,7 +821,7 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				await SendScheduleCommandAsync ("ASSIGN", scheduleData).ConfigureAwait (false);
+				await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
 				return true;
 				}
 			catch (Exception ex)
@@ -830,7 +831,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> UnassignScheduleAsync (List<int> deviceIds)
+		public Task<bool> UnassignScheduleAsync (List<int> deviceIds, CancellationToken cancellationToken = default)
 			{
 			if (deviceIds == null)
 				{
@@ -843,7 +844,7 @@ namespace WiserHeatApiV2
 				remainingDeviceIds = AssignmentIds.Where (id => !deviceIds.Contains (id)).ToList ();
 				}
 
-			return await AssignScheduleAsync (remainingDeviceIds, false).ConfigureAwait (false);
+			return AssignScheduleAsync (remainingDeviceIds, false, cancellationToken);
 			}
 
 		protected override List<IDictionary<string, object>> ConvertWiserToYamlDay (string day, object daySchedule, bool replaceSpecialTimes = false, bool genericSetpoint = false)
@@ -1084,11 +1085,11 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private async Task<bool> SendScheduleCommandAsync (string action, IDictionary<string, object> scheduleData, int id = 0)
+		private async Task<bool> SendScheduleCommandAsync (string action, IDictionary<string, object> scheduleData, int id = 0, CancellationToken cancellationToken = default)
 			{
 			try
 				{
-				bool result = await _wiserRestController.SendScheduleCommandAsync (action, scheduleData, id).ConfigureAwait (false);
+				bool result = await _wiserRestController.SendScheduleCommandAsync (action, scheduleData, id, cancellationToken: cancellationToken).ConfigureAwait (false);
 				return result;
 				}
 			catch (Exception ex)
@@ -1207,7 +1208,7 @@ namespace WiserHeatApiV2
 			return All.Where (s => s.ScheduleType == scheduleType.ToString ()).ToList ();
 			}
 
-		public async Task<bool> CopyScheduleAsync (WiserScheduleTypeEnum scheduleType, int fromId, int toId)
+		public async Task<bool> CopyScheduleAsync (WiserScheduleTypeEnum scheduleType, int fromId, int toId, CancellationToken cancellationToken = default)
 			{
 			var fromSchedule = GetById (scheduleType, fromId);
 			var toSchedule = GetById (scheduleType, toId);
@@ -1216,7 +1217,7 @@ namespace WiserHeatApiV2
 				{
 				if (fromSchedule.ScheduleType == toSchedule.ScheduleType)
 					{
-					return await fromSchedule.CopyScheduleAsync (toId).ConfigureAwait (false);
+					return await fromSchedule.CopyScheduleAsync (toId, cancellationToken).ConfigureAwait (false);
 					}
 				else
 					{
@@ -1230,7 +1231,7 @@ namespace WiserHeatApiV2
 			return false;
 			}
 
-		public async Task<bool> CreateScheduleAsync (WiserScheduleTypeEnum scheduleType, string name, List<int> assignments = null)
+		public Task<bool> CreateScheduleAsync (WiserScheduleTypeEnum scheduleType, string name, List<int> assignments = null, CancellationToken cancellationToken = default)
 			{
 			if (assignments == null)
 				{
@@ -1269,7 +1270,7 @@ namespace WiserHeatApiV2
 					 { scheduleType.ToString(), typeData }
 				};
 
-			return await SendScheduleCommandAsync ("CREATE", scheduleData).ConfigureAwait (false);
+			return SendScheduleCommandAsync ("CREATE", scheduleData, cancellationToken: cancellationToken);
 			}
 		}
 	}

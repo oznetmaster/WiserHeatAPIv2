@@ -8,6 +8,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -118,11 +119,9 @@ namespace WiserHeatApiV2
 			return WiserHeatingModeEnum.Auto.ToString ();
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd, WiserRestActionEnum method = WiserRestActionEnum.PATCH)
+		private Task<bool> SendCommandAsync (object cmd, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
 			{
-			string url = string.Format (RestConstants.WISERROOM, Id);
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd, method).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (string.Format (RestConstants.WISERROOM, Id), cmd, method, cancellationToken);
 			}
 
 		public List<string> AvailableModes => Enum.GetValues (typeof (WiserHeatingModeEnum))
@@ -205,64 +204,70 @@ namespace WiserHeatApiV2
 			get => _mode;
 			set
 				{
-				try
-					{
-					WiserHeatingModeEnum mode = (WiserHeatingModeEnum)Enum.Parse (typeof (WiserHeatingModeEnum), value, true);
-
-					// Cancel any overrides on mode change
-					if (IsOverride)
-						{
-						CancelOverridesAsync ().Wait ();
-						}
-
-					if (mode == WiserHeatingModeEnum.Off)
-						{
-						SetManualTemperatureAsync (Constants.TEMP_OFF).Wait ();
-						}
-					else if (mode == WiserHeatingModeEnum.Manual)
-						{
-						if (SendCommandAsync (new
-							{
-							Mode = WiserHeatingModeEnum.Manual.ToString ()
-							}).Result)
-							{
-							if (CurrentTargetTemperature == Constants.TEMP_OFF)
-								{
-								SetTargetTemperatureAsync (ScheduledTargetTemperature).Wait ();
-								}
-							}
-						}
-					else if (mode == WiserHeatingModeEnum.Auto)
-						{
-						SendCommandAsync (new
-							{
-							Mode = WiserHeatingModeEnum.Auto.ToString ()
-							}).Wait ();
-						}
-
-					_mode = mode.ToString ();
-					}
-				catch (ArgumentException)
-					{
-					throw new ArgumentException ($"{value} is not a valid Heating mode. Valid modes are {string.Join (", ", AvailableModes)}");
-					}
+				// For cancellation support, use SetModeAsync instead
+				SetModeAsync(value).GetAwaiter().GetResult();
 				}
 			}
+
+		public async Task<bool> SetModeAsync(string value, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				WiserHeatingModeEnum mode = (WiserHeatingModeEnum)Enum.Parse(typeof(WiserHeatingModeEnum), value, true);
+
+				// Cancel any overrides on mode change
+				if (IsOverride)
+				{
+					await CancelOverridesAsync(cancellationToken).ConfigureAwait(false);
+				}
+
+				if (mode == WiserHeatingModeEnum.Off)
+				{
+					await SetManualTemperatureAsync(Constants.TEMP_OFF, cancellationToken).ConfigureAwait(false);
+				}
+				else if (mode == WiserHeatingModeEnum.Manual)
+				{
+					if (await SendCommandAsync(new { Mode = WiserHeatingModeEnum.Manual.ToString() }, cancellationToken: cancellationToken).ConfigureAwait(false))
+					{
+						if (CurrentTargetTemperature == Constants.TEMP_OFF)
+						{
+							await SetTargetTemperatureAsync(ScheduledTargetTemperature, cancellationToken).ConfigureAwait(false);
+						}
+					}
+				}
+				else if (mode == WiserHeatingModeEnum.Auto)
+				{
+					await SendCommandAsync(new { Mode = WiserHeatingModeEnum.Auto.ToString() }, cancellationToken: cancellationToken).ConfigureAwait(false);
+				}
+
+				_mode = mode.ToString();
+				return true;
+			}
+			catch (ArgumentException)
+			{
+				throw new ArgumentException($"{value} is not a valid Heating mode. Valid modes are {string.Join(", ", AvailableModes)}");
+			}
+		}
 
 		public string Name
 			{
 			get => _name;
 			set
 				{
-				if (SendCommandAsync (new
-					{
-					Name = value.Title ()
-					}).Result)
-					{
-					_name = value.Title ();
-					}
+				// For cancellation support, use SetNameAsync instead
+				SetNameAsync(value).GetAwaiter().GetResult();
 				}
 			}
+
+		public async Task<bool> SetNameAsync(string value, CancellationToken cancellationToken = default)
+		{
+			if (await SendCommandAsync(new { Name = value.Title() }, cancellationToken: cancellationToken).ConfigureAwait(false))
+			{
+				_name = value.Title();
+				return true;
+			}
+			return false;
+		}
 
 #if HEATACTUATOR
 		public int NumberOfHeatingActuators => HeatingActuatorIds.Count;
@@ -306,30 +311,35 @@ namespace WiserHeatApiV2
 			get => _windowDetectionActive;
 			set
 				{
-				if (SendCommandAsync (new
-					{
-					WindowDetectionActive = value
-					}).Result)
-					{
-					_windowDetectionActive = value;
-					}
+				// For cancellation support, use SetWindowDetectionActiveAsync instead
+				SetWindowDetectionActiveAsync(value).GetAwaiter().GetResult();
 				}
 			}
+
+		public async Task<bool> SetWindowDetectionActiveAsync(bool value, CancellationToken cancellationToken = default)
+		{
+			if (await SendCommandAsync(new { WindowDetectionActive = value }, cancellationToken: cancellationToken).ConfigureAwait(false))
+			{
+				_windowDetectionActive = value;
+				return true;
+			}
+			return false;
+		}
 
 		public string WindowState => _data.TryGetValue ("WindowState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
 
-		public async Task<bool> DeleteAsync ()
+		public Task<bool> DeleteAsync (CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (null, WiserRestActionEnum.DELETE).ConfigureAwait (false);
+			return SendCommandAsync (null, WiserRestActionEnum.DELETE, cancellationToken);
 			}
 
-		public async Task<bool> BoostAsync (double incTemp, int duration)
+		public Task<bool> BoostAsync (double incTemp, int duration, CancellationToken cancellationToken = default)
 			{
 			if (duration == 0)
 				{
-				return await CancelBoostAsync ().ConfigureAwait (false);
+				return CancelBoostAsync (cancellationToken);
 				}
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
@@ -337,33 +347,29 @@ namespace WiserHeatApiV2
 					DurationMinutes = duration,
 					IncreaseSetPointBy = WiserTemperatureFunctions.ToWiserTemp (incTemp, "delta")
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken);
 			}
 
-		public async Task<bool> CancelBoostAsync ()
+		public Task<bool> CancelBoostAsync (CancellationToken cancellationToken = default)
 			{
-			if (IsBoost)
-				{
-				return await CancelOverridesAsync ().ConfigureAwait (false);
-				}
-			return true;
+			return IsBoost ? CancelOverridesAsync (cancellationToken) : Task.FromResult (true);
 			}
 
-		public async Task<bool> SetTargetTemperatureAsync (double temp)
+		public Task<bool> SetTargetTemperatureAsync (double temp, CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
 					Type = Constants.TEXT_MANUAL,
 					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken);
 			}
 
-		public async Task<bool> SetTargetTemperatureForDurationAsync (double temp, int duration)
+		public Task<bool> SetTargetTemperatureForDurationAsync (double temp, int duration, CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
@@ -371,12 +377,12 @@ namespace WiserHeatApiV2
 					DurationMinutes = duration,
 					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken);
 			}
 
-		public async Task<bool> SetTargetTemperatureForDurationOfScheduleAsync (double temp)
+		public Task<bool> SetTargetTemperatureForDurationOfScheduleAsync (double temp, CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
@@ -384,36 +390,36 @@ namespace WiserHeatApiV2
 					DurationMinutes = (int)Math.Ceiling ((Schedule.Next.DateTime - DateTime.Now).TotalMinutes),
 					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken);
 			}
 
-		public async Task<bool> SetManualTemperatureAsync (double temp)
+		public Task<bool> SetManualTemperatureAsync (double temp, CancellationToken cancellationToken = default)
 			{
 			if (Mode != WiserHeatingModeEnum.Manual.ToString ())
 				{
 				Mode = WiserHeatingModeEnum.Manual.ToString ();
 				}
-			return await SetTargetTemperatureAsync (temp).ConfigureAwait (false);
+			return SetTargetTemperatureAsync (temp, cancellationToken);
 			}
 
-		public async Task<bool> ScheduleAdvanceAsync ()
+		public async Task<bool> ScheduleAdvanceAsync (CancellationToken cancellationToken = default)
 			{
-			if (await CancelBoostAsync ().ConfigureAwait (false))
+			if (await CancelBoostAsync (cancellationToken).ConfigureAwait (false))
 				{
-				return await SetTargetTemperatureAsync (Convert.ToDouble (Schedule.Next.Setting)).ConfigureAwait (false);
+				return await SetTargetTemperatureAsync (Convert.ToDouble (Schedule.Next.Setting), cancellationToken).ConfigureAwait (false);
 				}
 			return false;
 			}
 
-		public async Task<bool> CancelOverridesAsync ()
+		public Task<bool> CancelOverridesAsync (CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
 					Type = Constants.TEXT_NONE
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken);
 			}
 		}
 	public class WiserRoomCollection
@@ -475,12 +481,12 @@ namespace WiserHeatApiV2
 
 		public List<WiserRoom> All => _rooms;
 		public int Count => _rooms.Count;
-		public async Task<bool> AddAsync (string name)
+		public Task<bool> AddAsync (string name, CancellationToken cancellationToken = default)
 			{
-			return await _wiserRestController.SendCommandAsync (RestConstants.WISERROOM, new
+			return _wiserRestController.SendCommandAsync (RestConstants.WISERROOM, new
 				{
 				name = name
-				}, WiserRestActionEnum.POST).ConfigureAwait (false);
+				}, WiserRestActionEnum.POST, cancellationToken);
 			}
 		public WiserRoom GetById (int id)
 			{

@@ -828,7 +828,7 @@ namespace WiserHeatApiV2
 		private static string FormatTime (int time)
 			{
 			var timeStr = time.ToString ().PadLeft (4, '0');
-			return timeStr.Substring (0, 2) + ":" + timeStr.Substring (2, 2);
+			return $"{timeStr.Substring (0, 2)}:{timeStr.Substring (2, 2)}";
 			}
 
 		public static Dictionary<string, string> SunriseTimes (List<int> times)
@@ -879,7 +879,7 @@ namespace WiserHeatApiV2
 				{
 				int timeValue = _data.TryGetValue ("Time", out var time) ? Convert.ToInt32 (time) : 0;
 				string timeStr = timeValue.ToString ("D4");
-				return TimeSpan.ParseExact (timeStr.Substring (0, 2) + ":" + timeStr.Substring (2, 2), "hh\\:mm", null);
+				return TimeSpan.ParseExact ($"{timeStr.Substring (0, 2)}:{timeStr.Substring (2, 2)}", "hh\\:mm", null);
 				}
 			}
 
@@ -984,7 +984,7 @@ namespace WiserHeatApiV2
 			if (time < 0 || time > 2359)
 				throw new ArgumentOutOfRangeException ("Time must be between 0 and 2359.");
 			string timeStr = time.ToString ("D4");
-			return timeStr.Substring (0, 2) + ":" + timeStr.Substring (2, 2);
+			return $"{timeStr.Substring (0, 2)}:{timeStr.Substring (2, 2)}";
 			}
 
 		public static string ToWiserTime (this object timeObj)
@@ -1024,7 +1024,7 @@ namespace WiserHeatApiV2
 			{
 			if (string.IsNullOrWhiteSpace (str))
 				return str;
-			return char.ToUpper (str[0]) + str.Substring (1).ToLower ();
+			return $"{char.ToUpper(str[0])}{str.Substring(1).ToLower()}";
 			}
 		}
 	}

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 
@@ -43,14 +44,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false)
+		private Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false, CancellationToken cancellationToken = default)
 			{
 			string url = deviceLevel
 				 ? string.Format (RestConstants.WISERDEVICE, Id)
 				 : string.Format (RestConstants.WISERSMARTPLUG, Id);
 
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
 		private bool ValidateMode (string mode)
@@ -74,25 +74,43 @@ namespace WiserHeatApiV2
 			 .Select (a => a.ToString ())
 			 .ToList ();
 
+		public async Task<bool> SetModeAsync(string value, CancellationToken cancellationToken = default)
+		{
+			if (!ValidateMode(value))
+				throw new ArgumentException($"{value} is not a valid Smart Plug mode. Valid modes are {string.Join(", ", AvailableModes)}");
+			if (await SendCommandAsync(new { Mode = value }, cancellationToken: cancellationToken).ConfigureAwait(false))
+			{
+				_mode = value;
+				return true;
+			}
+			return false;
+		}
+		public async Task<bool> SetNameAsync(string value, CancellationToken cancellationToken = default)
+		{
+			if (await SendCommandAsync(new { Name = value }, cancellationToken: cancellationToken).ConfigureAwait(false))
+			{
+				_name = value;
+				return true;
+			}
+			return false;
+		}
+		public async Task<bool> SetAwayModeActionAsync(string value, CancellationToken cancellationToken = default)
+		{
+			if (!ValidateAwayAction(value))
+				throw new ArgumentException($"{value} is not a valid Smart Plug away mode action. Valid modes are {string.Join(", ", AvailableAwayModeActions)}");
+			if (await SendCommandAsync(new { AwayAction = value }, cancellationToken: cancellationToken).ConfigureAwait(false))
+			{
+				_awayAction = value;
+				return true;
+			}
+			return false;
+		}
 		public string AwayModeAction
 			{
 			get => _awayAction;
 			set
 				{
-				if (ValidateAwayAction (value))
-					{
-					if (SendCommandAsync (new
-						{
-						AwayAction = value
-						}).Result)
-						{
-						_awayAction = value;
-						}
-					}
-				else
-					{
-					throw new ArgumentException ($"{value} is not a valid Smart Plug away mode action. Valid modes are {string.Join (", ", AvailableAwayModeActions)}");
-					}
+				SetAwayModeActionAsync(value).GetAwaiter().GetResult();
 				}
 			}
 
@@ -101,12 +119,12 @@ namespace WiserHeatApiV2
 		public int DeliveredPower => _deviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power) : -1;
 
 		public bool DeviceLockEnabled => _deviceLockEnabled;
-		public async Task<bool> SetDeviceLockEnabledAsync (bool value)
+		public async Task<bool> SetDeviceLockEnabledAsync (bool value, CancellationToken cancellationToken = default)
 			{
 			if (await SendCommandAsync (new
 				{
 				DeviceLockEnabled = value
-				}, true).ConfigureAwait (false))
+				}, true, cancellationToken).ConfigureAwait (false))
 				{
 				_deviceLockEnabled = value;
 				return true;
@@ -115,12 +133,12 @@ namespace WiserHeatApiV2
 			}
 
 		public bool Identify => _identifyActive;
-		public async Task<bool> SetIdentifyAsync (bool value)
+		public async Task<bool> SetIdentifyAsync (bool value, CancellationToken cancellationToken = default)
 			{
 			if (await SendCommandAsync (new
 				{
 				Identify = value
-				}, true).ConfigureAwait (false))
+				}, true, cancellationToken).ConfigureAwait (false))
 				{
 				_identifyActive = value;
 				return true;
@@ -137,20 +155,7 @@ namespace WiserHeatApiV2
 			get => _mode;
 			set
 				{
-				if (ValidateMode (value))
-					{
-					if (SendCommandAsync (new
-						{
-						Mode = value
-						}).Result)
-						{
-						_mode = value;
-						}
-					}
-				else
-					{
-					throw new ArgumentException ($"{value} is not a valid Smart Plug mode. Valid modes are {string.Join (", ", AvailableModes)}");
-					}
+				SetModeAsync(value).GetAwaiter().GetResult();
 				}
 			}
 
@@ -159,13 +164,7 @@ namespace WiserHeatApiV2
 			get => _name;
 			set
 				{
-				if (SendCommandAsync (new
-					{
-					Name = value
-					}).Result)
-					{
-					_name = value;
-					}
+				SetNameAsync(value).GetAwaiter().GetResult();
 				}
 			}
 
@@ -179,12 +178,12 @@ namespace WiserHeatApiV2
 
 		public string ScheduledState => _deviceTypeData.TryGetValue ("ScheduledState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
 
-		public async Task<bool> TurnOnAsync ()
+		public async Task<bool> TurnOnAsync (CancellationToken cancellationToken = default)
 			{
 			bool result = await SendCommandAsync (new
 				{
 				RequestOutput = Constants.TEXT_ON
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken).ConfigureAwait (false);
 			if (result)
 				{
 				_outputState = Constants.TEXT_ON;
@@ -192,12 +191,12 @@ namespace WiserHeatApiV2
 			return result;
 			}
 
-		public async Task<bool> TurnOffAsync ()
+		public async Task<bool> TurnOffAsync (CancellationToken cancellationToken = default)
 			{
 			bool result = await SendCommandAsync (new
 				{
 				RequestOutput = Constants.TEXT_OFF
-				}).ConfigureAwait (false);
+				}, cancellationToken: cancellationToken).ConfigureAwait (false);
 			if (result)
 				{
 				_outputState = Constants.TEXT_OFF;

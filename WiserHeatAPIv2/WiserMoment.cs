@@ -20,22 +20,21 @@ namespace WiserHeatApiV2
 			_momentData = momentData;
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd)
+		private Task<bool> SendCommandAsync (object cmd, System.Threading.CancellationToken cancellationToken = default)
 			{
-			bool result = await _wiserRestController.SendCommandAsync (RestConstants.WISERSYSTEM, cmd).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (RestConstants.WISERSYSTEM, cmd, cancellationToken: cancellationToken);
 			}
 
 		public int Id => _momentData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
 
 		public string Name => _momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
 
-		public async Task<bool> ActivateAsync ()
+		public Task<bool> ActivateAsync (System.Threading.CancellationToken cancellationToken = default)
 			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				TriggerMoment = Id
-				}).ConfigureAwait (false);
+				}, cancellationToken);
 			}
 		}
 

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -55,11 +56,9 @@ namespace WiserHeatApiV2
 				}
 
 			}
-		private async Task<bool> SendCommandAsync (object cmd)
+		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			string url = string.Format (RestConstants.WISERHOTWATER, Id);
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (string.Format (RestConstants.WISERHOTWATER, Id), cmd, cancellationToken: cancellationToken);
 			}
 
 		private bool ValidateMode (string mode)
@@ -126,34 +125,29 @@ namespace WiserHeatApiV2
 
 		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
 
-		public async Task<bool> BoostAsync (int duration)
+		public Task<bool> BoostAsync (int duration, CancellationToken cancellationToken = default)
 			{
-			return await OverrideStateForDurationAsync (Constants.TEXT_ON, duration).ConfigureAwait (false);
+			return OverrideStateForDurationAsync (Constants.TEXT_ON, duration, cancellationToken);
+			}
+		public Task<bool> CancelBoostAsync (CancellationToken cancellationToken = default)
+			{
+			return IsBoost ? CancelOverridesAsync (cancellationToken) : Task.FromResult (true);
 			}
 
-		public async Task<bool> CancelBoostAsync ()
+		public Task<bool> CancelOverridesAsync (CancellationToken cancellationToken = default)
 			{
-			if (IsBoost)
-				{
-				return await CancelOverridesAsync ().ConfigureAwait (false);
-				}
-			return true;
-			}
-
-		public async Task<bool> CancelOverridesAsync ()
-			{
-			return await SendCommandAsync (new
+			return SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
 					Type = Constants.TEXT_NONE
 					}
-				}).ConfigureAwait (false);
+				}, cancellationToken);
 			}
 
-		public async Task<bool> OverrideStateAsync (string state)
+		public async Task<bool> OverrideStateAsync (string state, CancellationToken cancellationToken = default)
 			{
-			if (await CancelBoostAsync ())
+			if (await CancelBoostAsync (cancellationToken).ConfigureAwait (false))
 				{
 				if (state.Equals (Constants.TEXT_ON, StringComparison.OrdinalIgnoreCase))
 					{
@@ -164,7 +158,7 @@ namespace WiserHeatApiV2
 							Type = Constants.TEXT_MANUAL,
 							SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TEMP_HW_ON, "hotwater")
 							}
-						}).ConfigureAwait (false);
+						}, cancellationToken).ConfigureAwait (false);
 					}
 				else if (state.Equals (Constants.TEXT_OFF, StringComparison.OrdinalIgnoreCase))
 					{
@@ -175,7 +169,7 @@ namespace WiserHeatApiV2
 							Type = Constants.TEXT_MANUAL,
 							SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TEMP_HW_OFF, "hotwater")
 							}
-						}).ConfigureAwait (false);
+						}, cancellationToken).ConfigureAwait (false);
 					}
 				else
 					{
@@ -185,11 +179,11 @@ namespace WiserHeatApiV2
 			return false;
 			}
 
-		public async Task<bool> OverrideStateForDurationAsync (string state, int duration)
+		public Task<bool> OverrideStateForDurationAsync (string state, int duration, CancellationToken cancellationToken = default)
 			{
 			if (state.Equals (Constants.TEXT_ON, StringComparison.OrdinalIgnoreCase))
 				{
-				return await SendCommandAsync (new
+				return SendCommandAsync (new
 					{
 					RequestOverride = new
 						{
@@ -197,11 +191,11 @@ namespace WiserHeatApiV2
 						DurationMinutes = duration,
 						SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TEMP_HW_ON, "hotwater")
 						}
-					}).ConfigureAwait (false);
+					}, cancellationToken);
 				}
 			else if (state.Equals (Constants.TEXT_OFF, StringComparison.OrdinalIgnoreCase))
 				{
-				return await SendCommandAsync (new
+				return SendCommandAsync (new
 					{
 					RequestOverride = new
 						{
@@ -209,7 +203,7 @@ namespace WiserHeatApiV2
 						DurationMinutes = duration,
 						SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TEMP_HW_OFF)
 						}
-					}).ConfigureAwait (false);
+					}, cancellationToken);
 				}
 			else
 				{
@@ -217,13 +211,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<bool> ScheduleAdvanceAsync ()
+		public async Task<bool> ScheduleAdvanceAsync (CancellationToken cancellationToken = default)
 			{
 			if (Schedule != null)
 				{
-				if (await CancelBoostAsync ().ConfigureAwait (false))
+				if (await CancelBoostAsync (cancellationToken).ConfigureAwait (false))
 					{
-					return await OverrideStateAsync (Schedule.Next.Setting.ToString ()).ConfigureAwait (false);
+					return await OverrideStateAsync (Schedule.Next.Setting.ToString (), cancellationToken).ConfigureAwait (false);
 					}
 				}
 			return false;

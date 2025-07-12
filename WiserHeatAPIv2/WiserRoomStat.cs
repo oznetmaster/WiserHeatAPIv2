@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -25,14 +26,13 @@ namespace WiserHeatApiV2
 			_identifyActive = data.TryGetValue ("IdentifyActive", out var identify) && Convert.ToBoolean (identify);
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false)
+		private  Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false, CancellationToken cancellationToken = default)
 			{
 			string url = deviceLevel
 				 ? string.Format (RestConstants.WISERDEVICE, Id)
 				 : string.Format (RestConstants.WISERROOMSTAT, Id);
 
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
 		public WiserBattery Battery => new WiserBattery (_data);
@@ -46,12 +46,12 @@ namespace WiserHeatApiV2
 			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
 
 		public bool DeviceLockEnabled => _deviceLockEnabled;
-		public async Task<bool> SetDeviceLockEnabledAsync (bool value)
+		public async Task<bool> SetDeviceLockEnabledAsync (bool value, CancellationToken cancellationToken = default)
 			{
 			if (await SendCommandAsync (new
 				{
 				DeviceLockEnabled = value
-				}, true).ConfigureAwait (false))
+				}, true, cancellationToken).ConfigureAwait (false))
 				{
 				_deviceLockEnabled = value;
 				return true;
@@ -60,12 +60,12 @@ namespace WiserHeatApiV2
 			}
 
 		public bool Identify => _identifyActive;
-		public async Task<bool> SetIdentifyAsync (bool value)
+		public async Task<bool> SetIdentifyAsync (bool value, CancellationToken cancellationToken = default)
 			{
 			if (await SendCommandAsync (new
 				{
 				Identify = value
-				}, true).ConfigureAwait (false))
+				}, true, cancellationToken).ConfigureAwait (false))
 				{
 				_identifyActive = value;
 				return true;

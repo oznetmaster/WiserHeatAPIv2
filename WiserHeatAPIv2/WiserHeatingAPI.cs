@@ -86,7 +86,7 @@ namespace WiserHeatingAPI
 			{
 			try
 				{
-				if (await ReadHubDataAsync ().ConfigureAwait (false))
+				if (await ReadHubDataAsync (cancellationToken).ConfigureAwait (false))
 					return;
 				_LOGGER.Error ("Failed to read hub data. Please check your connection settings.");
 				// If we reach here, it means the hub data could not be read
@@ -95,22 +95,22 @@ namespace WiserHeatingAPI
 			catch (Exception ex)
 				{
 				_LOGGER.Error ("Error initializing Wiser API", ex);
-				throw new WiserHubConnectionException ("Failed to initialize Wiser API: " + ex.Message);
+				throw new WiserHubConnectionException ($"Failed to initialize Wiser API: {ex.Message}");
 				}
 			}
 
 		/// <summary>
 		/// Read all data from hub and populate objects
 		/// </summary>
-		public async Task<bool> ReadHubDataAsync ()
+		public async Task<bool> ReadHubDataAsync (CancellationToken cancellationToken = default)
 			{
 			try
 				{
 				// Read data from hub
-				var newDomainData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBDOMAIN, _wiserApiConnection.Host)).ConfigureAwait (false);
-				var newNetworkData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBNETWORK, _wiserApiConnection.Host)).ConfigureAwait (false);
-				var newScheduleData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBSCHEDULES, _wiserApiConnection.Host)).ConfigureAwait (false);
-				var newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBOPENTHERM, _wiserApiConnection.Host), false).ConfigureAwait (false);
+				var newDomainData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBDOMAIN, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				var newNetworkData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBNETWORK, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				var newScheduleData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBSCHEDULES, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				var newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBOPENTHERM, _wiserApiConnection.Host), false, cancellationToken: cancellationToken).ConfigureAwait (false);
 
 				// Update internal data
 				_domainData = newDomainData;
@@ -264,7 +264,7 @@ namespace WiserHeatingAPI
 		/// <summary>
 		/// Output raw hub data to json file
 		/// </summary>
-		public async Task<bool> OutputRawHubData (string dataClass, string filename, string filePath)
+		public async Task<bool> OutputRawHubDataAsync (string dataClass, string filename, string filePath, CancellationToken cancellationToken = default)
 			{
 			// Get correct endpoint
 			string endpoint = null;
@@ -278,13 +278,13 @@ namespace WiserHeatingAPI
 			// Get raw json data
 			if (!string.IsNullOrEmpty (endpoint))
 				{
-				var data = (Dictionary<string, object>)await _wiserRestController.GetHubDataAsync (endpoint).ConfigureAwait (false);
+				var data = (Dictionary<string, object>)await _wiserRestController.GetHubDataAsync (endpoint, cancellationToken: cancellationToken).ConfigureAwait (false);
 				try
 					{
 					if (data != null && data.Count > 0)
 						{
 						// Write out to file
-						LogResponseToFile (data, filename, false, Path.Combine (filePath));
+						await LogResponseToFileAsync (data, filename, Path.Combine (filePath)).ConfigureAwait (false);
 						return true;
 						}
 					}
@@ -297,11 +297,23 @@ namespace WiserHeatingAPI
 			return false;
 			}
 
-		private void LogResponseToFile (Dictionary<string, object> data, string filename, bool append, string filePath)
+		private void LogResponseToFile (Dictionary<string, object> data, string filename, string filePath)
 			{
 			string fullPath = Path.Combine (filePath, filename);
-			string jsonData = JsonConvert.SerializeObject (data, new JsonSerializerSettings { Formatting = Newtonsoft.Json.Formatting.Indented });
+			string jsonData = JsonConvert.SerializeObject (data, new JsonSerializerSettings { Formatting = Formatting.Indented });
 			File.WriteAllText (fullPath, jsonData);
+			}
+
+		private async Task LogResponseToFileAsync (Dictionary<string, object> data, string filename, string filePath)
+			{
+			string fullPath = Path.Combine (filePath, filename);
+			string jsonData = JsonConvert.SerializeObject (data, new JsonSerializerSettings { Formatting = Formatting.Indented });
+
+			using (var stream = new FileStream (fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true))
+			using (var writer = new StreamWriter (stream))
+				{
+				await writer.WriteAsync (jsonData).ConfigureAwait (false);
+				}
 			}
 		}
 
@@ -312,7 +324,7 @@ namespace WiserHeatingAPI
 			if (string.IsNullOrEmpty (input))
 				return input;
 
-			return char.ToUpper (input[0]) + input.Substring (1).ToLower ();
+			return $"{char.ToUpper(input[0])}{input.Substring(1).ToLower()}";
 			}
 		}
 

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -28,14 +29,14 @@ namespace WiserHeatApiV2
 
 			public int? CloseTime => _data?.TryGetValue ("LiftCloseTime", out var time) == true ? (int?)Convert.ToInt32 (time) : null;
 
-			public async Task SetOpenTimeAsync (int time)
+			public async Task SetOpenTimeAsync (int time, CancellationToken cancellationToken = default)
 				{
-				await _shutterInstance.SendCommandAsync (new { LiftOpenTime = time, LiftCloseTime = CloseTime }).ConfigureAwait (false);
+				await _shutterInstance.SendCommandAsync (new { LiftOpenTime = time, LiftCloseTime = CloseTime }, cancellationToken: cancellationToken).ConfigureAwait (false);
 				}
 
-			public async Task SetCloseTimeAsync (int time)
+			public async Task SetCloseTimeAsync (int time, CancellationToken cancellationToken = default)
 				{
-				await _shutterInstance.SendCommandAsync (new { LiftOpenTime = OpenTime, LiftCloseTime = time }).ConfigureAwait (false);
+				await _shutterInstance.SendCommandAsync (new { LiftOpenTime = OpenTime, LiftCloseTime = time }, cancellationToken: cancellationToken).ConfigureAwait (false);
 				}
 			}
 
@@ -66,13 +67,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false)
+		private async Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false, CancellationToken cancellationToken = default)
 			{
 			string url = deviceLevel
 				 ? string.Format (RestConstants.WISERDEVICE, Id)
 				 : string.Format (RestConstants.WISERSHUTTER, ShutterId);
 
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
+			bool result = await _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken).ConfigureAwait (false);
 			return result;
 			}
 
@@ -120,11 +121,11 @@ namespace WiserHeatApiV2
 
 		public int CurrentLift => _deviceTypeData.TryGetValue ("CurrentLift", out var lift) ? Convert.ToInt32 (lift) : 0;
 
-		public async Task SetCurrentLiftAsync (int percentage)
+		public async Task SetCurrentLiftAsync (int percentage, CancellationToken cancellationToken = default)
 			{
 			if (percentage >= 0 && percentage <= 100)
 				{
-				await SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = percentage } }).ConfigureAwait (false);
+				await SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = percentage } }, cancellationToken: cancellationToken).ConfigureAwait (false);
 				}
 			else
 				{
@@ -145,9 +146,9 @@ namespace WiserHeatApiV2
 			}
 
 		public bool Identify => _identifyActive;
-		public async Task<bool> SetIdentifyAsync (bool value)
+		public async Task<bool> SetIdentifyAsync (bool value, CancellationToken cancellationToken = default)
 			{
-			if (await SendCommandAsync (new { Identify = value }, true).ConfigureAwait (false))
+			if (await SendCommandAsync (new { Identify = value }, true, cancellationToken: cancellationToken).ConfigureAwait (false))
 				{
 				_identifyActive = value;
 				return true;
@@ -214,21 +215,21 @@ namespace WiserHeatApiV2
 
 		public int TargetLift => _deviceTypeData.TryGetValue ("TargetLift", out var lift) ? Convert.ToInt32 (lift) : 0;
 
-		public async Task OpenAsync ()
+		public Task OpenAsync (CancellationToken cancellationToken = default)
 			{
-			await SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }).ConfigureAwait (false);
+			 return SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }, cancellationToken: cancellationToken);
 			}
 
-		public async Task CloseAsync ()
+		public Task CloseAsync (CancellationToken cancellationToken = default)
 			{
-			await SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 0 } }).ConfigureAwait (false);
+			return SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 0 } }, cancellationToken: cancellationToken);
 			}
 
-		public async Task StopAsync ()
+		public Task StopAsync (CancellationToken cancellationToken = default)
 			{
-			await SendCommandAsync (new { RequestAction = new { Action = "Stop" } }).ConfigureAwait (false);
+			return SendCommandAsync (new { RequestAction = new { Action = "Stop" } }, cancellationToken: cancellationToken);
 			}
-		}
+	}
 
 	public class WiserShutterCollection
 		{

@@ -16,6 +16,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace WiserHeatApiV2
 	{
@@ -88,13 +89,7 @@ namespace WiserHeatApiV2
 		DELETE
 		}
 
-	public interface IWiserRestController
-		{
-		Task<Dictionary<string, object>> GetHubDataAsync (string url, bool raiseForEndpointError = true);
-		Task<bool> SendCommandAsync (string url, object commandData, WiserRestActionEnum method = WiserRestActionEnum.PATCH);
-		}
-
-	public class WiserRestController : IWiserRestController
+	public class WiserRestController
 		{
 		private readonly WiserConnection _wiserConnection;
 		private readonly HttpClient _httpClient;
@@ -121,7 +116,7 @@ namespace WiserHeatApiV2
 			}
 
 		// Fix for CRR0029: Explicitly call ConfigureAwait(false) to avoid implicit ConfigureAwait(true)
-		public async Task<HttpResponseMessage> ExecuteHttpRequestAsync (WiserRestActionEnum action, string url, StringContent data = null)
+		public async Task<HttpResponseMessage> ExecuteHttpRequestAsync (WiserRestActionEnum action, string url, StringContent data = null, CancellationToken cancellationToken = default)
 			{
 			HttpResponseMessage response = null;
 			int retryCount = RestConstants.REST_RETRIES;
@@ -134,16 +129,16 @@ namespace WiserHeatApiV2
 					switch (action)
 						{
 						case WiserRestActionEnum.GET:
-							response = await _httpClient.GetAsync (url).ConfigureAwait (false);
+							response = await _httpClient.GetAsync (url, cancellationToken).ConfigureAwait (false);
 							break;
 						case WiserRestActionEnum.POST:
-							response = await _httpClient.PostAsync (url, data).ConfigureAwait (false);
+							response = await _httpClient.PostAsync (url, data, cancellationToken).ConfigureAwait (false);
 							break;
 						case WiserRestActionEnum.PATCH:
-							response = await _httpClient.PatchAsync (url, data).ConfigureAwait (false);
+							response = await _httpClient.PatchAsync (url, data, cancellationToken).ConfigureAwait (false);
 							break;
 						case WiserRestActionEnum.DELETE:
-							response = await _httpClient.DeleteAsync (url).ConfigureAwait (false);
+							response = await _httpClient.DeleteAsync (url, cancellationToken).ConfigureAwait (false);
 							break;
 						default:
 							throw new ArgumentOutOfRangeException (nameof (action), action, "Invalid WiserRestActionEnum");
@@ -163,7 +158,7 @@ namespace WiserHeatApiV2
 						retryCount--;
 						if (retryCount >= 0)
 							{
-							await Task.Delay (delay).ConfigureAwait (false);
+							await Task.Delay (delay, cancellationToken).ConfigureAwait (false);
 
 							delay = TimeSpan.FromSeconds (delay.TotalSeconds * RestConstants.REST_BACKOFF_FACTOR); // Exponential backoff
 							}
@@ -190,7 +185,7 @@ namespace WiserHeatApiV2
 			return response;
 			}
 
-		private async Task<Dictionary<string, object>> _DoHubActionAsync (WiserRestActionEnum action, string url, object data = null, bool raiseForEndpointError = true)
+		private async Task<bool> _DoHubActionAsync (WiserRestActionEnum action, string url, object data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
 			{
 			StringContent jsonContent = null;
 			if (data != null)
@@ -201,7 +196,42 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				HttpResponseMessage response = await ExecuteHttpRequestAsync (action, url, jsonContent).ConfigureAwait (false);
+				HttpResponseMessage response = await ExecuteHttpRequestAsync (action, url, jsonContent, cancellationToken).ConfigureAwait (false);
+
+				if (!response.IsSuccessStatusCode)
+					{
+					await _ProcessNokResponseAsync (response, raiseForEndpointError).ConfigureAwait (false);
+					return false; // Return empty object on failure
+					}
+				else
+					{
+					return true;
+					}
+				}
+			catch (WiserHubConnectionError)
+				{
+				throw; // Re-throw custom exception
+				}
+			catch (Exception ex)
+				{
+				// Catch any other unexpected exceptions
+				_LOGGER.Error ("An unexpected error occurred in _DoHubActionAsync.", ex);
+				throw new WiserHubConnectionError ($"An unexpected error occurred: {ex.Message}");
+				}
+			}
+
+		public async Task<Dictionary<string, object>> GetHubDataAsync (string url, object data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
+			{
+			StringContent jsonContent = null;
+			if (data != null)
+				{
+				var jsonData = JsonConvert.SerializeObject (data);
+				jsonContent = new StringContent (jsonData, Encoding.UTF8, "application/json");
+				}
+
+			try
+				{
+				HttpResponseMessage response = await ExecuteHttpRequestAsync (WiserRestActionEnum.GET, url, jsonContent, cancellationToken).ConfigureAwait (false);
 
 				if (!response.IsSuccessStatusCode)
 					{
@@ -210,20 +240,13 @@ namespace WiserHeatApiV2
 					}
 				else
 					{
-					if (action == WiserRestActionEnum.GET)
+					var content = await response.Content.ReadAsByteArrayAsync ().ConfigureAwait (false);
+					if (content.Length > 0)
 						{
-						var content = await response.Content.ReadAsByteArrayAsync ().ConfigureAwait (false);
-						if (content.Length > 0)
-							{
-							// Remove non-ASCII characters (equivalent to the Python regex)
-							string cleanedContent = Regex.Replace (Encoding.UTF8.GetString (content), @"[^\u0020-\u007F]+", string.Empty);
-							var cleaned = JsonConvert.DeserializeObject<JToken> (cleanedContent);
-							return (Dictionary<string, object>)ConvertJTokenToObject (cleaned);
-							}
-						}
-					else
-						{
-						return null;
+						// Remove non-ASCII characters (equivalent to the Python regex)
+						string cleanedContent = Regex.Replace (Encoding.UTF8.GetString (content), @"[^\u0020-\u007F]+", string.Empty);
+						var cleaned = JsonConvert.DeserializeObject<JToken> (cleanedContent);
+						return (Dictionary<string, object>)ConvertJTokenToObject (cleaned);
 						}
 					return new Dictionary<string, object> ();
 					}
@@ -270,64 +293,54 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<Dictionary<string, object>> GetHubDataAsync (string url, bool raiseForEndpointError = true)
+		public Task<bool> SendCommandAsync (string url, object commandData, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
 			{
-			return await _DoHubActionAsync (WiserRestActionEnum.GET, url, raiseForEndpointError: raiseForEndpointError).ConfigureAwait (false);
-			}
-
-		public async Task<bool> SendCommandAsync (string url, object commandData, WiserRestActionEnum method = WiserRestActionEnum.PATCH)
-			{
-			string fullUrl = string.Format (RestConstants.WISERHUBDOMAIN, _wiserConnection.Host) + url;
+			string fullUrl = $"{string.Format (RestConstants.WISERHUBDOMAIN, _wiserConnection.Host)}{url}";
 			_LOGGER.DebugFormat ("Sending command to url: {0} with parameters {1}", fullUrl, JsonConvert.SerializeObject (commandData));
 
-			return await _DoHubActionAsync (method, fullUrl, commandData).ConfigureAwait (false) == null;
+			return _DoHubActionAsync (method, fullUrl, commandData, cancellationToken: cancellationToken);
 			}
 
-		private async Task<bool> _DoScheduleActionAsync (WiserRestActionEnum action, string url, object scheduleData = null)
+		private Task<bool> _DoScheduleActionAsync (WiserRestActionEnum action, string url, object scheduleData = null, CancellationToken cancellationToken = default)
 			{
-			string fullUrl = string.Format (RestConstants.WISERHUBSCHEDULES, _wiserConnection.Host) + url;
+			string fullUrl = $"{string.Format (RestConstants.WISERHUBSCHEDULES, _wiserConnection.Host)}{url}";
 			_LOGGER.DebugFormat ("Actioning schedule to url: {0} with action {1} and data {2}", fullUrl, action.ToString (), JsonConvert.SerializeObject (scheduleData));
-			return await _DoHubActionAsync (action, fullUrl, scheduleData).ConfigureAwait (false) == null;
+			
+			return _DoHubActionAsync (action, fullUrl, scheduleData, cancellationToken: cancellationToken);
 			}
 
-		public async Task<bool> SendScheduleCommandAsync (string action, object scheduleData, int id = 0, string scheduleType = null)
+		public Task<bool> SendScheduleCommandAsync (string action, object scheduleData, int id = 0, string scheduleType = null, CancellationToken cancellationToken = default)
 			{
-			bool result;
 			switch (action.ToUpper ())
 				{
 				case "UPDATE":
-					result = await _DoScheduleActionAsync (
+					return _DoScheduleActionAsync (
 						 WiserRestActionEnum.PATCH,
 						 $"{scheduleType}/{id}",
-						 scheduleData).ConfigureAwait (false);
-					break;
+						 scheduleData, cancellationToken);
 
 				case "CREATE":
-					result = await _DoScheduleActionAsync (
+					return _DoScheduleActionAsync (
 						 WiserRestActionEnum.POST,
 						 "Assign",
-						 scheduleData).ConfigureAwait (false);
-					break;
+						 scheduleData, cancellationToken);
 
 				case "ASSIGN":
-					result = await _DoScheduleActionAsync (
+					return _DoScheduleActionAsync (
 						 WiserRestActionEnum.PATCH,
 						 "Assign",
-						 scheduleData).ConfigureAwait (false);
-					break;
+						 scheduleData, cancellationToken);
 
 				case "DELETE":
-					result = await _DoScheduleActionAsync (
+					return _DoScheduleActionAsync (
 						 WiserRestActionEnum.DELETE,
 						 $"{scheduleType}/{id}",
-						 scheduleData).ConfigureAwait (false);
-					break;
+						 scheduleData, cancellationToken);
 
 				default:
 					_LOGGER.ErrorFormat ("Invalid schedule action: {}", action);
-					return false;
+					return Task.FromResult(false);
 				}
-			return result;
 			}
 
 		public static object ConvertJTokenToObject (JToken token)
