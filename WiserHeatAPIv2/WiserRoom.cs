@@ -22,6 +22,7 @@ namespace WiserHeatApiV2
 		private string _mode;
 		private string _name;
 		private bool _windowDetectionActive;
+		private int _id;
 
 		public WiserRoom (WiserRestController wiserRestController, IDictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
 			{
@@ -29,6 +30,8 @@ namespace WiserHeatApiV2
 			_data = new ConcurrentDictionary<string, object> (room);
 			_schedule = schedule;
 			_devices = devices;
+			// Initialize properties from the room data
+			_id = _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
 			_mode = EffectiveHeatingMode (
 				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : string.Empty,
 				 CurrentTargetTemperature
@@ -85,6 +88,7 @@ namespace WiserHeatApiV2
 					 CurrentTargetTemperature
 					);
 
+				_id = room.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
 				_name = room.TryGetValue ("Name", out var name) ? name.ToString () : string.Empty;
 				_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection);
 
@@ -182,7 +186,7 @@ namespace WiserHeatApiV2
 
 		public string HeatingType => _data.TryGetValue ("HeatingType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
 
-		public int Id => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+		public int Id => _id;
 
 		public bool IsAwayMode => _data.TryGetValue ("SetpointOrigin", out var origin) && origin.ToString ().Contains ("Away") ||
 										 _data.TryGetValue ("SetPointOrigin", out var origin2) && origin2.ToString ().Contains ("Away");
@@ -204,8 +208,13 @@ namespace WiserHeatApiV2
 			get => _mode;
 			set
 				{
+				// If the mode is already set to the desired value, no need to change
+				if (_mode == value)
+					{
+					return; // No change needed
+					}
 				// For cancellation support, use SetModeAsync instead
-				SetModeAsync(value).GetAwaiter().GetResult();
+				SetModeAsync (value).GetAwaiter().GetResult();
 				}
 			}
 
@@ -254,8 +263,13 @@ namespace WiserHeatApiV2
 			get => _name;
 			set
 				{
+				// If the name is already set to the desired value, no need to change
+				if (_name == value)
+					{
+					return; // No change needed
+					}
 				// For cancellation support, use SetNameAsync instead
-				SetNameAsync(value).GetAwaiter().GetResult();
+				SetNameAsync (value).GetAwaiter().GetResult();
 				}
 			}
 
@@ -311,8 +325,13 @@ namespace WiserHeatApiV2
 			get => _windowDetectionActive;
 			set
 				{
+				// If the window detection is already set to the desired value, no need to change
+				if (_windowDetectionActive == value)
+					{
+					return; // No change needed
+					}
 				// For cancellation support, use SetWindowDetectionActiveAsync instead
-				SetWindowDetectionActiveAsync(value).GetAwaiter().GetResult();
+				SetWindowDetectionActiveAsync (value).GetAwaiter().GetResult();
 				}
 			}
 

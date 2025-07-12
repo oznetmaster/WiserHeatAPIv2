@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LIGHTING SHUTTER LIGHT HEATACTUATOR OPENTHERM</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <NoWarn>CRR0029,CRRSP08</NoWarn>
@@ -62,6 +62,8 @@
     <Compile Include="WiserHotwater.cs" />
     <Compile Include="WiserLight.cs" />
     <Compile Include="WiserMoment.cs" />
+    <Compile Include="WiserNetwork.cs" />
+    <Compile Include="WiserOpentherm.cs" />
     <Compile Include="WiserRestController.cs" />
     <Compile Include="WiserRoom.cs" />
     <Compile Include="WiserRoomStat.cs" />

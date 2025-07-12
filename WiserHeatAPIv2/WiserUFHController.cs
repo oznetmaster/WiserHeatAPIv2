@@ -5,26 +5,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
 	{
 	public class WiserUFHController : WiserDevice
 		{
-		private readonly WiserRestController _wiserRestController;
-		private readonly Dictionary<string, object> _deviceTypeData;
-		private bool _deviceLockEnabled;
-		private bool _identifyActive;
 		private readonly List<WiserUFHRelay> _relays = new List<WiserUFHRelay> ();
 
 		public WiserUFHController (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData)
-			 : base (data)
+			 : base (wiserRestController, data, deviceTypeData)
 			{
-			_wiserRestController = wiserRestController;
-			_deviceTypeData = deviceTypeData;
 			_deviceLockEnabled = false;
-			_identifyActive = data.TryGetValue ("IdentifyActive", out var identify) && Convert.ToBoolean (identify);
 
 			if (deviceTypeData.TryGetValue ("Relays", out var relays) && relays is List<object> relaysList)
 				{
@@ -37,49 +28,10 @@ namespace WiserHeatApiV2
 					}
 				}
 			}
-
-		private Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false, CancellationToken cancellationToken = default)
-			{
-			string url = deviceLevel
-				 ? string.Format (RestConstants.WISERDEVICE, Id)
-				 : string.Format (RestConstants.WISERUFHCONTROLLER, Id);
-
-			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
-			}
-
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TEMP_OFF, "current");
 
-		public bool DeviceLockEnabled => _deviceLockEnabled;
-		public async Task<bool> SetDeviceLockEnabledAsync (bool value, CancellationToken cancellationToken = default)
-			{
-			if (await SendCommandAsync (new
-				{
-				DeviceLockEnabled = value
-				}, true, cancellationToken).ConfigureAwait (false))
-				{
-				_deviceLockEnabled = value;
-				return true;
-				}
-			return false;
-			}
-
-
 		public bool? DewDetected => _deviceTypeData.TryGetValue ("DewDetected", out var detected) ? (bool?)Convert.ToBoolean (detected) : null;
-
-		public bool Identify => _identifyActive;
-		public async Task<bool> SetIdentifyAsync (bool value, CancellationToken cancellationToken = default)
-			{
-			if (await SendCommandAsync (new
-				{
-				Identify = value
-				}, true, cancellationToken).ConfigureAwait (false))
-				{
-				_identifyActive = value;
-				return true;
-				}
-			return false;
-			}
 
 		public bool? InterlockActive => _deviceTypeData.TryGetValue ("InterlockActive", out var active) ? (bool?)Convert.ToBoolean (active) : null;
 
@@ -89,13 +41,9 @@ namespace WiserHeatApiV2
 
 		public int MinFloorTemperature => _deviceTypeData.TryGetValue ("MinHeatFloorTemperature", out var temp) ? Convert.ToInt32 (temp) : Constants.TEMP_OFF;
 
-		new public string Name => _deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
-
 		public string OutputType => _deviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
 
 		public List<WiserUFHRelay> Relays => _relays;
-
-		public int RoomId => _deviceTypeData.TryGetValue ("RoomId", out var roomId) ? Convert.ToInt32 (roomId) : 0;
 		}
 
 	public class WiserUFHControllerCollection

@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -40,24 +39,16 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private readonly WiserRestController _wiserRestController;
 		private readonly WiserSchedule _schedule;
 		private string _awayAction;
 		private string _mode;
-		private string _name;
-		private bool _deviceLockEnabled;
-		private bool _identifyActive;
 
 		public WiserShutter (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
-			 : base (data, deviceTypeData)
+			 : base (wiserRestController, data, deviceTypeData)
 			{
-			_wiserRestController = wiserRestController;
 			_schedule = schedule;
 			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
 			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
-			_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
-			_deviceLockEnabled = data.TryGetValue ("DeviceLockEnabled", out var lockEnabled) && Convert.ToBoolean (lockEnabled);
-			_identifyActive = data.TryGetValue ("IdentifyActive", out var identify) && Convert.ToBoolean (identify);
 
 			// Add device id to schedule
 			if (_schedule != null)
@@ -67,14 +58,11 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private async Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false, CancellationToken cancellationToken = default)
+		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			string url = deviceLevel
-				 ? string.Format (RestConstants.WISERDEVICE, Id)
-				 : string.Format (RestConstants.WISERSHUTTER, ShutterId);
+			string url = string.Format (RestConstants.WISERSHUTTER, ShutterId);
 
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken).ConfigureAwait (false);
-			return result;
+			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
 		private bool ValidateMode (string mode)
@@ -103,6 +91,8 @@ namespace WiserHeatApiV2
 			get => _awayAction;
 			set
 				{
+				if (value == _awayAction)
+					return; // No change needed
 				if (ValidateAwayAction (value))
 					{
 					if (SendCommandAsync (new { AwayAction = value }).Result)
@@ -145,17 +135,6 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public bool Identify => _identifyActive;
-		public async Task<bool> SetIdentifyAsync (bool value, CancellationToken cancellationToken = default)
-			{
-			if (await SendCommandAsync (new { Identify = value }, true, cancellationToken: cancellationToken).ConfigureAwait (false))
-				{
-				_identifyActive = value;
-				return true;
-				}
-			return false;
-			}
-
 		public bool IsOpen => CurrentLift == 100;
 
 		public bool IsClosed => CurrentLift == 0;
@@ -191,19 +170,27 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		new public string Name
+		override public string Name
 			{
 			get => _name;
 			set
 				{
+				if (value == _name)
+					return;
+				if (string.IsNullOrWhiteSpace (value))
+					{
+					throw new ArgumentException ("Name cannot be null or empty.");
+					}
+				if (value.Length > 50)
+					{
+					throw new ArgumentException ("Name cannot exceed 50 characters.");
+					}
 				if (SendCommandAsync (new { Name = value }).Result)
 					{
 					_name = value;
 					}
 				}
 			}
-
-		public int RoomId => _deviceTypeData.TryGetValue ("RoomId", out var roomId) ? Convert.ToInt32 (roomId) : 0;
 
 		public WiserSchedule Schedule => _schedule;
 
@@ -217,7 +204,7 @@ namespace WiserHeatApiV2
 
 		public Task OpenAsync (CancellationToken cancellationToken = default)
 			{
-			 return SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }, cancellationToken: cancellationToken);
+			return SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }, cancellationToken: cancellationToken);
 			}
 
 		public Task CloseAsync (CancellationToken cancellationToken = default)
@@ -229,7 +216,7 @@ namespace WiserHeatApiV2
 			{
 			return SendCommandAsync (new { RequestAction = new { Action = "Stop" } }, cancellationToken: cancellationToken);
 			}
-	}
+		}
 
 	public class WiserShutterCollection
 		{

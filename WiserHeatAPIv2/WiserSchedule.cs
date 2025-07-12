@@ -2,10 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using log4net;
-
-using Newtonsoft.Json;
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,6 +9,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
+using log4net;
+
+using Newtonsoft.Json;
 
 namespace WiserHeatApiV2
 	{
@@ -1017,7 +1017,7 @@ namespace WiserHeatApiV2
 		private readonly IDictionary<string, string> _sunsets;
 		private readonly List<WiserHeatingSchedule> _heatingSchedules = new List<WiserHeatingSchedule> ();
 		private readonly List<WiserOnOffSchedule> _onoffSchedules = new List<WiserOnOffSchedule> ();
-#if LIGHTING
+#if LIGHT
 		private readonly List<WiserLevelSchedule> _levelSchedules = new List<WiserLevelSchedule> ();
 #endif
 
@@ -1048,7 +1048,7 @@ namespace WiserHeatApiV2
 								{
 								_onoffSchedules.Add (new WiserOnOffSchedule (_wiserRestController, scheduleType, scheduleDict, _sunrises, _sunsets));
 								}
-#if LIGHTING
+#if LIGHT
 							if (scheduleType == WiserScheduleTypeEnum.Level.ToString ())
 								{
 								_levelSchedules.Add (new WiserLevelSchedule (_wiserRestController, scheduleType, scheduleDict, _sunrises, _sunsets));
@@ -1066,7 +1066,7 @@ namespace WiserHeatApiV2
 				{
 				_heatingSchedules.Clear ();
 				_onoffSchedules.Clear ();
-#if LIGHTING
+#if LIGHT
 				_levelSchedules.Clear ();
 #endif
 				Build (scheduleData);
@@ -1101,7 +1101,7 @@ namespace WiserHeatApiV2
 
 		public List<WiserSchedule> All => _heatingSchedules.Cast<WiserSchedule> ()
 			 .Concat (_onoffSchedules.Cast<WiserSchedule> ())
-#if LIGHTING
+#if LIGHT
 			 .Concat (_levelSchedules.Cast<WiserSchedule> ())
 #endif
 			 .ToList ();
@@ -1110,7 +1110,7 @@ namespace WiserHeatApiV2
 
 		public List<WiserHeatingSchedule> HeatingSchedules => _heatingSchedules;
 
-#if LIGHTING
+#if LIGHT
 		public List<WiserLevelSchedule> LevelSchedules => _levelSchedules;
 #endif
 
@@ -1118,7 +1118,7 @@ namespace WiserHeatApiV2
 
 		public WiserSchedule GetById (WiserScheduleTypeEnum scheduleType, int id)
 			{
-#if LIGHTING || SHUTTERS
+#if LIGHT || SHUTTER
 			// Adjust schedule type for lighting and shutters
 			if (scheduleType == WiserScheduleTypeEnum.Lighting || scheduleType == WiserScheduleTypeEnum.Shutters)
 				{
@@ -1128,7 +1128,7 @@ namespace WiserHeatApiV2
 
 			try
 				{
-#if LIGHTING
+#if LIGHT
 				if (scheduleType == WiserScheduleTypeEnum.Level)
 					{
 					return All.FirstOrDefault (s => s.ScheduleType == scheduleType.ToString () && s.Id == id);
@@ -1158,7 +1158,7 @@ namespace WiserHeatApiV2
 			{
 			try
 				{
-#if LIGHTING
+#if LIGHT
 				return _onoffSchedules.Concat<WiserSchedule> (_levelSchedules)
 #else
 				return _onoffSchedules
@@ -1175,7 +1175,7 @@ namespace WiserHeatApiV2
 			{
 			try
 				{
-#if LIGHTING
+#if LIGHT
 				if (scheduleType == WiserScheduleTypeEnum.Level)
 					{
 					return All.FirstOrDefault (s => s.ScheduleType == scheduleType.ToString () && s.Name == name);
@@ -1199,7 +1199,7 @@ namespace WiserHeatApiV2
 				{
 				return _onoffSchedules.Cast<WiserSchedule> ().ToList ();
 				}
-#if LIGHTING
+#if LIGHT
 			if (scheduleType == WiserScheduleTypeEnum.Level)
 				{
 				return _levelSchedules.Cast<WiserSchedule> ().ToList ();
@@ -1240,7 +1240,7 @@ namespace WiserHeatApiV2
 
 			var typeData = new Dictionary<string, object> { { "Name", name } };
 
-#if LIGHTING
+#if LIGHT
 			if (scheduleType == WiserScheduleTypeEnum.Lighting || scheduleType == WiserScheduleTypeEnum.Level)
 				{
 				typeData["Type"] = 1;
@@ -1252,7 +1252,7 @@ namespace WiserHeatApiV2
 				}
 #endif
 
-#if SHUTTERS
+#if SHUTTER
 			if (scheduleType == WiserScheduleTypeEnum.Shutters)
 				{
 				typeData["Type"] = 2;

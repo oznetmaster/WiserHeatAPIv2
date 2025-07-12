@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -13,26 +12,19 @@ namespace WiserHeatApiV2
 #if LIGHT
 	public class WiserLight : WiserElectricalLevelDevice
 		{
-		protected readonly WiserRestController _wiserRestController;
 		protected readonly WiserSchedule _schedule;
 		protected string _awayAction;
 		protected string _mode;
-		protected string _name;
-		protected bool _deviceLockEnabled;
 		protected string _currentState;
-		protected bool _identifyActive;
 
 		public WiserLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
 			 : base (wiserRestController, data, deviceTypeData)
 			{
-			_wiserRestController = wiserRestController;
 			_schedule = schedule;
 			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
 			_currentState = deviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : Constants.TEXT_OFF;
 			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
 			_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
-			_deviceLockEnabled = data.TryGetValue ("DeviceLockEnabled", out var lockEnabled) && Convert.ToBoolean (lockEnabled);
-			_identifyActive = data.TryGetValue ("IdentifyActive", out var identify) && Convert.ToBoolean (identify);
 
 			// Add device id to schedule
 			if (_schedule != null)
@@ -42,16 +34,14 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		protected void SendCommand (object cmd, bool deviceLevel = false)
+		protected void SendCommand (object cmd)
 			{
-			SendCommandAsync (cmd, deviceLevel).Wait ();
+			SendCommandAsync (cmd).GetAwaiter ().GetResult ();
 			}
 
-		protected async Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false)
+		protected async Task<bool> SendCommandAsync (object cmd)
 			{
-			string url = deviceLevel
-				 ? string.Format (RestConstants.WISERDEVICE, Id)
-				 : string.Format (RestConstants.WISERLIGHT, LightId);
+			string url = string.Format (RestConstants.WISERLIGHT, LightId);
 
 			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
 			return result;
@@ -101,29 +91,22 @@ namespace WiserHeatApiV2
 
 		public string CurrentState => _deviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : "0";
 
-		public bool Identify
-			{
-			get => _identifyActive;
-			set
-				{
-				if (SendCommandAsync (new { Identify = value }, true).Result)
-					{
-					_identifyActive = value;
-					}
-				}
-			}
-
 		public bool IsDimmable => _deviceTypeData.TryGetValue ("IsDimmable", out var dimmable) && Convert.ToBoolean (dimmable);
 
 		public bool IsOn => _currentState == Constants.TEXT_ON;
 
-		public int LightId => _deviceTypeData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+		public int LightId => DeviceTypeId;
 
 		public string Mode
 			{
 			get => _mode;
 			set
 				{
+				// Check if the mode is already set to the desired value
+				if (_mode == value)
+					{
+					return; // No change needed
+					}
 				if (ValidateMode (value))
 					{
 					if (SendCommandAsync (new { Mode = value }).Result)
@@ -138,19 +121,32 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		new public string Name
+		override public string Name
 			{
 			get => _name;
 			set
 				{
+				// Check if the name is already set to the desired value
+				if (_name == value)
+					{
+					return; // No change needed
+					}
+				// Validate name length and content
+				if (string.IsNullOrWhiteSpace (value))
+					{
+					throw new ArgumentException ("Name cannot be null or empty");
+					}
+				else if (value.Length > 50)
+					{
+					throw new ArgumentException ("Name cannot exceed 50 characters");
+					}
+				// Send command to update name
 				if (SendCommandAsync (new { Name = value }).Result)
 					{
 					_name = value;
 					}
 				}
 			}
-
-		public int RoomId => _deviceTypeData.TryGetValue ("RoomId", out var roomId) ? Convert.ToInt32 (roomId) : 0;
 
 		public WiserSchedule Schedule => _schedule;
 

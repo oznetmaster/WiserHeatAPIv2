@@ -13,28 +13,19 @@ namespace WiserHeatApiV2
 	{
 	public class WiserSmartPlug : WiserDevice
 		{
-		private readonly WiserRestController _wiserRestController;
-		private readonly IDictionary<string, object> _deviceTypeData;
 		private readonly WiserSchedule _schedule;
 		private string _awayAction;
 		private string _mode;
-		private string _name;
-		private bool _deviceLockEnabled;
 		private string _outputState;
-		private bool _identifyActive;
 
 		public WiserSmartPlug (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData, WiserSchedule schedule)
-			 : base (data)
+			 : base (wiserRestController, data, deviceTypeData)
 			{
-			_wiserRestController = wiserRestController;
-			_deviceTypeData = deviceTypeData;
 			_schedule = schedule;
 			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
 			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
 			_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
-			_deviceLockEnabled = data.TryGetValue ("DeviceLockEnabled", out var lockEnabled) && Convert.ToBoolean (lockEnabled);
 			_outputState = deviceTypeData.TryGetValue ("OutputState", out var state) ? state.ToString () : Constants.TEXT_OFF;
-			_identifyActive = data.TryGetValue ("IdentifyActive", out var identify) && Convert.ToBoolean (identify);
 
 			// Add device id to schedule
 			if (_schedule != null)
@@ -44,13 +35,9 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private Task<bool> SendCommandAsync (object cmd, bool deviceLevel = false, CancellationToken cancellationToken = default)
+		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			string url = deviceLevel
-				 ? string.Format (RestConstants.WISERDEVICE, Id)
-				 : string.Format (RestConstants.WISERSMARTPLUG, Id);
-
-			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
+			return _wiserRestController.SendCommandAsync (string.Format (RestConstants.WISERSMARTPLUG, Id), cmd, cancellationToken: cancellationToken);
 			}
 
 		private bool ValidateMode (string mode)
@@ -74,77 +61,63 @@ namespace WiserHeatApiV2
 			 .Select (a => a.ToString ())
 			 .ToList ();
 
-		public async Task<bool> SetModeAsync(string value, CancellationToken cancellationToken = default)
-		{
-			if (!ValidateMode(value))
-				throw new ArgumentException($"{value} is not a valid Smart Plug mode. Valid modes are {string.Join(", ", AvailableModes)}");
-			if (await SendCommandAsync(new { Mode = value }, cancellationToken: cancellationToken).ConfigureAwait(false))
+		public async Task<bool> SetModeAsync (string value, CancellationToken cancellationToken = default)
 			{
+			if (_mode == value)
+				return true; // No change needed
+			if (!ValidateMode (value))
+				throw new ArgumentException ($"{value} is not a valid Smart Plug mode. Valid modes are {string.Join (", ", AvailableModes)}");
+			if (await SendCommandAsync (new { Mode = value }, cancellationToken: cancellationToken).ConfigureAwait (false))
+				{
 				_mode = value;
 				return true;
-			}
+				}
 			return false;
-		}
-		public async Task<bool> SetNameAsync(string value, CancellationToken cancellationToken = default)
-		{
-			if (await SendCommandAsync(new { Name = value }, cancellationToken: cancellationToken).ConfigureAwait(false))
+			}
+		public async Task<bool> SetNameAsync (string value, CancellationToken cancellationToken = default)
 			{
+			if (_name == value)
+				return true; // No change needed
+			if (value == null)
+				throw new ArgumentNullException (nameof (value), "Name cannot be null.");
+			if (string.IsNullOrWhiteSpace (value))
+				throw new ArgumentException ("Name cannot be empty or whitespace.", nameof (value));
+			if (value.Length > 50)
+				throw new ArgumentException ("Name cannot exceed 50 characters.", nameof (value));
+			// Check if the name is already set to the desired value
+			if (await SendCommandAsync (new { Name = value }, cancellationToken: cancellationToken).ConfigureAwait (false))
+				{
 				_name = value;
 				return true;
-			}
+				}
 			return false;
-		}
-		public async Task<bool> SetAwayModeActionAsync(string value, CancellationToken cancellationToken = default)
-		{
-			if (!ValidateAwayAction(value))
-				throw new ArgumentException($"{value} is not a valid Smart Plug away mode action. Valid modes are {string.Join(", ", AvailableAwayModeActions)}");
-			if (await SendCommandAsync(new { AwayAction = value }, cancellationToken: cancellationToken).ConfigureAwait(false))
+			}
+
+		public async Task<bool> SetAwayModeActionAsync (string value, CancellationToken cancellationToken = default)
 			{
+			if (!ValidateAwayAction (value))
+				throw new ArgumentException ($"{value} is not a valid Smart Plug away mode action. Valid modes are {string.Join (", ", AvailableAwayModeActions)}");
+			if (await SendCommandAsync (new { AwayAction = value }, cancellationToken: cancellationToken).ConfigureAwait (false))
+				{
 				_awayAction = value;
 				return true;
-			}
+				}
 			return false;
-		}
+			}
 		public string AwayModeAction
 			{
 			get => _awayAction;
 			set
 				{
-				SetAwayModeActionAsync(value).GetAwaiter().GetResult();
+				if (_awayAction == value)
+					return; // No change needed
+				SetAwayModeActionAsync (value).GetAwaiter ().GetResult ();
 				}
 			}
 
 		public string ControlSource => _deviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
 
 		public int DeliveredPower => _deviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power) : -1;
-
-		public bool DeviceLockEnabled => _deviceLockEnabled;
-		public async Task<bool> SetDeviceLockEnabledAsync (bool value, CancellationToken cancellationToken = default)
-			{
-			if (await SendCommandAsync (new
-				{
-				DeviceLockEnabled = value
-				}, true, cancellationToken).ConfigureAwait (false))
-				{
-				_deviceLockEnabled = value;
-				return true;
-				}
-			return false;
-			}
-
-		public bool Identify => _identifyActive;
-		public async Task<bool> SetIdentifyAsync (bool value, CancellationToken cancellationToken = default)
-			{
-			if (await SendCommandAsync (new
-				{
-				Identify = value
-				}, true, cancellationToken).ConfigureAwait (false))
-				{
-				_identifyActive = value;
-				return true;
-				}
-			return false;
-			}
 
 		public int InstantaneousPower => _deviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? Convert.ToInt32 (power) : -1;
 
@@ -155,22 +128,30 @@ namespace WiserHeatApiV2
 			get => _mode;
 			set
 				{
-				SetModeAsync(value).GetAwaiter().GetResult();
+				if (_mode == value)
+					return; // No change needed
+				SetModeAsync (value).GetAwaiter ().GetResult ();
 				}
 			}
 
-		new public string Name
+		override public string Name
 			{
 			get => _name;
 			set
 				{
-				SetNameAsync(value).GetAwaiter().GetResult();
+				if (_name == value)
+					return;
+				if (value == null)
+					throw new ArgumentNullException (nameof (value), "Name cannot be null.");
+				if (string.IsNullOrWhiteSpace (value))
+					throw new ArgumentException ("Name cannot be empty or whitespace.", nameof (value));
+				if (value.Length > 50)
+					throw new ArgumentException ("Name cannot exceed 50 characters.", nameof (value));
+				SetNameAsync (value).GetAwaiter ().GetResult ();
 				}
 			}
 
 		public bool IsOn => _outputState == Constants.TEXT_ON;
-
-		public int RoomId => _deviceTypeData.TryGetValue ("RoomId", out var roomId) ? Convert.ToInt32 (roomId) : 0;
 
 		public WiserSchedule Schedule => _schedule;
 
@@ -180,6 +161,8 @@ namespace WiserHeatApiV2
 
 		public async Task<bool> TurnOnAsync (CancellationToken cancellationToken = default)
 			{
+			if (_outputState == Constants.TEXT_ON)
+				return true; // No change needed
 			bool result = await SendCommandAsync (new
 				{
 				RequestOutput = Constants.TEXT_ON
@@ -193,6 +176,8 @@ namespace WiserHeatApiV2
 
 		public async Task<bool> TurnOffAsync (CancellationToken cancellationToken = default)
 			{
+			if (_outputState == Constants.TEXT_OFF)
+				return true; // No change needed
 			bool result = await SendCommandAsync (new
 				{
 				RequestOutput = Constants.TEXT_OFF
