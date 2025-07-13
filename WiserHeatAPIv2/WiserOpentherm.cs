@@ -6,8 +6,6 @@
 using System;
 using System.Collections.Generic;
 
-using WiserHeatApiV2;
-
 namespace WiserHeatApiV2
 	{
 #if OPENTHERM

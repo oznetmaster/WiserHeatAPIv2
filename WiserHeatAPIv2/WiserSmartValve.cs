@@ -10,7 +10,7 @@ namespace WiserHeatApiV2
 	{
 	public class WiserSmartValve : WiserDevice
 		{
-			
+
 		public WiserSmartValve (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData)
 			 : base (wiserRestController, data, deviceTypeData)
 			{
