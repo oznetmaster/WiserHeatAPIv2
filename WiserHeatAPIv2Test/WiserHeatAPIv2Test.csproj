@@ -66,13 +66,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="XMLFile1.xml" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\WiserHeatAPIv2\WiserHeatAPIv2.csproj">
       <Project>{98f00db8-f1e8-4604-9d85-1842ebf90120}</Project>
       <Name>WiserHeatAPIv2</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="XMLFile1.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
