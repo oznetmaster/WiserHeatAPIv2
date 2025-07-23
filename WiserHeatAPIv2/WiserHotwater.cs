@@ -14,10 +14,10 @@ namespace WiserHeatApiV2
 		{
 		private readonly WiserRestController _wiserRestController;
 		private readonly IDictionary<string, object> _data;
-		private WiserSchedule _schedule;
+		private WiserSchedule? _schedule;
 		private string _mode;
 
-		public WiserHotwater (WiserRestController wiserRestController, IDictionary<string, object> hwData, WiserSchedule schedule)
+		public WiserHotwater (WiserRestController wiserRestController, IDictionary<string, object> hwData, WiserSchedule? schedule)
 			{
 			_wiserRestController = wiserRestController;
 			_data = hwData;
@@ -31,7 +31,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public void Update (IDictionary<string, object> hwData, WiserSchedule schedule)
+		public void Update (IDictionary<string, object> hwData, WiserSchedule? schedule)
 			{
 			var oldId = Id;
 			var oldName = Name;
@@ -121,7 +121,7 @@ namespace WiserHeatApiV2
 
 		public string ProductType => "HotWater";
 
-		public WiserSchedule Schedule => _schedule;
+		public WiserSchedule? Schedule => _schedule;
 
 		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
 
@@ -213,11 +213,11 @@ namespace WiserHeatApiV2
 
 		public async Task<bool> ScheduleAdvanceAsync (CancellationToken cancellationToken = default)
 			{
-			if (Schedule != null)
+			if (Schedule != null && Schedule.Next != null)
 				{
 				if (await CancelBoostAsync (cancellationToken).ConfigureAwait (false))
 					{
-					return await OverrideStateAsync (Schedule.Next.Setting.ToString (), cancellationToken).ConfigureAwait (false);
+					return await OverrideStateAsync (Schedule.Next.Setting!.ToString (), cancellationToken).ConfigureAwait (false);
 					}
 				}
 			return false;

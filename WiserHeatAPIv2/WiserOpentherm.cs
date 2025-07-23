@@ -45,7 +45,7 @@ namespace WiserHeatApiV2
 		public double HwFlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
 			 _data.TryGetValue ("dhwFlowSetpoint", out var value) ? value : null, "current");
 
-		public string OperatingMode => _data.TryGetValue ("operatingMode", out var value) ? value.ToString () : null;
+		public string? OperatingMode => _data.TryGetValue ("operatingMode", out var value) ? value.ToString () : null;
 
 		public WiserOpenThermOperationalData OperationalData
 			{

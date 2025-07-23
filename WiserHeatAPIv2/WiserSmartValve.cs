@@ -24,7 +24,7 @@ namespace WiserHeatApiV2
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
 
-		public string MountingOrientation => _deviceTypeData.TryGetValue ("MountingOrientation", out var orientation) ? orientation.ToString () : null;
+		public string? MountingOrientation => _deviceTypeData.TryGetValue ("MountingOrientation", out var orientation) ? orientation.ToString () : null;
 
 		public int PercentageDemand => _deviceTypeData.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand) : 0;
 

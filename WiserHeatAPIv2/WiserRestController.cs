@@ -78,6 +78,12 @@ namespace WiserHeatApiV2
 			get; set;
 			}
 		public WiserUnitsEnum Units { get; set; } = WiserUnitsEnum.Metric; // Default to Metric
+
+		public WiserConnection (string host, string secret)
+			{
+			Host = host ?? throw new ArgumentNullException (nameof (host));
+			Secret = secret ?? throw new ArgumentNullException (nameof (secret));
+			}
 		}
 
 	// Enums
@@ -116,9 +122,9 @@ namespace WiserHeatApiV2
 			}
 
 		// Fix for CRR0029: Explicitly call ConfigureAwait(false) to avoid implicit ConfigureAwait(true)
-		public async Task<HttpResponseMessage> ExecuteHttpRequestAsync (WiserRestActionEnum action, string url, StringContent data = null, CancellationToken cancellationToken = default)
+		public async Task<HttpResponseMessage?> ExecuteHttpRequestAsync (WiserRestActionEnum action, string url, StringContent? data = null, CancellationToken cancellationToken = default)
 			{
-			HttpResponseMessage response = null;
+			HttpResponseMessage? response = null;
 			int retryCount = RestConstants.REST_RETRIES;
 			TimeSpan delay = TimeSpan.FromSeconds (1); // Initial delay
 
@@ -185,9 +191,9 @@ namespace WiserHeatApiV2
 			return response;
 			}
 
-		private async Task<bool> _DoHubActionAsync (WiserRestActionEnum action, string url, object data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
+		private async Task<bool> _DoHubActionAsync (WiserRestActionEnum action, string url, object? data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
 			{
-			StringContent jsonContent = null;
+			StringContent? jsonContent = null;
 			if (data != null)
 				{
 				var jsonData = JsonConvert.SerializeObject (data);
@@ -196,7 +202,13 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				HttpResponseMessage response = await ExecuteHttpRequestAsync (action, url, jsonContent, cancellationToken).ConfigureAwait (false);
+				HttpResponseMessage? response = await ExecuteHttpRequestAsync (action, url, jsonContent, cancellationToken).ConfigureAwait (false);
+
+				if (response == null)
+					{
+					_LOGGER.Error ("Response from Wiser Hub is null.");
+					throw new WiserHubConnectionError ("Response from Wiser Hub is null.");
+					}
 
 				if (!response.IsSuccessStatusCode)
 					{
@@ -220,9 +232,9 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public async Task<Dictionary<string, object>> GetHubDataAsync (string url, object data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
+		public async Task<Dictionary<string, object>> GetHubDataAsync (string url, object? data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
 			{
-			StringContent jsonContent = null;
+			StringContent? jsonContent = null;
 			if (data != null)
 				{
 				var jsonData = JsonConvert.SerializeObject (data);
@@ -231,7 +243,13 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				HttpResponseMessage response = await ExecuteHttpRequestAsync (WiserRestActionEnum.GET, url, jsonContent, cancellationToken).ConfigureAwait (false);
+				HttpResponseMessage? response = await ExecuteHttpRequestAsync (WiserRestActionEnum.GET, url, jsonContent, cancellationToken).ConfigureAwait (false);
+
+				if (response == null)
+					{
+					_LOGGER.Error ("Response from Wiser Hub is null.");
+					throw new WiserHubConnectionError ("Response from Wiser Hub is null.");
+					}
 
 				if (!response.IsSuccessStatusCode)
 					{
@@ -246,7 +264,8 @@ namespace WiserHeatApiV2
 						// Remove non-ASCII characters (equivalent to the Python regex)
 						string cleanedContent = Regex.Replace (Encoding.UTF8.GetString (content), @"[^\u0020-\u007F]+", string.Empty);
 						var cleaned = JsonConvert.DeserializeObject<JToken> (cleanedContent);
-						return (Dictionary<string, object>)ConvertJTokenToObject (cleaned);
+						if (cleaned != null)
+							return (Dictionary<string, object>?)ConvertJTokenToObject (cleaned) ?? new Dictionary<string, object> ();
 						}
 					return new Dictionary<string, object> ();
 					}
@@ -293,7 +312,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public Task<bool> SendCommandAsync (string url, object commandData, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
+		public Task<bool> SendCommandAsync (string url, object? commandData, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
 			{
 			string fullUrl = $"{string.Format (RestConstants.WISERHUBDOMAIN, _wiserConnection.Host)}{url}";
 			_LOGGER.DebugFormat ("Sending command to url: {0} with parameters {1}", fullUrl, JsonConvert.SerializeObject (commandData));
@@ -301,7 +320,7 @@ namespace WiserHeatApiV2
 			return _DoHubActionAsync (method, fullUrl, commandData, cancellationToken: cancellationToken);
 			}
 
-		private Task<bool> _DoScheduleActionAsync (WiserRestActionEnum action, string url, object scheduleData = null, CancellationToken cancellationToken = default)
+		private Task<bool> _DoScheduleActionAsync (WiserRestActionEnum action, string url, object? scheduleData = null, CancellationToken cancellationToken = default)
 			{
 			string fullUrl = $"{string.Format (RestConstants.WISERHUBSCHEDULES, _wiserConnection.Host)}{url}";
 			_LOGGER.DebugFormat ("Actioning schedule to url: {0} with action {1} and data {2}", fullUrl, action.ToString (), JsonConvert.SerializeObject (scheduleData));
@@ -309,7 +328,7 @@ namespace WiserHeatApiV2
 			return _DoHubActionAsync (action, fullUrl, scheduleData, cancellationToken: cancellationToken);
 			}
 
-		public Task<bool> SendScheduleCommandAsync (string action, object scheduleData, int id = 0, string scheduleType = null, CancellationToken cancellationToken = default)
+		public Task<bool> SendScheduleCommandAsync (string action, object? scheduleData, int id = 0, string? scheduleType = null, CancellationToken cancellationToken = default)
 			{
 			switch (action.ToUpper ())
 				{
@@ -343,7 +362,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public static object ConvertJTokenToObject (JToken token)
+		public static object? ConvertJTokenToObject (JToken token)
 			{
 			switch (token.Type)
 				{

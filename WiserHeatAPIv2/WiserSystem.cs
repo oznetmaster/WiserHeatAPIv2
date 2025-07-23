@@ -14,17 +14,17 @@ namespace WiserHeatApiV2
 		{
 		private readonly WiserRestController _wiserRestController;
 		private readonly IDictionary<string, object> _data;
-		private IDictionary<string, object> _systemData;
-		private WiserHubCapabilitiesInfo _capabilityData;
-		private WiserCloud _cloudData;
-		private IDictionary<string, object> _deviceData;
-		private WiserNetwork _networkData;
+		private IDictionary<string, object>? _systemData;
+		private WiserHubCapabilitiesInfo? _capabilityData;
+		private WiserCloud? _cloudData;
+		private IDictionary<string, object>? _deviceData;
+		private WiserNetwork? _networkData;
 #if OPENTHERM
-		private WiserOpentherm _openthermData;
+		private WiserOpentherm? _openthermData;
 #endif
-		private WiserSignalStrength _signal;
-		private WiserFirmwareUpgradeInfo _upgradeData;
-		private WiserZigbee _zigbeeData;
+		private WiserSignalStrength? _signal;
+		private WiserFirmwareUpgradeInfo? _upgradeData;
+		private WiserZigbee? _zigbeeData;
 
 		private bool _automaticDaylightSaving;
 		private bool _awayModeAffectsHotwater;
@@ -32,7 +32,7 @@ namespace WiserHeatApiV2
 		private bool _comfortModeEnabled;
 		private int _degradedModeTargetTemperature;
 		private DateTime _hubTime;
-		private string _overrideType;
+		private string? _overrideType;
 		private int _timezoneOffset;
 		private bool _valveProtectionEnabled;
 
@@ -108,13 +108,13 @@ namespace WiserHeatApiV2
 			return new Dictionary<string, object> ();
 			}
 
-		private Task<bool> SendCommandAsync (object cmd, string path = null, CancellationToken cancellationToken = default)
+		private Task<bool> SendCommandAsync (object cmd, string? path = null, CancellationToken cancellationToken = default)
 			{
 			string url = path != null ? $"{RestConstants.WISERSYSTEM}/{path}" : RestConstants.WISERSYSTEM;
 			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
-		public string ActiveSystemVersion => _systemData.TryGetValue ("ActiveSystemVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
+		public string ActiveSystemVersion => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("ActiveSystemVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
 
 		public bool AutomaticDaylightSavingEnabled
 			{
@@ -180,15 +180,15 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public string BoilerFuelType => _systemData.TryGetValue ("BoilerSettings", out var settings) && settings is Dictionary<string, object> settingsDict
+		public string BoilerFuelType => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("BoilerSettings", out var settings) && settings is Dictionary<string, object> settingsDict
 			 ? settingsDict.TryGetValue ("FuelType", out var fuelType) ? fuelType.ToString () : Constants.TEXT_UNKNOWN
 			 : Constants.TEXT_UNKNOWN;
 
-		public string BrandName => _systemData.TryGetValue ("BrandName", out var brand) ? brand.ToString () : null;
+		public string? BrandName => _systemData == null ? null : _systemData.TryGetValue ("BrandName", out var brand) ? brand.ToString () : null;
 
-		public WiserHubCapabilitiesInfo Capabilities => _capabilityData;
+		public WiserHubCapabilitiesInfo? Capabilities => _capabilityData;
 
-		public WiserCloud Cloud => _cloudData;
+		public WiserCloud? Cloud => _cloudData;
 
 		public bool ComfortModeEnabled
 			{
@@ -223,7 +223,7 @@ namespace WiserHeatApiV2
 
 		public bool EcoModeEnabled
 			{
-			get => _systemData.TryGetValue ("EcoModeEnabled", out var eco) && Convert.ToBoolean (eco);
+			get => _systemData != null ? _systemData.TryGetValue ("EcoModeEnabled", out var eco) && Convert.ToBoolean (eco) : false;
 			set
 				{
 				if (SendCommandAsync (new
@@ -231,59 +231,59 @@ namespace WiserHeatApiV2
 					EcoModeEnabled = value
 					}).Result)
 					{
-					_systemData["EcoModeEnabled"] = value;
+					_systemData!["EcoModeEnabled"] = value;
 					}
 				}
 			}
 
-		public bool FirmwareOverTheAirEnabled => _systemData.TryGetValue ("FotaEnabled", out var fota) && Convert.ToBoolean (fota);
+		public bool FirmwareOverTheAirEnabled => _systemData!.TryGetValue ("FotaEnabled", out var fota) && Convert.ToBoolean (fota);
 
-		public string FirmwareVersion => _deviceData.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
+		public string? FirmwareVersion => _deviceData!.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
 
-		public WiserGPS GeoPosition => new WiserGPS (_systemData.TryGetValue ("GeoPosition", out var geo) && geo is Dictionary<string, object> geoDict
+		public WiserGPS GeoPosition => new WiserGPS (_systemData!.TryGetValue ("GeoPosition", out var geo) && geo is Dictionary<string, object> geoDict
 			 ? geoDict : new Dictionary<string, object> ());
 
-		public int HardwareGeneration => _systemData.TryGetValue ("HardwareGeneration", out var gen) ? Convert.ToInt32 (gen) : 0;
+		public int HardwareGeneration => _systemData!.TryGetValue ("HardwareGeneration", out var gen) ? Convert.ToInt32 (gen) : 0;
 
-		public bool HeatingButtonOverrideState => _systemData.TryGetValue ("HeatingButtonOverrideState", out var state) && state.ToString () == Constants.TEXT_ON;
+		public bool HeatingButtonOverrideState => _systemData!.TryGetValue ("HeatingButtonOverrideState", out var state) && state.ToString () == Constants.TEXT_ON;
 
-		public bool HotwaterButtonOverrideState => _systemData.TryGetValue ("HotWaterButtonOverrideState", out var state) && state.ToString () == Constants.TEXT_ON;
+		public bool HotwaterButtonOverrideState => _systemData!.TryGetValue ("HotWaterButtonOverrideState", out var state) && state.ToString () == Constants.TEXT_ON;
 
 		public DateTime HubTime => _hubTime;
 
-		public int Id => _deviceData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+		public int Id => _deviceData!.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
 
 		public bool IsAwayModeEnabled => _overrideType == "Away";
 
-		public string Model => _deviceData.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+		public string Model => _deviceData!.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
 
-		public string Name => Network.Hostname;
+		public string Name => Network?.Hostname ?? "No Name";
 
-		public WiserNetwork Network => _networkData;
+		public WiserNetwork? Network => _networkData;
 
-		public int NodeId => _deviceData.TryGetValue ("NodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
+		public int NodeId => _deviceData!.TryGetValue ("NodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
 
 #if OPENTHERM
-		public WiserOpentherm Opentherm => _openthermData;
+		public WiserOpentherm? Opentherm => _openthermData;
 #endif
 
-		public string PairingStatus => _systemData.TryGetValue ("PairingStatus", out var status) ? status.ToString () : Constants.TEXT_UNKNOWN;
+		public string PairingStatus => _systemData!.TryGetValue ("PairingStatus", out var status) ? status.ToString () : Constants.TEXT_UNKNOWN;
 
-		public int ParentNodeId => _deviceData.TryGetValue ("ParentNodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
+		public int ParentNodeId => _deviceData!.TryGetValue ("ParentNodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
 
-		public string ProductType => _deviceData.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+		public string ProductType => _deviceData!.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
 
-		public WiserSignalStrength Signal => _signal;
+		public WiserSignalStrength? Signal => _signal;
 
-		public Dictionary<string, string> SunriseTimes => _systemData.TryGetValue ("SunriseTimes", out var times) && times is List<object> timesList
+		public Dictionary<string, string> SunriseTimes => _systemData!.TryGetValue ("SunriseTimes", out var times) && times is List<object> timesList
 			 ? SpecialTimes.SunriseTimes (timesList.Select (s => Convert.ToInt32 (s)).ToList ())
 			 : new Dictionary<string, string> ();
 
-		public Dictionary<string, string> SunsetTimes => _systemData.TryGetValue ("SunsetTimes", out var times) && times is List<object> timesList
+		public Dictionary<string, string> SunsetTimes => _systemData!.TryGetValue ("SunsetTimes", out var times) && times is List<object> timesList
 			 ? SpecialTimes.SunsetTimes (timesList.Select (s => Convert.ToInt32 (s)).ToList ())
 			 : new Dictionary<string, string> ();
 
-		public string SystemMode => _systemData.TryGetValue ("SystemMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+		public string SystemMode => _systemData!.TryGetValue ("SystemMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
 
 		public int TimezoneOffset
 			{
@@ -300,7 +300,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public bool UserOverridesActive => _systemData.TryGetValue ("UserOverridesActive", out var active) && Convert.ToBoolean (active);
+		public bool UserOverridesActive => _systemData!.TryGetValue ("UserOverridesActive", out var active) && Convert.ToBoolean (active);
 
 		public bool ValveProtectionEnabled
 			{
@@ -317,7 +317,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public WiserZigbee Zigbee => _zigbeeData;
+		public WiserZigbee? Zigbee => _zigbeeData;
 
 		public Task<bool> AllowAddDeviceAsync (int allowTime = 120, CancellationToken cancellationToken = default)
 			{
@@ -348,9 +348,9 @@ namespace WiserHeatApiV2
 				}, cancellationToken: cancellationToken);
 			}
 
-		public Task<bool> ConnectToNetworkAsync (string ssid, string password, int? channel = null, string securityMode = null, CancellationToken cancellationToken = default)
+		public Task<bool> ConnectToNetworkAsync (string ssid, string password, int? channel = null, string? securityMode = null, CancellationToken cancellationToken = default)
 			{
-			var cmdData = new Dictionary<string, object> { { "Enabled", true } };
+			var cmdData = new Dictionary<string, object?> { { "Enabled", true } };
 
 			if (!string.IsNullOrEmpty (ssid) && !string.IsNullOrEmpty (password))
 				{

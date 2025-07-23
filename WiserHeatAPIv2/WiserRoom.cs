@@ -17,7 +17,7 @@ namespace WiserHeatApiV2
 		{
 		private readonly WiserRestController _wiserRestController;
 		private readonly ConcurrentDictionary<string, object> _data;
-		private WiserSchedule _schedule;
+		private WiserSchedule? _schedule;
 		private readonly List<WiserDevice> _devices;
 		private string _mode;
 		private string _name;
@@ -123,7 +123,7 @@ namespace WiserHeatApiV2
 			return WiserHeatingModeEnum.Auto.ToString ();
 			}
 
-		private Task<bool> SendCommandAsync (object cmd, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
+		private Task<bool> SendCommandAsync (object? cmd, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
 			{
 			return _wiserRestController.SendCommandAsync (string.Format (RestConstants.WISERROOM, Id), cmd, method, cancellationToken);
 			}
@@ -297,7 +297,7 @@ namespace WiserHeatApiV2
 
 		public int? RoomstatId => _data.TryGetValue ("RoomStatId", out var id) ? (int?)Convert.ToInt32 (id) : null;
 
-		public WiserSchedule Schedule => _schedule;
+		public WiserSchedule? Schedule => _schedule;
 
 		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
 
@@ -401,6 +401,10 @@ namespace WiserHeatApiV2
 
 		public Task<bool> SetTargetTemperatureForDurationOfScheduleAsync (double temp, CancellationToken cancellationToken = default)
 			{
+			if (Schedule == null || Schedule.Next == null)
+				{
+				throw new InvalidOperationException ("No next schedule available to set duration.");
+				}
 			return SendCommandAsync (new
 				{
 				RequestOverride = new
@@ -423,6 +427,10 @@ namespace WiserHeatApiV2
 
 		public async Task<bool> ScheduleAdvanceAsync (CancellationToken cancellationToken = default)
 			{
+			if (Schedule == null || Schedule.Next == null)
+				{
+				throw new InvalidOperationException ("No next schedule available to advance.");
+				}
 			if (await CancelBoostAsync (cancellationToken).ConfigureAwait (false))
 				{
 				return await SetTargetTemperatureAsync (Convert.ToDouble (Schedule.Next.Setting), cancellationToken).ConfigureAwait (false);
@@ -519,7 +527,7 @@ namespace WiserHeatApiV2
 			{
 			return _rooms.FirstOrDefault (room => room.ScheduleId == scheduleId);
 			}
-		public WiserRoom GetByDeviceId (int deviceId)
+		public WiserRoom? GetByDeviceId (int deviceId)
 			{
 			foreach (var room in _rooms)
 				{

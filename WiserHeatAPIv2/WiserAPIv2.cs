@@ -160,7 +160,7 @@ namespace WiserHeatApiV2
 			return (int)temp;
 			}
 
-		public static double FromWiserTemp (object temp, string type = "set_heating", WiserUnitsEnum units = WiserUnitsEnum.Metric)
+		public static double FromWiserTemp (object? temp, string type = "set_heating", WiserUnitsEnum units = WiserUnitsEnum.Metric)
 			{
 			if (temp == null || temp is DBNull)
 				return 0;
@@ -607,7 +607,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public object Setting
+		public object? Setting
 			{
 			get
 				{

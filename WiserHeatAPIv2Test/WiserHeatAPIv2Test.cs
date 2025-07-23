@@ -21,10 +21,10 @@ namespace WiserHeatAPIv2Test
 		{
 		public static ILog _LOGGER = log4net.LogManager.GetLogger (typeof (WiserHeatAPIv2Test));
 
-		public static string wiserkey;
-		public static string wiserip;
+		public static string wiserkey = string.Empty;
+		public static string wiserip = string.Empty;
 
-		private static WiserAPI wapi;
+		private static WiserAPI? wapi;
 
 		static async Task Main (string[] args)
 			{
@@ -57,46 +57,52 @@ namespace WiserHeatAPIv2Test
 			await wapi.InitializeAsync (CancellationToken.None);
 
 			Console.WriteLine ("-------------------------------");
-			Console.WriteLine ($"Running tests on Version {wapi.System.ActiveSystemVersion}");
+			Console.WriteLine ($"Running tests on Version {wapi.System?.ActiveSystemVersion}");
 			Console.WriteLine ("-------------------------------");
-			Console.WriteLine ($"Model # {wapi.System.Model}");
-			Console.WriteLine ($"Hub Date/Time: {wapi.System.HubTime}");
-			Console.WriteLine ($"Hub ZigBee Channel: {wapi.System.Zigbee.NetworkChannel}");
+			Console.WriteLine ($"Model # {wapi.System?.Model}");
+			Console.WriteLine ($"Hub Date/Time: {wapi.System?.HubTime}");
+			Console.WriteLine ($"Hub ZigBee Channel: {wapi.System?.Zigbee?.NetworkChannel}");
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("Wiser Hub Capabilities");
 			Console.WriteLine ("--------------------------------");
 
-			var capabilities = wapi.System.Capabilities;
-			var capabilityProperties = capabilities.GetType ().GetProperties ();
+			var capabilities = wapi.System?.Capabilities;
+			var capabilityProperties = capabilities?.GetType ().GetProperties ();
 
-			foreach (var property in capabilityProperties)
+			if (capabilities == null || capabilityProperties == null || capabilityProperties.Length == 0)
 				{
-				if (property.PropertyType == typeof (bool) && (bool)property.GetValue (capabilities))
-					{
-					Console.WriteLine ($"{property.Name}");
-					}
+				Console.WriteLine ("No capabilities found.");
 				}
+			else
+				foreach (var property in capabilityProperties)
+					{
+					if (property.PropertyType == typeof (bool) && (bool)property.GetValue (capabilities))
+						{
+						Console.WriteLine ($"{property.Name}");
+						}
+					}
 
 			// Display some states
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("Some States");
 			Console.WriteLine ("--------------------------------");
 			// Heating State
-			Console.WriteLine ($"Hot water status {(wapi.Hotwater.IsHeating ? "Heating" : "Idle")}");
+			Console.WriteLine ($"Hot water status {(wapi.Hotwater != null ? (wapi.Hotwater.IsHeating ? "Heating" : "Idle") : "Unknown")}");
 			// Assumes at least one roomstat
-			Console.WriteLine ($"Roomstat humidity {wapi.Rooms.All[3].CurrentHumidity}%");
+			Console.WriteLine ($"Roomstat humidity {wapi.Rooms!.All[3].CurrentHumidity}%");
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("List of Devices");
 			Console.WriteLine ("--------------------------------");
 
-			foreach (var device in wapi.Devices.All)
-				{
-				var deviceId = device.Id;
-				var room = wapi.Rooms.GetByDeviceId (deviceId);
-				Console.WriteLine ($"Device : Id {deviceId} Room {room.Name} Type {device.ProductType}, SignalStrength {device.Signal.DisplayedSignalStrength}");
-				}
+			if (wapi.Devices != null && wapi.Devices.All.Count > 0)
+				foreach (var device in wapi.Devices.All)
+					{
+					var deviceId = device.Id;
+					var room = wapi.Rooms.GetByDeviceId (deviceId);
+					Console.WriteLine ($"Device : Id {deviceId} Room {room?.Name} Type {device.ProductType}, SignalStrength {device.Signal.DisplayedSignalStrength}");
+					}
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("Listing all Rooms");
@@ -114,7 +120,7 @@ namespace WiserHeatAPIv2Test
 					Console.WriteLine ("\tSmartvalves in this room:");
 					foreach (var smartValveId in smartValves)
 						{
-						var smartValve = wapi.Devices.Smartvalves.All.FirstOrDefault (x => x.Id == smartValveId);
+						var smartValve = wapi.Devices!.Smartvalves.All.FirstOrDefault (x => x.Id == smartValveId);
 						if (smartValve != null)
 							{
 							Console.WriteLine ($"\t\tSmartvalve ({smartValve.Name}) {smartValve.Id}, setpoint={smartValve.CurrentTargetTemperature}C, current temp={smartValve.CurrentTemperature}C, battery={smartValve.Battery.Percent}% {smartValve.Battery.Level}");
@@ -127,11 +133,11 @@ namespace WiserHeatAPIv2Test
 					}
 				if (roomTest.RoomstatId != null)
 					{
-					var roomStat = wapi.Devices.Roomstats.All.FirstOrDefault (x => x.Id == roomTest.RoomstatId);
+					var roomStat = wapi.Devices!.Roomstats.All.FirstOrDefault (x => x.Id == roomTest.RoomstatId);
 					Console.WriteLine ($"\tRoomstat ({roomStat.Name}) {roomStat.Id}, setpoint={roomStat.CurrentTargetTemperature}C, current temp={roomStat.CurrentTemperature}C, current humidity={roomStat.CurrentHumidity}% battery={roomStat.Battery.Percent}% {roomStat.Battery.Level}");
 					}
 
-				var smartPlugs = wapi.Devices.Smartplugs.All.Where (x => x.RoomId == roomTest.Id).ToList ();
+				var smartPlugs = wapi.Devices!.Smartplugs.All.Where (x => x.RoomId == roomTest.Id).ToList ();
 				if (smartPlugs.Count > 0)
 					{
 					Console.WriteLine ("\tSmartplugs in this room:");
@@ -173,7 +179,7 @@ namespace WiserHeatAPIv2Test
 				}
 
 			// Display some states
-			var state = wapi.Devices.Smartplugs.All[0].IsOn;
+			var state = wapi.Devices!.Smartplugs.All[0].IsOn;
 			await wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
 			Thread.Sleep (1);
 			await wapi.Devices.Smartplugs.All[0].TurnOnAsync ();
@@ -182,52 +188,69 @@ namespace WiserHeatAPIv2Test
 				await wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
 
 			int scheduleRoomTest = 5;
-			var schedule = wapi.Schedules.GetByRoomId (scheduleRoomTest);
-			Console.WriteLine ("--------------------------------");
-			Console.WriteLine ($"Schedule for Room {scheduleRoomTest} [{wapi.Rooms.GetById (scheduleRoomTest).Name}] {schedule.Name} Type = {schedule.ScheduleType}");
-			Console.WriteLine ("--------------------------------");
-
-			Console.WriteLine ($"Schedule.Next: DateTime {schedule.Next.DateTime} Day {schedule.Next.Day} Time {schedule.Next.Time} Setting {schedule.Next.Setting}");
-
-			// Assume 'schedule' is an instance of WiserSchedule
-			var scheduleData = schedule.ScheduleData;
-
-			foreach (var day in scheduleData.Keys)
+			var schedule = wapi.Schedules!.GetByRoomId (scheduleRoomTest);
+			if (schedule == null)
 				{
-				Console.WriteLine ($"Day: {day}");
-				var slots = scheduleData[day] as Dictionary<string, object>;
-				var times = slots["Time"] as List<object>;
-				var settings = slots["DegreesC"] as List<object>;
-				for (int i = 0; i < times.Count; i++)
+				Console.WriteLine ($"No schedule found for Room {scheduleRoomTest}");
+				}
+			else
+				{
+				Console.WriteLine ("--------------------------------");
+				Console.WriteLine ($"Schedule for Room {scheduleRoomTest} [{wapi.Rooms.GetById (scheduleRoomTest).Name}] {schedule.Name} Type = {schedule.ScheduleType}");
+				Console.WriteLine ("--------------------------------");
+
+				Console.WriteLine ($"Schedule.Next: DateTime {schedule.Next?.DateTime} Day {schedule.Next?.Day} Time {schedule.Next?.Time} Setting {schedule.Next?.Setting}");
+
+				// Assume 'schedule' is an instance of WiserSchedule
+				var scheduleData = schedule.ScheduleData;
+
+				foreach (var day in scheduleData.Keys.OrderBy (k => Enum.Parse (typeof (DayOfWeek), k)))
 					{
-					Console.WriteLine ($"\tTime: {times[i].ToWiserTime ()}, Setting: {WiserTemperatureFunctions.FromWiserTemp(settings[i]):f1}");
+					Console.WriteLine ($"Day: {day}");
+					var slots = scheduleData[day] as Dictionary<string, object>;
+					if (slots == null)
+						{
+						Console.WriteLine ($"\tNo slots found for {day}");
+						continue;
+						}
+					var times = slots["Time"] as List<object>;
+					var settings = slots["DegreesC"] as List<object>;
+					if (times == null || settings == null)
+						{
+						Console.WriteLine ($"\tNo times or settings found for {day}");
+						continue;
+						}
+					for (int i = 0; i < times.Count; i++)
+						{
+						Console.WriteLine ($"\tTime: {times[i].ToWiserTime ()}, Setting: {WiserTemperatureFunctions.FromWiserTemp (settings[i]):f1}");
+						}
 					}
-				}
-			//Console.WriteLine ($"Next schedule change: {next.Time}, Level: {next.Setting}");
-			/*
-			// Query Schedule for Room1
-			// Big assumption there is always a room 1 :-)
-			//
-			using (var s = new StreamWriter ($"./room{scheduleRoomTest}schedule.json"))
-				{
-				var room3schedule = wh.getRoomSchedule (scheduleRoomTest);
-				var writer = new JsonTextWriter (s);
-				room3schedule.WriteTo (writer);
-				}
-			Console.WriteLine ($"File room{scheduleRoomTest}schedule.json created ");
-			// Load schedule file and set schedule
-			Console.WriteLine ("--------------------------------");
-			Console.WriteLine ("Set room schedule for Room {0}", scheduleRoomTest);
-			using (var s = new StreamReader ($"./room{scheduleRoomTest}schedule.json"))
-				{
-				var reader = new JsonTextReader (s);
-				var jdata = JObject.Load (reader);
-				//wh.setRoomSchedule (scheduleRoomTest, jdata);
-				}
-			Console.WriteLine ("Schedule for room {0} loaded indirectly from file", scheduleRoomTest);
+				//Console.WriteLine ($"Next schedule change: {next.Time}, Level: {next.Setting}");
+				/*
+				// Query Schedule for Room1
+				// Big assumption there is always a room 1 :-)
+				//
+				using (var s = new StreamWriter ($"./room{scheduleRoomTest}schedule.json"))
+					{
+					var room3schedule = wh.getRoomSchedule (scheduleRoomTest);
+					var writer = new JsonTextWriter (s);
+					room3schedule.WriteTo (writer);
+					}
+				Console.WriteLine ($"File room{scheduleRoomTest}schedule.json created ");
+				// Load schedule file and set schedule
+				Console.WriteLine ("--------------------------------");
+				Console.WriteLine ("Set room schedule for Room {0}", scheduleRoomTest);
+				using (var s = new StreamReader ($"./room{scheduleRoomTest}schedule.json"))
+					{
+					var reader = new JsonTextReader (s);
+					var jdata = JObject.Load (reader);
+					//wh.setRoomSchedule (scheduleRoomTest, jdata);
+					}
+				Console.WriteLine ("Schedule for room {0} loaded indirectly from file", scheduleRoomTest);
 
-			Console.WriteLine ("--------------------------------");
-			*/
+				Console.WriteLine ("--------------------------------");
+				*/
+				}
 			}
 		}
 	}

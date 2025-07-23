@@ -68,7 +68,7 @@ namespace WiserHeatApiV2
 			{
 			return _heatingChannels.FirstOrDefault (channel => channel.RoomIds.Contains (id));
 			}
-		public WiserHeatingChannel GetByRoomName (string roomName)
+		public WiserHeatingChannel? GetByRoomName (string roomName)
 			{
 			var room = _rooms.GetByName (roomName);
 			return room != null ? GetByRoomId (room.Id) : null;

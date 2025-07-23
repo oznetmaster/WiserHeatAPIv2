@@ -10,7 +10,7 @@ namespace WiserHeatApiV2
 	{
 	public static class HttpClientExtensions
 		{
-		public static Task<HttpResponseMessage> PatchAsync (this HttpClient client, string requestUri, HttpContent content, CancellationToken cancellationToken = default)
+		public static Task<HttpResponseMessage> PatchAsync (this HttpClient client, string requestUri, HttpContent? content, CancellationToken cancellationToken = default)
 			{
 			var request = new HttpRequestMessage (new HttpMethod ("PATCH"), requestUri)
 				{

@@ -16,9 +16,9 @@ namespace WiserHeatApiV2
 		public class WiserLiftMovementRange
 			{
 			private readonly WiserShutter _shutterInstance;
-			private readonly Dictionary<string, object> _data;
+			private readonly Dictionary<string, object>? _data;
 
-			public WiserLiftMovementRange (WiserShutter shutterInstance, Dictionary<string, object> data)
+			public WiserLiftMovementRange (WiserShutter shutterInstance, Dictionary<string, object>? data)
 				{
 				_shutterInstance = shutterInstance;
 				_data = data;
@@ -39,7 +39,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private readonly WiserSchedule _schedule;
+		private readonly WiserSchedule? _schedule;
 		private string _awayAction;
 		private string _mode;
 
@@ -192,7 +192,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public WiserSchedule Schedule => _schedule;
+		public WiserSchedule? Schedule => _schedule;
 
 		public int ScheduleId => _deviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
 

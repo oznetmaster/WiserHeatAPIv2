@@ -12,7 +12,7 @@ namespace WiserHeatApiV2
 #if LIGHT
 	public class WiserLight : WiserElectricalLevelDevice
 		{
-		protected readonly WiserSchedule _schedule;
+		protected readonly WiserSchedule? _schedule;
 		protected string _awayAction;
 		protected string _mode;
 		protected string _currentState;
@@ -148,7 +148,7 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public WiserSchedule Schedule => _schedule;
+		public WiserSchedule? Schedule => _schedule;
 
 		public int ScheduleId => _deviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
 
@@ -179,9 +179,9 @@ namespace WiserHeatApiV2
 		{
 		public class WiserOutputRange
 			{
-			private readonly Dictionary<string, object> _data;
+			private readonly Dictionary<string, object>? _data;
 
-			public WiserOutputRange (Dictionary<string, object> data)
+			public WiserOutputRange (Dictionary<string, object>? data)					
 				{
 				_data = data;
 				}

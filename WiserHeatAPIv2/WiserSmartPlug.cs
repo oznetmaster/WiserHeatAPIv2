@@ -13,7 +13,7 @@ namespace WiserHeatApiV2
 	{
 	public class WiserSmartPlug : WiserDevice
 		{
-		private readonly WiserSchedule _schedule;
+		private readonly WiserSchedule? _schedule;
 		private string _awayAction;
 		private string _mode;
 		private string _outputState;
@@ -153,7 +153,7 @@ namespace WiserHeatApiV2
 
 		public bool IsOn => _outputState == Constants.TEXT_ON;
 
-		public WiserSchedule Schedule => _schedule;
+		public WiserSchedule? Schedule => _schedule;
 
 		public int ScheduleId => _deviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
 

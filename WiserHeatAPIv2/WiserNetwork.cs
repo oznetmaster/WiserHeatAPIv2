@@ -160,11 +160,11 @@ namespace WiserHeatApiV2
 			_data = data;
 			}
 
-		public string SSID => _data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : null;
+		public string? SSID => _data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : null;
 
 		public int? Channel => _data.TryGetValue ("Channel", out var channel) ? Convert.ToInt32 (channel) : (int?)null;
 
-		public string SecurityMode => _data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : null;
+		public string? SecurityMode => _data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : null;
 
 		public int? RSSI => _data.TryGetValue ("RSSI", out var rssi) ? Convert.ToInt32 (rssi) : (int?)null;
 		}
