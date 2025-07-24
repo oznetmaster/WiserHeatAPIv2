@@ -57,7 +57,7 @@ namespace WiserHeatingAPI
 		/// <summary>
 		/// Main api class to access all entities and attributes of wiser system
 		/// </summary>
-		public WiserAPI (string host, string secret, WiserUnitsEnum units = WiserUnitsEnum.Metric)
+		public WiserAPI (string? host, string? secret, WiserUnitsEnum units = WiserUnitsEnum.Metric)
 			{
 			var logger = ((log4net.Repository.Hierarchy.Logger)((log4net.Core.LogImpl)_LOGGER).Logger);
 #if DEBUG

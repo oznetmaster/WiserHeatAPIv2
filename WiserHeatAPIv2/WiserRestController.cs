@@ -79,7 +79,7 @@ namespace WiserHeatApiV2
 			}
 		public WiserUnitsEnum Units { get; set; } = WiserUnitsEnum.Metric; // Default to Metric
 
-		public WiserConnection (string host, string secret)
+		public WiserConnection (string? host, string? secret)
 			{
 			Host = host ?? throw new ArgumentNullException (nameof (host));
 			Secret = secret ?? throw new ArgumentNullException (nameof (secret));
