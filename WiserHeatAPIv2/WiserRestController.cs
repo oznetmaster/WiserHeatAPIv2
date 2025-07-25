@@ -23,7 +23,7 @@ namespace WiserHeatApiV2
 		public const int RestRetries = 3;
 		public const int RestTimeout = 10;
 		// Wiser Hub Rest Api URL Constants
-		public const string WiserHubUrl = "http://{0}/_data/v2/";
+		public const string WiserHubUrl = "http://{0}/data/v2/";
 		public const string WiserHubDomain = WiserHubUrl + "domain/";
 		public const string WiserHubNetwork = WiserHubUrl + "network/";
 		public const string WiserHubSchedules = WiserHubUrl + "schedules/";

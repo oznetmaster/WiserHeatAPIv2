@@ -292,7 +292,7 @@ namespace WiserHeatApiV2
 						}
 					else
 						{
-						Console.WriteLine ("The schedule _data is null or invalid.");
+						Console.WriteLine ("The schedule data is null or invalid.");
 						}
 					return false;
 					}
@@ -360,7 +360,7 @@ namespace WiserHeatApiV2
 				}
 			catch (Exception ex)
 				{
-				Console.WriteLine ($"Error setting schedule from websocket _data: {ex.Message}");
+				Console.WriteLine ($"Error setting schedule from websocket data: {ex.Message}");
 				return false;
 				}
 			}

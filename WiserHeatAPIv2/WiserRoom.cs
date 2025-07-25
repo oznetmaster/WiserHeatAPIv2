@@ -27,7 +27,7 @@ namespace WiserHeatApiV2
 			_data = new ConcurrentDictionary<string, object> (room);
 			_schedule = schedule;
 			_devices = devices;
-			// Initialize properties from the room _data
+			// Initialize properties from the room data
 			_id = _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 			_mode = EffectiveHeatingMode (
 				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : string.Empty,
@@ -68,7 +68,7 @@ namespace WiserHeatApiV2
 				var newDeviceIds = devices.Select (d => d.Id).ToHashSet ();
 				var deletedDevices = dhi.Except (newDeviceIds).ToList ();
 				var addedDevices = newDeviceIds.Except (dhi).ToList ();
-				// Remove devices that are not in the new _data
+				// Remove devices that are not in the new data
 				_devices.RemoveAll (d => deletedDevices.Contains (d.Id));
 
 				foreach (var device in devices) 

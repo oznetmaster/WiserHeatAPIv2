@@ -79,7 +79,7 @@ namespace WiserHeatingAPI
 				_wiserApiConnection.Units.ToString ().ToTitleCase ()
 			);
 
-			// Read hub _data if hub IP and secret exist
+			// Read hub data if hub IP and secret exist
 			if (!string.IsNullOrEmpty (_wiserApiConnection.Host) && !string.IsNullOrEmpty (_wiserApiConnection.Secret))
 				{
 				_wiserRestController = new WiserRestController (_wiserApiConnection);
@@ -94,9 +94,9 @@ namespace WiserHeatingAPI
 				{
 				if (await ReadHubDataAsync (cancellationToken).ConfigureAwait (false))
 					return;
-				_LOGGER.Error ("Failed to read hub _data. Please check your connection settings.");
-				// If we reach here, it means the hub _data could not be read
-				throw new WiserHubConnectionException ("Failed to read hub _data. Please check your connection settings.");
+				_LOGGER.Error ("Failed to read hub data. Please check your connection settings.");
+				// If we reach here, it means the hub data could not be read
+				throw new WiserHubConnectionException ("Failed to read hub data. Please check your connection settings.");
 				}
 			catch (Exception ex)
 				{
@@ -106,7 +106,7 @@ namespace WiserHeatingAPI
 			}
 
 		/// <summary>
-		/// Read all _data from hub and populate objects
+		/// Read all data from hub and populate objects
 		/// </summary>
 		public async Task<bool> ReadHubDataAsync (CancellationToken cancellationToken = default)
 			{
@@ -114,16 +114,16 @@ namespace WiserHeatingAPI
 				{
 				if (_wiserRestController == null)
 					{
-					_LOGGER.Error ("WiserRestController is not initialized. Cannot read hub _data.");
+					_LOGGER.Error ("WiserRestController is not initialized. Cannot read hub data.");
 					return false;
 					}
-				// Read _data from hub
+				// Read data from hub
 				var newDomainData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubDomain, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
 				var newNetworkData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
 				var newScheduleData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubSchedules, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
 				var newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubOpentherm, _wiserApiConnection.Host), false, cancellationToken: cancellationToken).ConfigureAwait (false);
 
-				// Update internal _data
+				// Update internal data
 				_domainData = newDomainData;
 				_networkData = newNetworkData;
 				_scheduleData = newScheduleData;
@@ -169,12 +169,12 @@ namespace WiserHeatingAPI
 					if (hotWaterData.Count > 0)
 						{
 						int scheduleId;
-						// If there are multiple hot water _data items, use the first one
+						// If there are multiple hot water data items, use the first one
 						if (hotWaterData.Count > 1)
-							_LOGGER.Warn ($"Multiple hot water _data items found, using the first one. Count: {hotWaterData.Count}");
+							_LOGGER.Warn ($"Multiple hot water data items found, using the first one. Count: {hotWaterData.Count}");
 						var firstHotWaterData = hotWaterData[0];
 						// If ScheduleId is not present, default to 0
-						// Check if ScheduleId exists in the first hot water _data item
+						// Check if ScheduleId exists in the first hot water data item
 						if (firstHotWaterData.TryGetValue ("ScheduleId", out var scheduleIdObj))
 							scheduleId = Convert.ToInt32 (scheduleIdObj, CultureInfo.InvariantCulture);
 						else
@@ -268,7 +268,7 @@ namespace WiserHeatingAPI
 		public static string Version => VERSION;
 
 		/// <summary>
-		/// Raw hub _data
+		/// Raw hub data
 		/// </summary>
 		public Dictionary<string, object> RawHubData => new Dictionary<string, object>
 			{
@@ -279,7 +279,7 @@ namespace WiserHeatingAPI
 			};
 
 		/// <summary>
-		/// Output raw hub _data to json file
+		/// Output raw hub data to json file
 		/// </summary>
 		public async Task<bool> OutputRawHubDataAsync (string dataClass, string filename, string filePath, CancellationToken cancellationToken = default)
 			{
@@ -295,11 +295,11 @@ namespace WiserHeatingAPI
 				endpoint = string.Format(CultureInfo.InvariantCulture, RestConstants.WiserHubOpentherm, _wiserApiConnection.Host);
 			else
 				{
-				_LOGGER.Error ($"Invalid _data class: {dataClass}. Valid options are 'domain', 'network', 'schedules', or 'opentherm'.");
+				_LOGGER.Error ($"Invalid data class: {dataClass}. Valid options are 'domain', 'network', 'schedules', or 'opentherm'.");
 				return false;
 				}
 
-			// Get raw json _data
+			// Get raw json data
 			if (_wiserRestController != null)
 				{
 				var data = (Dictionary<string, object>)await _wiserRestController.GetHubDataAsync (endpoint, cancellationToken: cancellationToken).ConfigureAwait (false);

@@ -365,7 +365,7 @@ namespace WiserHeatApiV2
 				cmdData["SecurityMode"] = securityMode;
 				}
 
-			// Use the host from the private _data dictionary, which is set from the constructor
+			// Use the host from the private data dictionary, which is set from the constructor
 			string host = _wiserRestController.GetHost();
 			return _wiserRestController.SendCommandAsync ($"{string.Format(System.Globalization.CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, host)}/Station", cmdData, cancellationToken: cancellationToken);
 			}
