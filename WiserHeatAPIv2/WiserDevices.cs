@@ -1,13 +1,10 @@
 //-----------------------------------------------------------------------
-// <copyright file="WiserDeviceCollection.cs" company="">
+// <copyright file="WiserDevices.cs" company="">
 //     Author:  
 //     Copyright (c) . All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,16 +12,16 @@ namespace WiserHeatApiV2
 	{
 	public class WiserDevice
 		{
-		protected readonly WiserRestController _wiserRestController;
-		protected readonly IDictionary<string, object> _data;
-		protected readonly IDictionary<string, object> _deviceTypeData;
+		private readonly WiserRestController _wiserRestController;
+		private readonly IDictionary<string, object> _data;
+		private readonly IDictionary<string, object> _deviceTypeData;
 		private readonly WiserSignalStrength _signal;
 		private readonly int _id;
 		private readonly int _deviceTypeId;
 		private readonly int _roomId;
-		protected bool _deviceLockEnabled;
+		private bool _deviceLockEnabled;
 		private bool _identifyActive;
-		protected string _name;
+		private string _name;
 
 
 		public WiserDevice (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData)
@@ -33,12 +30,12 @@ namespace WiserHeatApiV2
 			_data = data;
 			_deviceTypeData = deviceTypeData;
 			_signal = new WiserSignalStrength (data);
-			_id = _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
-			_roomId = _deviceTypeData.TryGetValue ("RoomId", out var roomId) ? Convert.ToInt32 (roomId) : 0;
-			_deviceLockEnabled = data.TryGetValue ("DeviceLockEnabled", out var lockEnabled) && Convert.ToBoolean (lockEnabled);
-			_identifyActive = data.TryGetValue ("IdentifyActive", out var identify) && Convert.ToBoolean (identify);
-			_deviceTypeId = _deviceTypeData.TryGetValue ("id", out var deviceTypeId) ? Convert.ToInt32 (deviceTypeId) : 0;
-			if (_deviceTypeData.TryGetValue ("Name", out var name))
+			_id = data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+			_roomId = deviceTypeData.TryGetValue ("RoomId", out var roomId) ? Convert.ToInt32 (roomId, CultureInfo.InvariantCulture) : 0;
+			_deviceLockEnabled = data.TryGetValue ("DeviceLockEnabled", out var lockEnabled) && Convert.ToBoolean (lockEnabled, CultureInfo.InvariantCulture);
+			_identifyActive = data.TryGetValue ("IdentifyActive", out var identify) && Convert.ToBoolean (identify, CultureInfo.InvariantCulture);
+			_deviceTypeId = deviceTypeData.TryGetValue ("id", out var deviceTypeId) ? Convert.ToInt32 (deviceTypeId, CultureInfo.InvariantCulture) : 0;
+			if (deviceTypeData.TryGetValue ("Name", out var name))
 				{
 				_name = name.ToString ();
 				}
@@ -50,10 +47,28 @@ namespace WiserHeatApiV2
 
 		private Task<bool> SendDeviceCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			return _wiserRestController.SendCommandAsync (string.Format (RestConstants.WISERDEVICE, Id), cmd, cancellationToken: cancellationToken);
+			return WiserRestController.SendCommandAsync (
+				string.Format (CultureInfo.InvariantCulture, RestConstants.WiserDevice, Id),
+				cmd,
+				cancellationToken: cancellationToken
+				);
 			}
 
-		public bool DeviceLockEnabled => _deviceLockEnabled;
+		public bool DeviceLockEnabled
+			{
+			get
+				{
+				return _deviceLockEnabled;
+				}
+			set
+				{
+				if (_deviceLockEnabled != value)
+					{
+					SetDeviceLockEnabledAsync (value).Wait ();
+					}
+				}
+			}
+
 		public async Task<bool> SetDeviceLockEnabledAsync (bool value, CancellationToken cancellationToken = default)
 			{
 			if (_deviceLockEnabled == value)
@@ -114,54 +129,60 @@ namespace WiserHeatApiV2
 
 		public int DeviceTypeId => _deviceTypeId;
 
-		public string FirmwareVersion => _data.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
+		public string FirmwareVersion => Data.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TextUnknown;
 
 		public int Id => _id;
 
-		public virtual string Model => _data.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+		public virtual string Model => Data.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TextUnknown;
 
-		public int NodeId => _data.TryGetValue ("NodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
+		public int NodeId => Data.TryGetValue ("NodeId", out var nodeId) ? Convert.ToInt32 (nodeId, CultureInfo.InvariantCulture) : 0;
 
-		public string ProductIdentifier => _data.TryGetValue ("ProductIdentifier", out var id) ? id.ToString () : Constants.TEXT_UNKNOWN;
+		public string ProductIdentifier => Data.TryGetValue ("ProductIdentifier", out var id) ? id.ToString () : Constants.TextUnknown;
 
-		public string ProductModel => _data.TryGetValue ("ProductModel", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+		public string ProductModel => Data.TryGetValue ("ProductModel", out var model) ? model.ToString () : Constants.TextUnknown;
 
-		public int ParentNodeId => _data.TryGetValue ("ParentNodeId", out var nodeId) ? Convert.ToInt32 (nodeId) : 0;
+		public int ParentNodeId => Data.TryGetValue ("ParentNodeId", out var nodeId) ? Convert.ToInt32 (nodeId, CultureInfo.InvariantCulture) : 0;
 
-		public string ProductType => _data.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+		public string ProductType => Data.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TextUnknown;
 
-		public string SerialNumber => _data.TryGetValue ("SerialNumber", out var serial) ? serial.ToString () : Constants.TEXT_UNKNOWN;
+		public string SerialNumber => Data.TryGetValue ("SerialNumber", out var serial) ? serial.ToString () : Constants.TextUnknown;
 
 		public WiserSignalStrength Signal => _signal;
+
+		protected WiserRestController WiserRestController => _wiserRestController;
+
+		protected IDictionary<string, object> Data => _data;
+
+		protected IDictionary<string, object> DeviceTypeData => _deviceTypeData;
 		}
 
-	public class WiserDeviceCollection
+	public class WiserDevices
 		{
 		private readonly WiserRestController _wiserRestController;
 		private ConcurrentDictionary<int, Dictionary<string, object>> _devicesList;
 		private IDictionary<string, object> _domainData;
-		private WiserScheduleCollection _schedules;
+		private WiserSchedules _schedules;
 
-		private readonly WiserSmartValveCollection _smartvalvesCollection = new WiserSmartValveCollection ();
-		private readonly WiserRoomStatCollection _roomstatsCollection = new WiserRoomStatCollection ();
-		private readonly WiserSmartPlugCollection _smartplugsCollection = new WiserSmartPlugCollection ();
+		private readonly WiserSmartValves _smartvalvesCollection = new WiserSmartValves ();
+		private readonly WiserRoomStats _roomstatsCollection = new WiserRoomStats ();
+		private readonly WiserSmartPlugs _smartplugsCollection = new WiserSmartPlugs ();
 #if HEATACTUATOR
-		private readonly WiserHeatingActuatorCollection _heatingActuatorsCollection = new WiserHeatingActuatorCollection ();
+		private readonly WiserHeatingActuators _heatingActuatorsCollection = new WiserHeatingActuators ();
 #endif
-		private readonly WiserUFHControllerCollection _ufhControllersCollection = new WiserUFHControllerCollection ();
+		private readonly WiserUFHControllers _ufhControllersCollection = new WiserUFHControllers ();
 #if SHUTTER
-		private readonly WiserShutterCollection _shuttersCollection = new WiserShutterCollection ();
+		private readonly WiserShutters _shuttersCollection = new WiserShutters ();
 #endif
 #if LIGHT
-		private readonly WiserLightCollection _lightsCollection = new WiserLightCollection ();
+		private readonly WiserLights _lightsCollection = new WiserLights ();
 #endif
 
-		public WiserDeviceCollection (WiserRestController wiserRestController, IDictionary<string, object> domainData, WiserScheduleCollection schedules)
+		public WiserDevices (WiserRestController wiserRestController, IDictionary<string, object> domainData, WiserSchedules schedules)
 			{
 			_wiserRestController = wiserRestController;
 			if (domainData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList)
 				_devicesList = new ConcurrentDictionary<int, Dictionary<string, object>> (
-					devicesList.ToDictionary (d => Convert.ToInt32 (d["id"]), d => d)
+					devicesList.ToDictionary (d => Convert.ToInt32 (d["id"], CultureInfo.InvariantCulture), d => d)
 				);
 			else
 				_devicesList = new ConcurrentDictionary<int, Dictionary<string, object>> ();
@@ -175,13 +196,13 @@ namespace WiserHeatApiV2
 			{
 			foreach (Dictionary<string, object> device in deviceList)
 				{
-				var deviceId = Convert.ToInt32 (device["id"]);
+				var deviceId = Convert.ToInt32 (device["id"], CultureInfo.InvariantCulture);
 
 				// Add smart valve (iTRV) object to collection
 				if (device.TryGetValue ("ProductType", out var productType) && productType.ToString () == "iTRV")
 					{
 					var smartvalveInfo = (_domainData.TryGetValue ("SmartValve", out var smartValves) && smartValves is List<Dictionary<string, object>> smartValvesList)
-						? smartValvesList.FirstOrDefault (sv => sv.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						? smartValvesList.FirstOrDefault (sv => sv.TryGetValue ("id", out var id) && Convert.ToInt32 (id, CultureInfo.InvariantCulture) == deviceId)
 						: null;
 
 					if (smartvalveInfo != null)
@@ -201,7 +222,7 @@ namespace WiserHeatApiV2
 				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "RoomStat")
 					{
 					var roomstatInfo = (_domainData.TryGetValue ("RoomStat", out var roomStats) && roomStats is List<Dictionary<string, object>> roomStatsList)
-						? roomStatsList.FirstOrDefault (rs => rs.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						? roomStatsList.FirstOrDefault (rs => rs.TryGetValue ("id", out var id) && Convert.ToInt32 (id, CultureInfo.InvariantCulture) == deviceId)
 						: null;
 
 					if (roomstatInfo != null)
@@ -221,13 +242,13 @@ namespace WiserHeatApiV2
 				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "SmartPlug")
 					{
 					var smartplugInfo = (_domainData.TryGetValue ("SmartPlug", out var smartPlugs) && smartPlugs is List<Dictionary<string, object>> smartPlugsList)
-						? smartPlugsList.FirstOrDefault (sp => sp.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						? smartPlugsList.FirstOrDefault (sp => sp.TryGetValue ("id", out var id) && Convert.ToInt32 (id, CultureInfo.InvariantCulture) == deviceId)
 						: null;
 
 					if (smartplugInfo != null)
 						{
-						var smartplugSchedule = _schedules.GetByType (WiserScheduleTypeEnum.OnOff)
-							 .FirstOrDefault (s => s.Id == (smartplugInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
+						var smartplugSchedule = _schedules.GetByType (WiserScheduleType.OnOff)
+							 .FirstOrDefault (s => s.Id == (smartplugInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0));
 
 						//smartplugInfo["RoomId"] = GetTempDeviceRoomId (_domainData, deviceId);
 						_smartplugsCollection.All.Add (
@@ -246,12 +267,12 @@ namespace WiserHeatApiV2
 				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "HeatingActuator")
 					{
 					var heatingActuatorInfo = (_domainData.TryGetValue ("HeatingActuator", out var heatingActuators) && heatingActuators is List<Dictionary<string, object>> heatingActuatorsList)
-						? heatingActuatorsList.FirstOrDefault (ha => ha.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
+						? heatingActuatorsList.FirstOrDefault (ha => ha.TryGetValue ("id", out var id) && Convert.ToInt32 (id, CultureInfo.InvariantCulture) == Convert.ToInt32 (device["id"], CultureInfo.InvariantCulture))
 						: null;
 
 					if (heatingActuatorInfo != null)
 						{
-						heatingActuatorInfo["RoomId"] = GetTempDeviceRoomId (_domainData, Convert.ToInt32 (device["id"]));
+						heatingActuatorInfo["RoomId"] = GetTempDeviceRoomId (_domainData, Convert.ToInt32 (device["id"], CultureInfo.InvariantCulture));
 						_heatingActuatorsCollection.All.Add (
 							 new WiserHeatingActuator (
 								  _wiserRestController,
@@ -266,7 +287,7 @@ namespace WiserHeatApiV2
 				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "UnderFloorHeating")
 					{
 					var ufhControllerInfo = (_domainData.TryGetValue ("UnderFloorHeating", out var ufhControllers) && ufhControllers is List<Dictionary<string, object>> ufhControllersList)
-						? ufhControllersList.FirstOrDefault (ufh => ufh.TryGetValue ("id", out var id) && Convert.ToInt32 (id) == deviceId)
+						? ufhControllersList.FirstOrDefault (ufh => ufh.TryGetValue ("id", out var id) && Convert.ToInt32 (id, CultureInfo.InvariantCulture) == deviceId)
 						: null;
 
 					if (ufhControllerInfo != null)
@@ -286,13 +307,13 @@ namespace WiserHeatApiV2
 				else if (device.TryGetValue ("ProductType", out productType) && productType.ToString () == "Shutter")
 					{
 					var shutterInfo = (_domainData.TryGetValue ("Shutter", out var shutters) && shutters is List<Dictionary<string, object>> shuttersList)
-						? shuttersList.FirstOrDefault (s => s.TryGetValue ("DeviceId", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
+						? shuttersList.FirstOrDefault (s => s.TryGetValue ("DeviceId", out var id) && Convert.ToInt32 (id, CultureInfo.InvariantCulture) == Convert.ToInt32 (device["id"], CultureInfo.InvariantCulture))
 						: null;
 
 					if (shutterInfo != null)
 						{
-						var shutterSchedule = _schedules.GetByType (WiserScheduleTypeEnum.Level)
-							 .FirstOrDefault (s => s.Id == (shutterInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
+						var shutterSchedule = _schedules.GetByType (WiserScheduleType.Level)
+							 .FirstOrDefault (s => s.Id == (shutterInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0));
 
 						_shuttersCollection.All.Add (
 							 new WiserShutter (
@@ -311,13 +332,13 @@ namespace WiserHeatApiV2
 						  (productType.ToString () == "OnOffLight" || productType.ToString () == "DimmableLight"))
 					{
 					var lightInfo = (_domainData.TryGetValue ("Light", out var lights) && lights is List<Dictionary<string, object>> lightsList)
-						? lightsList.FirstOrDefault (l => l.TryGetValue ("DeviceId", out var id) && Convert.ToInt32 (id) == Convert.ToInt32 (device["id"]))
+						? lightsList.FirstOrDefault (l => l.TryGetValue ("DeviceId", out var id) && Convert.ToInt32 (id, CultureInfo.InvariantCulture) == Convert.ToInt32 (device["id"], CultureInfo.InvariantCulture))
 						: null;
 
 					if (lightInfo != null)
 						{
-						var lightSchedule = _schedules.GetByType (WiserScheduleTypeEnum.Level)
-							 .FirstOrDefault (s => s.Id == (lightInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
+						var lightSchedule = _schedules.GetByType (WiserScheduleType.Level)
+							 .FirstOrDefault (s => s.Id == (lightInfo.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0));
 
 						if (productType.ToString () == "DimmableLight")
 							{
@@ -347,14 +368,14 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public void Update (IDictionary<string, object> domainData, WiserScheduleCollection schedules)
+		public void Update (IDictionary<string, object> domainData, WiserSchedules schedules)
 			{
 			_domainData = domainData;
 			_schedules = schedules;
 			if (domainData.TryGetValue ("Device", out var devices) && devices is List<Dictionary<string, object>> devicesList)
 				{
 				var dlh = new HashSet<int> (_devicesList.Keys);
-				var newDeviceHash = new HashSet<int> (devicesList.Select (d => Convert.ToInt32 (d["id"])));
+				var newDeviceHash = new HashSet<int> (devicesList.Select (d => Convert.ToInt32 (d["id"], CultureInfo.InvariantCulture)));
 				var removedDevicesHash = dlh.Except (newDeviceHash).ToHashSet<int> ();
 				var addedDevicesHash = newDeviceHash.Except (dlh).ToHashSet<int> ();
 				if (removedDevicesHash.Count > 0)
@@ -371,9 +392,9 @@ namespace WiserHeatApiV2
 				// Add new devices
 				if (addedDevicesHash.Count > 0)
 					{
-					var newDevices = devicesList.Where (d => addedDevicesHash.Contains (Convert.ToInt32 (d["id"])));
+					var newDevices = devicesList.Where (d => addedDevicesHash.Contains (Convert.ToInt32 (d["id"], CultureInfo.InvariantCulture)));
 					foreach (var newDevice in newDevices)
-						_devicesList[Convert.ToInt32 (newDevice["id"])] = newDevice;
+						_devicesList[Convert.ToInt32 (newDevice["id"], CultureInfo.InvariantCulture)] = newDevice;
 
 					// Rebuild collections with new devices
 					Build (newDevices);
@@ -389,13 +410,13 @@ namespace WiserHeatApiV2
 				{
 				foreach (var room in roomsList)
 					{
-					int roomId = Convert.ToInt32 (room["id"]);
+					int roomId = Convert.ToInt32 (room["id"], CultureInfo.InvariantCulture);
 
 					if (room.TryGetValue ("SmartValveIds", out var smartValveIds) && smartValveIds is List<object> smartValveIdsList)
 						{
 						foreach (var id in smartValveIdsList)
 							{
-							if (Convert.ToInt32 (id) == deviceId)
+							if (Convert.ToInt32 (id, CultureInfo.InvariantCulture) == deviceId)
 								return roomId;
 							}
 						}
@@ -404,19 +425,19 @@ namespace WiserHeatApiV2
 						{
 						foreach (var id in heatingActuatorIdsList)
 							{
-							if (Convert.ToInt32 (id) == deviceId)
+							if (Convert.ToInt32 (id, CultureInfo.InvariantCulture) == deviceId)
 								return roomId;
 							}
 						}
 #endif
 					if (room.TryGetValue ("RoomStatId", out var roomStatId))
 						{
-						if (Convert.ToInt32 (roomStatId) == deviceId)
+						if (Convert.ToInt32 (roomStatId, CultureInfo.InvariantCulture) == deviceId)
 							return roomId;
 						}
 					if (room.TryGetValue ("UnderFloorHeatingId", out var ufhId))
 						{
-						if (Convert.ToInt32 (ufhId) == deviceId)
+						if (Convert.ToInt32 (ufhId, CultureInfo.InvariantCulture) == deviceId)
 							return roomId;
 						}
 					if (Smartplugs.All.FirstOrDefault (sp => sp.Id == deviceId && sp.RoomId == roomId) != null)
@@ -447,24 +468,24 @@ namespace WiserHeatApiV2
 		public int Count => All.Count;
 
 #if HEATACTUATOR
-		public WiserHeatingActuatorCollection HeatingActuators => _heatingActuatorsCollection;
+		public WiserHeatingActuators HeatingActuators => _heatingActuatorsCollection;
 #endif
 
 #if LIGHT
-		public WiserLightCollection Lights => _lightsCollection;
+		public WiserLights Lights => _lightsCollection;
 #endif
 
-		public WiserRoomStatCollection Roomstats => _roomstatsCollection;
+		public WiserRoomStats Roomstats => _roomstatsCollection;
 
 #if SHUTTER
-		public WiserShutterCollection Shutters => _shuttersCollection;
+		public WiserShutters Shutters => _shuttersCollection;
 #endif
 
-		public WiserSmartPlugCollection Smartplugs => _smartplugsCollection;
+		public WiserSmartPlugs Smartplugs => _smartplugsCollection;
 
-		public WiserSmartValveCollection Smartvalves => _smartvalvesCollection;
+		public WiserSmartValves Smartvalves => _smartvalvesCollection;
 
-		public WiserUFHControllerCollection UfhControllers => _ufhControllersCollection;
+		public WiserUFHControllers UfhControllers => _ufhControllersCollection;
 
 		public WiserDevice GetById (int id)
 			{

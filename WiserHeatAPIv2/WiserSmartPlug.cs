@@ -2,9 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,10 +19,10 @@ namespace WiserHeatApiV2
 			 : base (wiserRestController, data, deviceTypeData)
 			{
 			_schedule = schedule;
-			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
-			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
-			_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
-			_outputState = deviceTypeData.TryGetValue ("OutputState", out var state) ? state.ToString () : Constants.TEXT_OFF;
+			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TextUnknown;
+			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TextUnknown;
+			base.Name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
+			_outputState = deviceTypeData.TryGetValue ("OutputState", out var state) ? state.ToString () : Constants.TextOff;
 
 			// Add device id to schedule
 			if (_schedule != null)
@@ -37,27 +34,31 @@ namespace WiserHeatApiV2
 
 		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			return _wiserRestController.SendCommandAsync (string.Format (RestConstants.WISERSMARTPLUG, Id), cmd, cancellationToken: cancellationToken);
+			return WiserRestController.SendCommandAsync (
+				 string.Format (System.Globalization.CultureInfo.InvariantCulture, RestConstants.WiserSmartPlug, Id),
+				 cmd,
+				 cancellationToken: cancellationToken
+			);
 			}
 
-		private bool ValidateMode (string mode)
+		private static bool ValidateMode (string mode)
 			{
 			return AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
 			}
 
-		private bool ValidateAwayAction (string action)
+		private static bool ValidateAwayAction (string action)
 			{
 			return AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 			}
 
-		public List<string> AvailableModes => Enum.GetValues (typeof (WiserSmartPlugModeEnum))
-			 .Cast<WiserSmartPlugModeEnum> ()
+		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserSmartPlugMode))
+			 .Cast<WiserSmartPlugMode> ()
 			 .Select (m => m.ToString ())
 			 .ToList ();
 
-		public List<string> AvailableAwayModeActions => Enum.GetValues (typeof (WiserAwayActionEnum))
-			 .Cast<WiserAwayActionEnum> ()
-			 .Where (a => a == WiserAwayActionEnum.Off || a == WiserAwayActionEnum.NoChange)
+		public static List<string> AvailableAwayModeActions => Enum.GetValues (typeof (WiserAwayAction))
+			 .Cast<WiserAwayAction> ()
+			 .Where (a => a == WiserAwayAction.Off || a == WiserAwayAction.NoChange)
 			 .Select (a => a.ToString ())
 			 .ToList ();
 
@@ -76,7 +77,7 @@ namespace WiserHeatApiV2
 			}
 		public async Task<bool> SetNameAsync (string value, CancellationToken cancellationToken = default)
 			{
-			if (_name == value)
+			if (Name == value)
 				return true; // No change needed
 			if (value == null)
 				throw new ArgumentNullException (nameof (value), "Name cannot be null.");
@@ -87,7 +88,7 @@ namespace WiserHeatApiV2
 			// Check if the name is already set to the desired value
 			if (await SendCommandAsync (new { Name = value }, cancellationToken: cancellationToken).ConfigureAwait (false))
 				{
-				_name = value;
+				Name = value;
 				return true;
 				}
 			return false;
@@ -115,13 +116,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public string ControlSource => _deviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
+		public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TextUnknown;
 
-		public int DeliveredPower => _deviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power) : -1;
+		public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : -1;
 
-		public int InstantaneousPower => _deviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? Convert.ToInt32 (power) : -1;
+		public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : -1;
 
-		public string ManualState => _deviceTypeData.TryGetValue ("ManualState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
+		public string ManualState => DeviceTypeData.TryGetValue ("ManualState", out var state) ? state.ToString () : Constants.TextUnknown;
 
 		public string Mode
 			{
@@ -136,10 +137,10 @@ namespace WiserHeatApiV2
 
 		override public string Name
 			{
-			get => _name;
+			get => base.Name;
 			set
 				{
-				if (_name == value)
+				if (base.Name == value)
 					return;
 				if (value == null)
 					throw new ArgumentNullException (nameof (value), "Name cannot be null.");
@@ -151,53 +152,53 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public bool IsOn => _outputState == Constants.TEXT_ON;
+		public bool IsOn => _outputState == Constants.TextOn;
 
 		public WiserSchedule? Schedule => _schedule;
 
-		public int ScheduleId => _deviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
+		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public string ScheduledState => _deviceTypeData.TryGetValue ("ScheduledState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
+		public string ScheduledState => DeviceTypeData.TryGetValue ("ScheduledState", out var state) ? state.ToString () : Constants.TextUnknown;
 
 		public async Task<bool> TurnOnAsync (CancellationToken cancellationToken = default)
 			{
-			if (_outputState == Constants.TEXT_ON)
+			if (_outputState == Constants.TextOn)
 				return true; // No change needed
 			bool result = await SendCommandAsync (new
 				{
-				RequestOutput = Constants.TEXT_ON
+				RequestOutput = Constants.TextOn
 				}, cancellationToken: cancellationToken).ConfigureAwait (false);
 			if (result)
 				{
-				_outputState = Constants.TEXT_ON;
+				_outputState = Constants.TextOn;
 				}
 			return result;
 			}
 
 		public async Task<bool> TurnOffAsync (CancellationToken cancellationToken = default)
 			{
-			if (_outputState == Constants.TEXT_OFF)
+			if (_outputState == Constants.TextOff)
 				return true; // No change needed
 			bool result = await SendCommandAsync (new
 				{
-				RequestOutput = Constants.TEXT_OFF
+				RequestOutput = Constants.TextOff
 				}, cancellationToken: cancellationToken).ConfigureAwait (false);
 			if (result)
 				{
-				_outputState = Constants.TEXT_OFF;
+				_outputState = Constants.TextOff;
 				}
 			return result;
 			}
 		}
 
-	public class WiserSmartPlugCollection
+	public class WiserSmartPlugs
 		{
 		private readonly List<WiserSmartPlug> _smartPlugs = new List<WiserSmartPlug> ();
 
 		public List<WiserSmartPlug> All => _smartPlugs;
 
-		public List<string> AvailableModes => Enum.GetValues (typeof (WiserSmartPlugModeEnum))
-			 .Cast<WiserSmartPlugModeEnum> ()
+		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserSmartPlugMode))
+			 .Cast<WiserSmartPlugMode> ()
 			 .Select (m => m.ToString ())
 			 .ToList ();
 

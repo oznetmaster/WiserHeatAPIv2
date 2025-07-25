@@ -2,9 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,9 +21,9 @@ namespace WiserHeatApiV2
 				_data = data;
 				}
 
-			public int? OpenTime => _data?.TryGetValue ("LiftOpenTime", out var time) == true ? (int?)Convert.ToInt32 (time) : null;
+			public int? OpenTime => _data?.TryGetValue ("LiftOpenTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
 
-			public int? CloseTime => _data?.TryGetValue ("LiftCloseTime", out var time) == true ? (int?)Convert.ToInt32 (time) : null;
+			public int? CloseTime => _data?.TryGetValue ("LiftCloseTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
 
 			public async Task SetOpenTimeAsync (int time, CancellationToken cancellationToken = default)
 				{
@@ -47,8 +44,8 @@ namespace WiserHeatApiV2
 			 : base (wiserRestController, data, deviceTypeData)
 			{
 			_schedule = schedule;
-			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
-			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TextUnknown;
+			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TextUnknown;
 
 			// Add device id to schedule
 			if (_schedule != null)
@@ -60,29 +57,29 @@ namespace WiserHeatApiV2
 
 		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			string url = string.Format (RestConstants.WISERSHUTTER, ShutterId);
+			string url = string.Format (CultureInfo.InvariantCulture, RestConstants.WiserShutter, ShutterId);
 
-			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
+			return WiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
-		private bool ValidateMode (string mode)
+		private static bool ValidateMode (string mode)
 			{
 			return AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
 			}
 
-		private bool ValidateAwayAction (string action)
+		private static bool ValidateAwayAction (string action)
 			{
 			return AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 			}
 
-		public List<string> AvailableModes => Enum.GetValues (typeof (WiserShutterModeEnum))
-			 .Cast<WiserShutterModeEnum> ()
+		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserShutterMode))
+			 .Cast<WiserShutterMode> ()
 			 .Select (m => m.ToString ())
 			 .ToList ();
 
-		public List<string> AvailableAwayModeActions => Enum.GetValues (typeof (WiserAwayActionEnum))
-			 .Cast<WiserAwayActionEnum> ()
-			 .Where (a => a == WiserAwayActionEnum.Close || a == WiserAwayActionEnum.NoChange)
+		public static List<string> AvailableAwayModeActions => Enum.GetValues (typeof (WiserAwayAction))
+			 .Cast<WiserAwayAction> ()
+			 .Where (a => a == WiserAwayAction.Close || a == WiserAwayAction.NoChange)
 			 .Select (a => a.ToString ())
 			 .ToList ();
 
@@ -107,9 +104,9 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public string ControlSource => _deviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
+		public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TextUnknown;
 
-		public int CurrentLift => _deviceTypeData.TryGetValue ("CurrentLift", out var lift) ? Convert.ToInt32 (lift) : 0;
+		public int CurrentLift => DeviceTypeData.TryGetValue ("CurrentLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
 
 		public async Task SetCurrentLiftAsync (int percentage, CancellationToken cancellationToken = default)
 			{
@@ -127,7 +124,7 @@ namespace WiserHeatApiV2
 			{
 			get
 				{
-				if (_deviceTypeData.TryGetValue ("DriveConfig", out var config) && config is Dictionary<string, object> configDict)
+				if (DeviceTypeData.TryGetValue ("DriveConfig", out var config) && config is Dictionary<string, object> configDict)
 					{
 					return new WiserLiftMovementRange (this, configDict);
 					}
@@ -139,17 +136,17 @@ namespace WiserHeatApiV2
 
 		public bool IsClosed => CurrentLift == 0;
 
-		public bool IsClosing => _deviceTypeData.TryGetValue ("LiftMovement", out var movement) && movement.ToString () == "Closing";
+		public bool IsClosing => DeviceTypeData.TryGetValue ("LiftMovement", out var movement) && movement.ToString () == "Closing";
 
-		public bool IsOpening => _deviceTypeData.TryGetValue ("LiftMovement", out var movement) && movement.ToString () == "Opening";
+		public bool IsOpening => DeviceTypeData.TryGetValue ("LiftMovement", out var movement) && movement.ToString () == "Opening";
 
-		public bool IsStopped => _deviceTypeData.TryGetValue ("LiftMovement", out var movement) && movement.ToString () == "Stopped";
+		public bool IsStopped => DeviceTypeData.TryGetValue ("LiftMovement", out var movement) && movement.ToString () == "Stopped";
 
 		public bool IsMoving => !IsStopped;
 
-		public string LiftMovement => _deviceTypeData.TryGetValue ("LiftMovement", out var movement) ? movement.ToString () : Constants.TEXT_UNKNOWN;
+		public string LiftMovement => DeviceTypeData.TryGetValue ("LiftMovement", out var movement) ? movement.ToString () : Constants.TextUnknown;
 
-		public int ManualLift => _deviceTypeData.TryGetValue ("ManualLift", out var lift) ? Convert.ToInt32 (lift) : 0;
+		public int ManualLift => DeviceTypeData.TryGetValue ("ManualLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
 
 		public string Mode
 			{
@@ -172,10 +169,10 @@ namespace WiserHeatApiV2
 
 		override public string Name
 			{
-			get => _name;
+			get => base.Name;
 			set
 				{
-				if (value == _name)
+				if (value == base.Name)
 					return;
 				if (string.IsNullOrWhiteSpace (value))
 					{
@@ -187,20 +184,20 @@ namespace WiserHeatApiV2
 					}
 				if (SendCommandAsync (new { Name = value }).Result)
 					{
-					_name = value;
+					base.Name = value;
 					}
 				}
 			}
 
 		public WiserSchedule? Schedule => _schedule;
 
-		public int ScheduleId => _deviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
+		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public string ScheduledLift => _deviceTypeData.TryGetValue ("ScheduledLift", out var lift) ? lift.ToString () : Constants.TEXT_UNKNOWN;
+		public string ScheduledLift => DeviceTypeData.TryGetValue ("ScheduledLift", out var lift) ? lift.ToString () : Constants.TextUnknown;
 
-		public int ShutterId => _deviceTypeData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+		public int ShutterId => DeviceTypeData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public int TargetLift => _deviceTypeData.TryGetValue ("TargetLift", out var lift) ? Convert.ToInt32 (lift) : 0;
+		public int TargetLift => DeviceTypeData.TryGetValue ("TargetLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
 
 		public Task OpenAsync (CancellationToken cancellationToken = default)
 			{
@@ -218,14 +215,14 @@ namespace WiserHeatApiV2
 			}
 		}
 
-	public class WiserShutterCollection
+	public class WiserShutters
 		{
 		private readonly List<WiserShutter> _shutters = new List<WiserShutter> ();
 
 		public List<WiserShutter> All => _shutters;
 
-		public List<string> AvailableModes => Enum.GetValues (typeof (WiserShutterModeEnum))
-			 .Cast<WiserShutterModeEnum> ()
+		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserShutterMode))
+			 .Cast<WiserShutterMode> ()
 			 .Select (m => m.ToString ())
 			 .ToList ();
 

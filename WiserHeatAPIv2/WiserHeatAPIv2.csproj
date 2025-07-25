@@ -7,6 +7,8 @@
 	  <!-- Optional: enable the latest compiler and nullable analysis -->
 	  <LangVersion>latest</LangVersion>
 	  <Nullable>enable</Nullable>
+	  <EnableNETAnalyzers>True</EnableNETAnalyzers>
+	  <AnalysisLevel>latest-recommended</AnalysisLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>TRACE;DEBUG;LIGHTING SHUTTER LIGHT HEATACTUATOR OPENTHERM</DefineConstants>

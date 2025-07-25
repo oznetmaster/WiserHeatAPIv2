@@ -2,10 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace WiserHeatApiV2
 	{
 	public class WiserRoomStat : WiserDevice
@@ -16,18 +12,21 @@ namespace WiserHeatApiV2
 			{
 			}
 
-		public WiserBattery Battery => new WiserBattery (_data);
+		public WiserBattery Battery => new WiserBattery (Data);
 
-		public int CurrentHumidity => _deviceTypeData.TryGetValue ("MeasuredHumidity", out var humidity) ? Convert.ToInt32 (humidity) : 0;
+		public int CurrentHumidity => DeviceTypeData.TryGetValue ("MeasuredHumidity", out var humidity) ? Convert.ToInt32 (humidity, CultureInfo.InvariantCulture) : 0;
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0);
+			 DeviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0);
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
+			 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
+
+		// Update all references to constants to use the new names (e.g., Constants.TextAuto, Constants.TextManual, etc.)
+		// This includes: TempError, TempMinimum, TempMaximum, TempHwOn, TempHwOff, TempOff, RoomstatMinBatteryLevel, RoomstatFullBatteryLevel, TrvFullBatteryLevel, TrvMinBatteryLevel, MaxBoostIncrease, TextAuto, TextManual, TextOff, TextOn, TextNone, TextUnknown, etc.
 		}
 
-	public class WiserRoomStatCollection
+	public class WiserRoomStats
 		{
 		private readonly List<WiserRoomStat> _roomStats = new List<WiserRoomStat> ();
 

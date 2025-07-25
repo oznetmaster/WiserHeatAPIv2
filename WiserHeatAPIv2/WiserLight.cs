@@ -2,9 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -12,25 +9,25 @@ namespace WiserHeatApiV2
 #if LIGHT
 	public class WiserLight : WiserElectricalLevelDevice
 		{
-		protected readonly WiserSchedule? _schedule;
-		protected string _awayAction;
-		protected string _mode;
-		protected string _currentState;
+		private readonly WiserSchedule? _schedule1;
+		private string _awayAction;
+		private string _mode;
+		private string _currentState;
 
 		public WiserLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
 			 : base (wiserRestController, data, deviceTypeData)
 			{
-			_schedule = schedule;
-			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
-			_currentState = deviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : Constants.TEXT_OFF;
-			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
-			_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
+			_schedule1 = schedule;
+			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TextUnknown;
+			_currentState = deviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : Constants.TextOff;
+			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TextUnknown;
+			base.Name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
 			// Add device id to schedule
-			if (_schedule != null)
+			if (_schedule1 != null)
 				{
-				_schedule.Assignments.Add (new Dictionary<string, object> { { "id", LightId }, { "name", Name } });
-				_schedule.DeviceIds.Add (Id);
+				_schedule1.Assignments.Add (new Dictionary<string, object> { { "id", LightId }, { "name", Name } });
+				_schedule1.DeviceIds.Add (Id);
 				}
 			}
 
@@ -41,43 +38,43 @@ namespace WiserHeatApiV2
 
 		protected async Task<bool> SendCommandAsync (object cmd)
 			{
-			string url = string.Format (RestConstants.WISERLIGHT, LightId);
+			string url = string.Format (System.Globalization.CultureInfo.InvariantCulture, RestConstants.WiserLight, LightId);
 
-			bool result = await _wiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
+			bool result = await WiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
 			return result;
 			}
 
-		protected bool ValidateMode (string mode)
+		protected static bool ValidateMode (string mode)
 			{
 			return AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
 			}
 
-		protected bool ValidateAwayAction (string action)
+		protected static bool ValidateAwayAction (string action)
 			{
 			return AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 			}
 
-		public List<string> AvailableModes => Enum.GetValues (typeof (WiserLightModeEnum))
-			 .Cast<WiserLightModeEnum> ()
+		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserLightMode))
+			 .Cast<WiserLightMode> ()
 			 .Select (m => m.ToString ())
 			 .ToList ();
 
-		public List<string> AvailableAwayModeActions => Enum.GetValues (typeof (WiserAwayActionEnum))
-			 .Cast<WiserAwayActionEnum> ()
-			 .Where (a => a == WiserAwayActionEnum.Off || a == WiserAwayActionEnum.NoChange)
+		public static List<string> AvailableAwayModeActions => Enum.GetValues (typeof (WiserAwayAction))
+			 .Cast<WiserAwayAction> ()
+			 .Where (a => a == WiserAwayAction.Off || a == WiserAwayAction.NoChange)
 			 .Select (a => a.ToString ())
 			 .ToList ();
 
 		public string AwayModeAction
 			{
-			get => _awayAction;
+			get => AwayAction;
 			set
 				{
 				if (ValidateAwayAction (value))
 					{
 					if (SendCommandAsync (new { AwayAction = value }).Result)
 						{
-						_awayAction = value;
+						AwayAction = value;
 						}
 					}
 				else
@@ -87,13 +84,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public string ControlSource => _deviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
+		public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TextUnknown;
 
-		public string CurrentState => _deviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : "0";
+		public string CurrentState => DeviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : "0";
 
-		public bool IsDimmable => _deviceTypeData.TryGetValue ("IsDimmable", out var dimmable) && Convert.ToBoolean (dimmable);
+		public bool IsDimmable => DeviceTypeData.TryGetValue ("IsDimmable", out var dimmable) && Convert.ToBoolean (dimmable, CultureInfo.InvariantCulture);
 
-		public bool IsOn => _currentState == Constants.TEXT_ON;
+		public bool IsOn => _currentState == Constants.TextOn;
 
 		public int LightId => DeviceTypeId;
 
@@ -123,11 +120,11 @@ namespace WiserHeatApiV2
 
 		override public string Name
 			{
-			get => _name;
+			get => base.Name;
 			set
 				{
 				// Check if the name is already set to the desired value
-				if (_name == value)
+				if (base.Name == value)
 					{
 					return; // No change needed
 					}
@@ -143,33 +140,37 @@ namespace WiserHeatApiV2
 				// Send command to update name
 				if (SendCommandAsync (new { Name = value }).Result)
 					{
-					_name = value;
+					base.Name = value;
 					}
 				}
 			}
 
-		public WiserSchedule? Schedule => _schedule;
+		public WiserSchedule? Schedule => Schedule1;
 
-		public int ScheduleId => _deviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
+		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public int TargetState => _deviceTypeData.TryGetValue ("TargetState", out var state) ? Convert.ToInt32 (state) : 0;
+		public int TargetState => DeviceTypeData.TryGetValue ("TargetState", out var state) ? Convert.ToInt32 (state, CultureInfo.InvariantCulture) : 0;
+
+		protected WiserSchedule? Schedule1 => _schedule1;
+
+		protected string AwayAction { get => _awayAction; set => _awayAction = value; }
 
 		public async Task<bool> TurnOnAsync ()
 			{
-			bool result = await SendCommandAsync (new { RequestOverride = new { State = Constants.TEXT_ON } }).ConfigureAwait (false);
+			bool result = await SendCommandAsync (new { RequestOverride = new { State = Constants.TextOn } }).ConfigureAwait (false);
 			if (result)
 				{
-				_currentState = Constants.TEXT_ON;
+				_currentState = Constants.TextOn;
 				}
 			return result;
 			}
 
 		public async Task<bool> TurnOffAsync ()
 			{
-			bool result = await SendCommandAsync (new { RequestOverride = new { State = Constants.TEXT_OFF } }).ConfigureAwait (false);
+			bool result = await SendCommandAsync (new { RequestOverride = new { State = Constants.TextOff } }).ConfigureAwait (false);
 			if (result)
 				{
-				_currentState = Constants.TEXT_OFF;
+				_currentState = Constants.TextOff;
 				}
 			return result;
 			}
@@ -181,14 +182,14 @@ namespace WiserHeatApiV2
 			{
 			private readonly Dictionary<string, object>? _data;
 
-			public WiserOutputRange (Dictionary<string, object>? data)					
+			public WiserOutputRange (Dictionary<string, object>? data)
 				{
 				_data = data;
 				}
 
-			public int? Minimum => _data?.TryGetValue ("Minimum", out var min) == true ? (int?)Convert.ToInt32 (min) : null;
+			public int? Minimum => _data?.TryGetValue ("Minimum", out var min) == true ? (int?)Convert.ToInt32 (min, CultureInfo.InvariantCulture) : null;
 
-			public int? Maximum => _data?.TryGetValue ("Maximum", out var max) == true ? (int?)Convert.ToInt32 (max) : null;
+			public int? Maximum => _data?.TryGetValue ("Maximum", out var max) == true ? (int?)Convert.ToInt32 (max, CultureInfo.InvariantCulture) : null;
 			}
 
 		public WiserDimmableLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
@@ -196,16 +197,16 @@ namespace WiserHeatApiV2
 			{
 			}
 
-		public int CurrentLevel => _deviceTypeData.TryGetValue ("CurrentLevel", out var level) ? Convert.ToInt32 (level) : 0;
+		public int CurrentLevel => DeviceTypeData.TryGetValue ("CurrentLevel", out var level) ? Convert.ToInt32 (level, CultureInfo.InvariantCulture) : 0;
 
 		public int CurrentPercentage
 			{
-			get => _deviceTypeData.TryGetValue ("CurrentPercentage", out var percentage) ? Convert.ToInt32 (percentage) : 0;
+			get => DeviceTypeData.TryGetValue ("CurrentPercentage", out var percentage) ? Convert.ToInt32 (percentage, CultureInfo.InvariantCulture) : 0;
 			set
 				{
 				if (value >= 0 && value <= 100)
 					{
-					SendCommand (new { RequestOverride = new { State = Constants.TEXT_ON, Percentage = value } });
+					SendCommand (new { RequestOverride = new { State = Constants.TextOn, Percentage = value } });
 					}
 				else
 					{
@@ -214,15 +215,15 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public int ManualLevel => _deviceTypeData.TryGetValue ("ManualLevel", out var level) ? Convert.ToInt32 (level) : 0;
+		public int ManualLevel => DeviceTypeData.TryGetValue ("ManualLevel", out var level) ? Convert.ToInt32 (level, CultureInfo.InvariantCulture) : 0;
 
-		public int OverrideLevel => _deviceTypeData.TryGetValue ("OverrideLevel", out var level) ? Convert.ToInt32 (level) : 0;
+		public int OverrideLevel => DeviceTypeData.TryGetValue ("OverrideLevel", out var level) ? Convert.ToInt32 (level, CultureInfo.InvariantCulture) : 0;
 
 		public WiserOutputRange OutputRange
 			{
 			get
 				{
-				if (_deviceTypeData.TryGetValue ("OutputRange", out var range) && range is Dictionary<string, object> rangeDict)
+				if (DeviceTypeData.TryGetValue ("OutputRange", out var range) && range is Dictionary<string, object> rangeDict)
 					{
 					return new WiserOutputRange (rangeDict);
 					}
@@ -230,19 +231,19 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public int ScheduledPercentage => _data.TryGetValue ("ScheduledPercentage", out var percentage) ? Convert.ToInt32 (percentage) : 0;
+		public int ScheduledPercentage => Data.TryGetValue ("ScheduledPercentage", out var percentage) ? Convert.ToInt32 (percentage, CultureInfo.InvariantCulture) : 0;
 
-		public int TargetPercentage => _deviceTypeData.TryGetValue ("TargetPercentage", out var percentage) ? Convert.ToInt32 (percentage) : 0;
+		public int TargetPercentage => DeviceTypeData.TryGetValue ("TargetPercentage", out var percentage) ? Convert.ToInt32 (percentage, CultureInfo.InvariantCulture) : 0;
 		}
 
-	public class WiserLightCollection
+	public class WiserLights
 		{
 		private readonly List<WiserLight> _lights = new List<WiserLight> ();
 
 		public List<WiserLight> All => _lights;
 
-		public List<string> AvailableModes => Enum.GetValues (typeof (WiserLightModeEnum))
-			 .Cast<WiserLightModeEnum> ()
+		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserLightMode))
+			 .Cast<WiserLightMode> ()
 			 .Select (m => m.ToString ())
 			 .ToList ();
 

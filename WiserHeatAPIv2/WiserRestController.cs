@@ -2,9 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -22,48 +19,48 @@ namespace WiserHeatApiV2
 	{
 	public static class RestConstants
 		{
-		public const double REST_BACKOFF_FACTOR = 0.5;
-		public const int REST_RETRIES = 3;
-		public const int REST_TIMEOUT = 10;
+		public const double RestBackoffFactor = 0.5;
+		public const int RestRetries = 3;
+		public const int RestTimeout = 10;
 		// Wiser Hub Rest Api URL Constants
-		public const string WISERHUBURL = "http://{0}/data/v2/";
-		public const string WISERHUBDOMAIN = WISERHUBURL + "domain/";
-		public const string WISERHUBNETWORK = WISERHUBURL + "network/";
-		public const string WISERHUBSCHEDULES = WISERHUBURL + "schedules/";
-		public const string WISERHUBOPENTHERM = WISERHUBURL + "opentherm/";
-		public const string WISERSYSTEM = "System";
-		public const string WISERDEVICE = "Device/{0}";
-		public const string WISERHOTWATER = "HotWater/{0}";
-		public const string WISERROOM = "Room/{0}";
-		public const string WISERSMARTVALVE = "SmartValve/{0}";
-		public const string WISERROOMSTAT = "RoomStat/{0}";
-		public const string WISERSMARTPLUG = "SmartPlug/{0}";
+		public const string WiserHubUrl = "http://{0}/_data/v2/";
+		public const string WiserHubDomain = WiserHubUrl + "domain/";
+		public const string WiserHubNetwork = WiserHubUrl + "network/";
+		public const string WiserHubSchedules = WiserHubUrl + "schedules/";
+		public const string WiserHubOpentherm = WiserHubUrl + "opentherm/";
+		public const string WiserSystem = "System";
+		public const string WiserDevice = "Device/{0}";
+		public const string WiserHotWater = "HotWater/{0}";
+		public const string WiserRoom = "Room/{0}";
+		public const string WiserSmartValve = "SmartValve/{0}";
+		public const string WiserRoomStat = "RoomStat/{0}";
+		public const string WiserSmartPlug = "SmartPlug/{0}";
 #if HEATACTUATOR
-		public const string WISERHEATINGACTUATOR = "HeatingActuator/{0}";
+		public const string WiserHeatingActuator = "HeatingActuator/{0}";
 #endif
-		public const string WISERUFHCONTROLLER = "UnderFloorHeating/{0}";
+		public const string WiserUfhController = "UnderFloorHeating/{0}";
 #if SHUTTER
-		public const string WISERSHUTTER = "Shutter/{0}";
+		public const string WiserShutter = "Shutter/{0}";
 #endif
 #if LIGHT
-		public const string WISERLIGHT = "Light/{0}";
+		public const string WiserLight = "Light/{0}";
 #endif
 		}
 
 	// Custom Exceptions
-	public class WiserHubAuthenticationError : Exception
+	public class WiserHubAuthenticationException : Exception
 		{
-		public WiserHubAuthenticationError (string message) : base (message) { }
+		public WiserHubAuthenticationException (string message) : base (message) { }
 		}
 
-	public class WiserHubConnectionError : Exception
+	public class WiserHubConnectionException : Exception
 		{
-		public WiserHubConnectionError (string message) : base (message) { }
+		public WiserHubConnectionException (string message) : base (message) { }
 		}
 
-	public class WiserHubRESTError : Exception
+	public class WiserHubRESTException : Exception
 		{
-		public WiserHubRESTError (string message) : base (message) { }
+		public WiserHubRESTException (string message) : base (message) { }
 		}
 
 	// Connection Info Class
@@ -77,7 +74,7 @@ namespace WiserHeatApiV2
 			{
 			get; set;
 			}
-		public WiserUnitsEnum Units { get; set; } = WiserUnitsEnum.Metric; // Default to Metric
+		public WiserUnits Units { get; set; } = WiserUnits.Metric; // Default to Metric
 
 		public WiserConnection (string? host, string? secret)
 			{
@@ -87,7 +84,7 @@ namespace WiserHeatApiV2
 		}
 
 	// Enums
-	public enum WiserRestActionEnum
+	public enum WiserRestAction
 		{
 		GET,
 		POST,
@@ -95,11 +92,11 @@ namespace WiserHeatApiV2
 		DELETE
 		}
 
-	public class WiserRestController
+	public class WiserRestController : IDisposable
 		{
 		private readonly WiserConnection _wiserConnection;
-		private readonly HttpClient _httpClient;
-		public static ILog _LOGGER = log4net.LogManager.GetLogger (typeof (WiserRestController));
+		private HttpClient? _httpClient;
+		private static ILog _LOGGER = log4net.LogManager.GetLogger (typeof (WiserRestController));
 
 		public WiserRestController (WiserConnection wiserConnection)
 			{
@@ -114,7 +111,7 @@ namespace WiserHeatApiV2
 			// Configure HttpClient with retry logic (simplified for example)
 			_httpClient = new HttpClient
 				{
-				Timeout = TimeSpan.FromSeconds (RestConstants.REST_TIMEOUT)
+				Timeout = TimeSpan.FromSeconds (RestConstants.RestTimeout)
 				};
 			_httpClient.DefaultRequestHeaders.Add ("SECRET", _wiserConnection.Secret);
 			_httpClient.DefaultRequestHeaders.Accept.Add (new MediaTypeWithQualityHeaderValue ("application/json"));
@@ -122,10 +119,10 @@ namespace WiserHeatApiV2
 			}
 
 		// Fix for CRR0029: Explicitly call ConfigureAwait(false) to avoid implicit ConfigureAwait(true)
-		public async Task<HttpResponseMessage?> ExecuteHttpRequestAsync (WiserRestActionEnum action, string url, StringContent? data = null, CancellationToken cancellationToken = default)
+		public async Task<HttpResponseMessage?> ExecuteHttpRequestAsync (WiserRestAction action, string url, StringContent? data = null, CancellationToken cancellationToken = default)
 			{
 			HttpResponseMessage? response = null;
-			int retryCount = RestConstants.REST_RETRIES;
+			int retryCount = RestConstants.RestRetries;
 			TimeSpan delay = TimeSpan.FromSeconds (1); // Initial delay
 
 			while (retryCount >= 0)
@@ -134,20 +131,20 @@ namespace WiserHeatApiV2
 					{
 					switch (action)
 						{
-						case WiserRestActionEnum.GET:
-							response = await _httpClient.GetAsync (url, cancellationToken).ConfigureAwait (false);
+						case WiserRestAction.GET:
+							response = await _httpClient!.GetAsync (url, cancellationToken).ConfigureAwait (false);
 							break;
-						case WiserRestActionEnum.POST:
-							response = await _httpClient.PostAsync (url, data, cancellationToken).ConfigureAwait (false);
+						case WiserRestAction.POST:
+							response = await _httpClient!.PostAsync (url, data, cancellationToken).ConfigureAwait (false);
 							break;
-						case WiserRestActionEnum.PATCH:
-							response = await _httpClient.PatchAsync (url, data, cancellationToken).ConfigureAwait (false);
+						case WiserRestAction.PATCH:
+							response = await _httpClient!.PatchAsync (url, data, cancellationToken).ConfigureAwait (false);
 							break;
-						case WiserRestActionEnum.DELETE:
-							response = await _httpClient.DeleteAsync (url, cancellationToken).ConfigureAwait (false);
+						case WiserRestAction.DELETE:
+							response = await _httpClient!.DeleteAsync (url, cancellationToken).ConfigureAwait (false);
 							break;
 						default:
-							throw new ArgumentOutOfRangeException (nameof (action), action, "Invalid WiserRestActionEnum");
+							throw new ArgumentOutOfRangeException (nameof (action), action, "Invalid WiserRestAction");
 						}
 
 					if (response.IsSuccessStatusCode)
@@ -166,7 +163,7 @@ namespace WiserHeatApiV2
 							{
 							await Task.Delay (delay, cancellationToken).ConfigureAwait (false);
 
-							delay = TimeSpan.FromSeconds (delay.TotalSeconds * RestConstants.REST_BACKOFF_FACTOR); // Exponential backoff
+							delay = TimeSpan.FromSeconds (delay.TotalSeconds * RestConstants.RestBackoffFactor); // Exponential backoff
 							}
 						}
 					else
@@ -178,12 +175,12 @@ namespace WiserHeatApiV2
 				catch (HttpRequestException ex)
 					{
 					_LOGGER.Error ("HTTP Request Exception", ex);
-					throw new WiserHubConnectionError ($"Connection error trying to communicate with Wiser Hub {_wiserConnection.Host}. Error is {ex.Message}");
+					throw new WiserHubConnectionException ($"Connection error trying to communicate with Wiser Hub {_wiserConnection.Host}. Error is {ex.Message}");
 					}
 				catch (TaskCanceledException ex)
 					{
 					_LOGGER.Error ("Task Canceled Exception", ex);
-					throw new WiserHubConnectionError ($"Timeout error trying to communicate with Wiser Hub {_wiserConnection.Host}. Error is {ex.Message}");
+					throw new WiserHubConnectionException ($"Timeout error trying to communicate with Wiser Hub {_wiserConnection.Host}. Error is {ex.Message}");
 					}
 				}
 
@@ -191,7 +188,7 @@ namespace WiserHeatApiV2
 			return response;
 			}
 
-		private async Task<bool> _DoHubActionAsync (WiserRestActionEnum action, string url, object? data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
+		private async Task<bool> _DoHubActionAsync (WiserRestAction action, string url, object? data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
 			{
 			StringContent? jsonContent = null;
 			if (data != null)
@@ -207,7 +204,7 @@ namespace WiserHeatApiV2
 				if (response == null)
 					{
 					_LOGGER.Error ("Response from Wiser Hub is null.");
-					throw new WiserHubConnectionError ("Response from Wiser Hub is null.");
+					throw new WiserHubConnectionException ("Response from Wiser Hub is null.");
 					}
 
 				if (!response.IsSuccessStatusCode)
@@ -220,7 +217,7 @@ namespace WiserHeatApiV2
 					return true;
 					}
 				}
-			catch (WiserHubConnectionError)
+			catch (WiserHubConnectionException)
 				{
 				throw; // Re-throw custom exception
 				}
@@ -228,7 +225,7 @@ namespace WiserHeatApiV2
 				{
 				// Catch any other unexpected exceptions
 				_LOGGER.Error ("An unexpected error occurred in _DoHubActionAsync.", ex);
-				throw new WiserHubConnectionError ($"An unexpected error occurred: {ex.Message}");
+				throw new WiserHubConnectionException ($"An unexpected error occurred: {ex.Message}");
 				}
 			}
 
@@ -243,12 +240,12 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				HttpResponseMessage? response = await ExecuteHttpRequestAsync (WiserRestActionEnum.GET, url, jsonContent, cancellationToken).ConfigureAwait (false);
+				HttpResponseMessage? response = await ExecuteHttpRequestAsync (WiserRestAction.GET, url, jsonContent, cancellationToken).ConfigureAwait (false);
 
 				if (response == null)
 					{
 					_LOGGER.Error ("Response from Wiser Hub is null.");
-					throw new WiserHubConnectionError ("Response from Wiser Hub is null.");
+					throw new WiserHubConnectionException ("Response from Wiser Hub is null.");
 					}
 
 				if (!response.IsSuccessStatusCode)
@@ -270,7 +267,7 @@ namespace WiserHeatApiV2
 					return new Dictionary<string, object> ();
 					}
 				}
-			catch (WiserHubConnectionError)
+			catch (WiserHubConnectionException)
 				{
 				throw; // Re-throw custom exception
 				}
@@ -278,7 +275,7 @@ namespace WiserHeatApiV2
 				{
 				// Catch any other unexpected exceptions
 				_LOGGER.Error ("An unexpected error occurred in _DoHubActionAsync.", ex);
-				throw new WiserHubConnectionError ($"An unexpected error occurred: {ex.Message}");
+				throw new WiserHubConnectionException ($"An unexpected error occurred: {ex.Message}");
 				}
 			}
 
@@ -296,63 +293,63 @@ namespace WiserHeatApiV2
 			string errorMessage = await response.Content.ReadAsStringAsync ().ConfigureAwait (false);
 			if (response.StatusCode == HttpStatusCode.Unauthorized)
 				{
-				throw new WiserHubAuthenticationError ($"Error authenticating to Wiser Hub {_wiserConnection.Host}. Check your secret key.  Message: {errorMessage}");
+				throw new WiserHubAuthenticationException ($"Error authenticating to Wiser Hub {_wiserConnection.Host}. Check your secret key.  Message: {errorMessage}");
 				}
 			else if (response.StatusCode == HttpStatusCode.NotFound && raiseForEndpointError)
 				{
-				throw new WiserHubRESTError ($"Rest endpoint not found on Wiser Hub {_wiserConnection.Host}. Message: {errorMessage}");
+				throw new WiserHubRESTException ($"Rest endpoint not found on Wiser Hub {_wiserConnection.Host}. Message: {errorMessage}");
 				}
 			else if (response.StatusCode == HttpStatusCode.RequestTimeout)
 				{
-				throw new WiserHubConnectionError ($"Connection timed out trying to communicate with Wiser Hub {_wiserConnection.Host}. Message: {errorMessage}");
+				throw new WiserHubConnectionException ($"Connection timed out trying to communicate with Wiser Hub {_wiserConnection.Host}. Message: {errorMessage}");
 				}
 			else if (raiseForEndpointError)
 				{
-				throw new WiserHubRESTError ($"Unknown error communicating with Wiser Hub {_wiserConnection.Host}. Error code is: {response.StatusCode}. Message: {errorMessage}");
+				throw new WiserHubRESTException ($"Unknown error communicating with Wiser Hub {_wiserConnection.Host}. Error code is: {response.StatusCode}. Message: {errorMessage}");
 				}
 			}
 
-		public Task<bool> SendCommandAsync (string url, object? commandData, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
+		public Task<bool> SendCommandAsync (string url, object? commandData, WiserRestAction method = WiserRestAction.PATCH, CancellationToken cancellationToken = default)
 			{
-			string fullUrl = $"{string.Format (RestConstants.WISERHUBDOMAIN, _wiserConnection.Host)}{url}";
+			string fullUrl = $"{string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubDomain, _wiserConnection.Host)}{url}";
 			_LOGGER.DebugFormat ("Sending command to url: {0} with parameters {1}", fullUrl, JsonConvert.SerializeObject (commandData));
 
 			return _DoHubActionAsync (method, fullUrl, commandData, cancellationToken: cancellationToken);
 			}
 
-		private Task<bool> _DoScheduleActionAsync (WiserRestActionEnum action, string url, object? scheduleData = null, CancellationToken cancellationToken = default)
+		private Task<bool> _DoScheduleActionAsync (WiserRestAction action, string url, object? scheduleData = null, CancellationToken cancellationToken = default)
 			{
-			string fullUrl = $"{string.Format (RestConstants.WISERHUBSCHEDULES, _wiserConnection.Host)}{url}";
-			_LOGGER.DebugFormat ("Actioning schedule to url: {0} with action {1} and data {2}", fullUrl, action.ToString (), JsonConvert.SerializeObject (scheduleData));
+			string fullUrl = $"{string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubSchedules, _wiserConnection.Host)}{url}";
+			_LOGGER.DebugFormat ("Actioning schedule to url: {0} with action {1} and _data {2}", fullUrl, action.ToString (), JsonConvert.SerializeObject (scheduleData));
 			
 			return _DoHubActionAsync (action, fullUrl, scheduleData, cancellationToken: cancellationToken);
 			}
 
 		public Task<bool> SendScheduleCommandAsync (string action, object? scheduleData, int id = 0, string? scheduleType = null, CancellationToken cancellationToken = default)
 			{
-			switch (action.ToUpper ())
+			switch (action.ToUpper (CultureInfo.InvariantCulture))
 				{
 				case "UPDATE":
 					return _DoScheduleActionAsync (
-						 WiserRestActionEnum.PATCH,
+						 WiserRestAction.PATCH,
 						 $"{scheduleType}/{id}",
 						 scheduleData, cancellationToken);
 
 				case "CREATE":
 					return _DoScheduleActionAsync (
-						 WiserRestActionEnum.POST,
+						 WiserRestAction.POST,
 						 "Assign",
 						 scheduleData, cancellationToken);
 
 				case "ASSIGN":
 					return _DoScheduleActionAsync (
-						 WiserRestActionEnum.PATCH,
+						 WiserRestAction.PATCH,
 						 "Assign",
 						 scheduleData, cancellationToken);
 
 				case "DELETE":
 					return _DoScheduleActionAsync (
-						 WiserRestActionEnum.DELETE,
+						 WiserRestAction.DELETE,
 						 $"{scheduleType}/{id}",
 						 scheduleData, cancellationToken);
 
@@ -383,5 +380,19 @@ namespace WiserHeatApiV2
 				}
 			}
 
+		public void Dispose ()
+			{
+			if (_httpClient != null)
+				{
+				_httpClient.Dispose();
+				_httpClient = null;
+				}
+			GC.SuppressFinalize(this);
+			}
+
+		public string GetHost()
+		{
+			return _wiserConnection.Host;
+		}
 		}
 	}

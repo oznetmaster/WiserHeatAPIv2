@@ -2,10 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace WiserHeatApiV2
 	{
 #if HEATACTUATOR
@@ -17,19 +13,19 @@ namespace WiserHeatApiV2
 			}
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("OccupiedHeatingSetPoint", out var setPoint) ? Convert.ToInt32 (setPoint) : Constants.TEMP_OFF);
+             DeviceTypeData.TryGetValue ("OccupiedHeatingSetPoint", out var setPoint) ? Convert.ToInt32 (setPoint, CultureInfo.InvariantCulture) : Constants.TempOff);
 
-		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? Convert.ToInt32 (temp) : Constants.TEMP_OFF, "current");
+        public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
+             DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? Convert.ToInt32 (temp, CultureInfo.InvariantCulture) : Constants.TempOff, "current");
 
-		public int DeliveredPower => _deviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power) : 0;
+		public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : 0;
 
-		public int InstantaneousPower => _deviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? Convert.ToInt32 (power) : 0;
+		public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : 0;
 
-		public string OutputType => _deviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+		public string OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TextUnknown;
 		}
 
-	public class WiserHeatingActuatorCollection
+	public class WiserHeatingActuators
 		{
 		private readonly List<WiserHeatingActuator> _heatingActuators = new List<WiserHeatingActuator> ();
 

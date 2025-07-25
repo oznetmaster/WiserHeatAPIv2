@@ -2,10 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace WiserHeatApiV2
 	{
 	public class WiserUFHController : WiserDevice
@@ -15,7 +11,7 @@ namespace WiserHeatApiV2
 		public WiserUFHController (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData)
 			 : base (wiserRestController, data, deviceTypeData)
 			{
-			_deviceLockEnabled = false;
+			DeviceLockEnabled = false;
 
 			if (deviceTypeData.TryGetValue ("Relays", out var relays) && relays is List<object> relaysList)
 				{
@@ -29,24 +25,24 @@ namespace WiserHeatApiV2
 				}
 			}
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _deviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TEMP_OFF, "current");
+			 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TempOff, "current");
 
-		public bool? DewDetected => _deviceTypeData.TryGetValue ("DewDetected", out var detected) ? (bool?)Convert.ToBoolean (detected) : null;
+		public bool? DewDetected => DeviceTypeData.TryGetValue ("DewDetected", out var detected) ? (bool?)Convert.ToBoolean (detected, CultureInfo.InvariantCulture) : null;
 
-		public bool? InterlockActive => _deviceTypeData.TryGetValue ("InterlockActive", out var active) ? (bool?)Convert.ToBoolean (active) : null;
+		public bool? InterlockActive => DeviceTypeData.TryGetValue ("InterlockActive", out var active) ? (bool?)Convert.ToBoolean (active, CultureInfo.InvariantCulture) : null;
 
-		public bool? IsFullStrip => _deviceTypeData.TryGetValue ("IsFullStrip", out var fullStrip) ? (bool?)Convert.ToBoolean (fullStrip) : null;
+		public bool? IsFullStrip => DeviceTypeData.TryGetValue ("IsFullStrip", out var fullStrip) ? (bool?)Convert.ToBoolean (fullStrip, CultureInfo.InvariantCulture) : null;
 
-		public int MaxFloorTemperature => _deviceTypeData.TryGetValue ("MaxHeatFloorTemperature", out var temp) ? Convert.ToInt32 (temp) : Constants.TEMP_MAXIMUM;
+		public int MaxFloorTemperature => DeviceTypeData.TryGetValue ("MaxHeatFloorTemperature", out var temp) ? Convert.ToInt32 (temp, CultureInfo.InvariantCulture) : Constants.TempMaximum;
 
-		public int MinFloorTemperature => _deviceTypeData.TryGetValue ("MinHeatFloorTemperature", out var temp) ? Convert.ToInt32 (temp) : Constants.TEMP_OFF;
+		public int MinFloorTemperature => DeviceTypeData.TryGetValue ("MinHeatFloorTemperature", out var temp) ? Convert.ToInt32 (temp, CultureInfo.InvariantCulture) : Constants.TempOff;
 
-		public string OutputType => _deviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+		public string OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TextUnknown;
 
 		public List<WiserUFHRelay> Relays => _relays;
 		}
 
-	public class WiserUFHControllerCollection
+	public class WiserUFHControllers
 		{
 		private readonly List<WiserUFHController> _ufhControllers = new List<WiserUFHController> ();
 
@@ -76,9 +72,9 @@ namespace WiserHeatApiV2
 
 		public WiserUFHRelay (Dictionary<string, object> relayData)
 			{
-			DemandPercentage = relayData.TryGetValue ("DemandPercentage", out var demand) ? Convert.ToInt32 (demand) : 0;
-			Polarity = relayData.TryGetValue ("Polarity", out var polarity) && Convert.ToBoolean (polarity);
-			Id = relayData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+			DemandPercentage = relayData.TryGetValue ("DemandPercentage", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
+			Polarity = relayData.TryGetValue ("Polarity", out var polarity) && Convert.ToBoolean (polarity, CultureInfo.InvariantCulture);
+			Id = relayData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 			}
 		}
 

@@ -2,9 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
@@ -22,12 +19,12 @@ namespace WiserHeatApiV2
 
 		private Task<bool> SendCommandAsync (object cmd, System.Threading.CancellationToken cancellationToken = default)
 			{
-			return _wiserRestController.SendCommandAsync (RestConstants.WISERSYSTEM, cmd, cancellationToken: cancellationToken);
+			return _wiserRestController.SendCommandAsync (RestConstants.WiserSystem, cmd, cancellationToken: cancellationToken);
 			}
 
-		public int Id => _momentData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+		public int Id => _momentData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public string Name => _momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
+		public string Name => _momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
 		public Task<bool> ActivateAsync (System.Threading.CancellationToken cancellationToken = default)
 			{
@@ -38,12 +35,12 @@ namespace WiserHeatApiV2
 			}
 		}
 
-	public class WiserMomentCollection
+	public class WiserMoments
 		{
 		private readonly List<WiserMoment> _moments = new List<WiserMoment> ();
 		private readonly WiserRestController _wiserRestController;
 
-		public WiserMomentCollection (WiserRestController wiserRestController, List<Dictionary<string, object>> momentsData)
+		public WiserMoments (WiserRestController wiserRestController, List<Dictionary<string, object>> momentsData)
 			{
 			_wiserRestController = wiserRestController;
 			foreach (var moment in momentsData)

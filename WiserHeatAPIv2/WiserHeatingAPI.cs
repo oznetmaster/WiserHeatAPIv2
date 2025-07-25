@@ -2,8 +2,6 @@
 // Adapted from the Python implementation Copyright © 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +11,8 @@ using log4net;
 using Newtonsoft.Json;
 
 using WiserHeatApiV2;
+
+using static System.FormattableString;
 
 namespace WiserHeatingAPI
 	{
@@ -28,10 +28,10 @@ namespace WiserHeatingAPI
 	/// </summary>
 	// TODO: Keep objects and update instead of recreating on hub update
 	// TODO: Update entity values after commend issued to get current values
-	public class WiserAPI
+	public class WiserAPI : IDisposable
 		{
 		// Update the logger initialization to ensure the `AddConsole` method is recognized.
-		public static ILog _LOGGER = log4net.LogManager.GetLogger (typeof (WiserAPI));
+		private static ILog _LOGGER = log4net.LogManager.GetLogger (typeof (WiserAPI));
 
 		private const string VERSION = "1.0.0"; // Assuming a version, replace with actual version
 
@@ -46,18 +46,18 @@ namespace WiserHeatingAPI
 		private Dictionary<string, object> _openthermData = new Dictionary<string, object> ();
 
 		// Data stores for exposed properties
-		private WiserDeviceCollection? _devices;
+		private WiserDevices? _devices;
 		private WiserHotwater? _hotwater;
-		private WiserHeatingChannelCollection? _heatingChannels;
-		private WiserMomentCollection? _moments;
-		private WiserRoomCollection? _rooms;
-		private WiserScheduleCollection? _schedules;
+		private WiserHeatingChannels? _heatingChannels;
+		private WiserMoments? _moments;
+		private WiserRooms? _rooms;
+		private WiserSchedules? _schedules;
 		private WiserSystem? _system;
 
 		/// <summary>
 		/// Main api class to access all entities and attributes of wiser system
 		/// </summary>
-		public WiserAPI (string? host, string? secret, WiserUnitsEnum units = WiserUnitsEnum.Metric)
+		public WiserAPI (string? host, string? secret, WiserUnits units = WiserUnits.Metric)
 			{
 			var logger = ((log4net.Repository.Hierarchy.Logger)((log4net.Core.LogImpl)_LOGGER).Logger);
 #if DEBUG
@@ -71,9 +71,15 @@ namespace WiserHeatingAPI
 			_wiserRestController = null;
 
 			// Log initialization info
-			_LOGGER.InfoFormat ($"WiserHub API v{VERSION} Initialised - Host: {host}, Units: {_wiserApiConnection.Units.ToString ().ToTitleCase ()}");
+			_LOGGER.InfoFormat (
+				CultureInfo.InvariantCulture,
+				"WiserHub API v{0} Initialised - Host: {1}, Units: {2}",
+				VERSION,
+				host,
+				_wiserApiConnection.Units.ToString ().ToTitleCase ()
+			);
 
-			// Read hub data if hub IP and secret exist
+			// Read hub _data if hub IP and secret exist
 			if (!string.IsNullOrEmpty (_wiserApiConnection.Host) && !string.IsNullOrEmpty (_wiserApiConnection.Secret))
 				{
 				_wiserRestController = new WiserRestController (_wiserApiConnection);
@@ -88,9 +94,9 @@ namespace WiserHeatingAPI
 				{
 				if (await ReadHubDataAsync (cancellationToken).ConfigureAwait (false))
 					return;
-				_LOGGER.Error ("Failed to read hub data. Please check your connection settings.");
-				// If we reach here, it means the hub data could not be read
-				throw new WiserHubConnectionException ("Failed to read hub data. Please check your connection settings.");
+				_LOGGER.Error ("Failed to read hub _data. Please check your connection settings.");
+				// If we reach here, it means the hub _data could not be read
+				throw new WiserHubConnectionException ("Failed to read hub _data. Please check your connection settings.");
 				}
 			catch (Exception ex)
 				{
@@ -100,7 +106,7 @@ namespace WiserHeatingAPI
 			}
 
 		/// <summary>
-		/// Read all data from hub and populate objects
+		/// Read all _data from hub and populate objects
 		/// </summary>
 		public async Task<bool> ReadHubDataAsync (CancellationToken cancellationToken = default)
 			{
@@ -108,16 +114,16 @@ namespace WiserHeatingAPI
 				{
 				if (_wiserRestController == null)
 					{
-					_LOGGER.Error ("WiserRestController is not initialized. Cannot read hub data.");
+					_LOGGER.Error ("WiserRestController is not initialized. Cannot read hub _data.");
 					return false;
 					}
-				// Read data from hub
-				var newDomainData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBDOMAIN, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
-				var newNetworkData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBNETWORK, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
-				var newScheduleData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBSCHEDULES, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
-				var newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (RestConstants.WISERHUBOPENTHERM, _wiserApiConnection.Host), false, cancellationToken: cancellationToken).ConfigureAwait (false);
+				// Read _data from hub
+				var newDomainData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubDomain, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				var newNetworkData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				var newScheduleData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubSchedules, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				var newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubOpentherm, _wiserApiConnection.Host), false, cancellationToken: cancellationToken).ConfigureAwait (false);
 
-				// Update internal data
+				// Update internal _data
 				_domainData = newDomainData;
 				_networkData = newNetworkData;
 				_scheduleData = newScheduleData;
@@ -143,12 +149,12 @@ namespace WiserHeatingAPI
 				if (_schedules != null)
 					_schedules.Update (_scheduleData, _system.SunriseTimes, _system.SunsetTimes);
 				else
-					_schedules = new WiserScheduleCollection (_wiserRestController, _scheduleData, _system.SunriseTimes, _system.SunsetTimes);
+					_schedules = new WiserSchedules (_wiserRestController, _scheduleData, _system.SunriseTimes, _system.SunsetTimes);
 
 				if (_devices != null)
 					_devices.Update (_domainData, _schedules);
 				else
-					_devices = new WiserDeviceCollection (_wiserRestController, _domainData, _schedules);
+					_devices = new WiserDevices (_wiserRestController, _domainData, _schedules);
 
 				if (!(_domainData.TryGetValue ("Room", out var roomDataObj) && roomDataObj is List<Dictionary<string, object>> roomData))
 					roomData = new List<Dictionary<string, object>> ();
@@ -156,27 +162,27 @@ namespace WiserHeatingAPI
 				if (_rooms != null)
 					_rooms.Update (roomData, _schedules, _devices);
 				else
-					_rooms = new WiserRoomCollection (_wiserRestController, roomData, _schedules, _devices);
+					_rooms = new WiserRooms (_wiserRestController, roomData, _schedules, _devices);
 
 				if (_domainData.TryGetValue ("HotWater", out var hotWaterDataObj) && hotWaterDataObj is List<Dictionary<string, object>> hotWaterData)
 					{
 					if (hotWaterData.Count > 0)
 						{
 						int scheduleId;
-						// If there are multiple hot water data items, use the first one
+						// If there are multiple hot water _data items, use the first one
 						if (hotWaterData.Count > 1)
-							_LOGGER.Warn($"Multiple hot water data items found, using the first one. Count: {hotWaterData.Count}");
+							_LOGGER.Warn ($"Multiple hot water _data items found, using the first one. Count: {hotWaterData.Count}");
 						var firstHotWaterData = hotWaterData[0];
 						// If ScheduleId is not present, default to 0
-						// Check if ScheduleId exists in the first hot water data item
+						// Check if ScheduleId exists in the first hot water _data item
 						if (firstHotWaterData.TryGetValue ("ScheduleId", out var scheduleIdObj))
-							scheduleId = Convert.ToInt32 (scheduleIdObj);
+							scheduleId = Convert.ToInt32 (scheduleIdObj, CultureInfo.InvariantCulture);
 						else
 							scheduleId = 0;
-						var schedule = _schedules.GetById (WiserScheduleTypeEnum.OnOff, scheduleId);
+						var schedule = _schedules.GetById (WiserScheduleType.OnOff, scheduleId);
 						if (schedule == null)
 							{
-							_LOGGER.Warn($"No schedule found for Hot Water with ScheduleId: {scheduleId}. Using default schedule.");
+							_LOGGER.Warn ($"No schedule found for Hot Water with ScheduleId: {scheduleId}. Using default schedule.");
 							}
 						if (_hotwater != null)
 							_hotwater.Update (firstHotWaterData, schedule);
@@ -190,7 +196,7 @@ namespace WiserHeatingAPI
 					if (_heatingChannels != null)
 						_heatingChannels.Update (heatingChannelData, _rooms);
 					else
-						_heatingChannels = new WiserHeatingChannelCollection (heatingChannelData, _rooms);
+						_heatingChannels = new WiserHeatingChannels (heatingChannelData, _rooms);
 					}
 
 				if (_domainData.TryGetValue ("Moment", out var momentDataObj) && momentDataObj is List<Dictionary<string, object>> momentData)
@@ -198,14 +204,16 @@ namespace WiserHeatingAPI
 					if (_moments != null)
 						_moments.Update (momentData);
 					else
-						_moments = new WiserMomentCollection (_wiserRestController, momentData);
+						_moments = new WiserMoments (_wiserRestController, momentData);
 					}
 
 				// If gets here with no exceptions then success and return true
 				return true;
 				}
 
-			_LOGGER.DebugFormat ($"No update: _domainData: {_domainData.Count}, _networkData: {_networkData.Count}, _scheduleData: {_scheduleData.Count}");
+#pragma warning disable CA1305 // Specify IFormatProvider
+			_LOGGER.DebugFormat (Invariant ($"No update: _domainData: {_domainData.Count}, _networkData: {_networkData.Count}, _scheduleData: {_scheduleData.Count}"));
+#pragma warning restore CA1305 // Specify IFormatProvider
 			return false;
 			}
 
@@ -213,12 +221,12 @@ namespace WiserHeatingAPI
 		/// <summary>
 		/// List of device entities attached to the Wiser Hub
 		/// </summary>
-		public WiserDeviceCollection? Devices => _devices;
+		public WiserDevices? Devices => _devices;
 
 		/// <summary>
 		/// List of heating channel entities on the Wiser Hub
 		/// </summary>
-		public WiserHeatingChannelCollection? HeatingChannels => _heatingChannels;
+		public WiserHeatingChannels? HeatingChannels => _heatingChannels;
 
 		/// <summary>
 		/// List of hot water entities on the Wiser Hub
@@ -228,17 +236,17 @@ namespace WiserHeatingAPI
 		/// <summary>
 		/// List of moment entities on the Wiser Hub
 		/// </summary>
-		public WiserMomentCollection? Moments => _moments;
+		public WiserMoments? Moments => _moments;
 
 		/// <summary>
 		/// List of room entities configured on the Wiser Hub
 		/// </summary>
-		public WiserRoomCollection? Rooms => _rooms;
+		public WiserRooms? Rooms => _rooms;
 
 		/// <summary>
 		/// List of schedules
 		/// </summary>
-		public WiserScheduleCollection? Schedules => _schedules;
+		public WiserSchedules? Schedules => _schedules;
 
 		/// <summary>
 		/// Entity of the Wiser Hub
@@ -248,7 +256,7 @@ namespace WiserHeatingAPI
 		/// <summary>
 		/// Get or set units for temperature
 		/// </summary>
-		public WiserUnitsEnum Units
+		public WiserUnits Units
 			{
 			get => _wiserApiConnection.Units;
 			set => _wiserApiConnection.Units = value;
@@ -257,10 +265,10 @@ namespace WiserHeatingAPI
 		/// <summary>
 		/// API Version
 		/// </summary>
-		public string Version => VERSION;
+		public static string Version => VERSION;
 
 		/// <summary>
-		/// Raw hub data
+		/// Raw hub _data
 		/// </summary>
 		public Dictionary<string, object> RawHubData => new Dictionary<string, object>
 			{
@@ -271,27 +279,27 @@ namespace WiserHeatingAPI
 			};
 
 		/// <summary>
-		/// Output raw hub data to json file
+		/// Output raw hub _data to json file
 		/// </summary>
 		public async Task<bool> OutputRawHubDataAsync (string dataClass, string filename, string filePath, CancellationToken cancellationToken = default)
 			{
 			// Get correct endpoint
 			string? endpoint = null;
-			if (dataClass.ToLower () == "domain")
-				endpoint = RestConstants.WISERHUBDOMAIN;
-			else if (dataClass.ToLower () == "network")
-				endpoint = RestConstants.WISERHUBNETWORK;
-			else if (dataClass == "schedules")
-				endpoint = RestConstants.WISERHUBSCHEDULES;
-			else if (dataClass.ToLower () == "opentherm")
-				endpoint = RestConstants.WISERHUBOPENTHERM;
+			if (dataClass.Equals ("domain", StringComparison.OrdinalIgnoreCase))
+				endpoint = string.Format(CultureInfo.InvariantCulture, RestConstants.WiserHubDomain, _wiserApiConnection.Host);
+			else if (dataClass.Equals ("network", StringComparison.OrdinalIgnoreCase))
+				endpoint = string.Format(CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, _wiserApiConnection.Host);
+			else if (dataClass.Equals ("schedules", StringComparison.OrdinalIgnoreCase))
+				endpoint = string.Format(CultureInfo.InvariantCulture, RestConstants.WiserHubSchedules, _wiserApiConnection.Host);
+			else if (dataClass.Equals ("opentherm", StringComparison.OrdinalIgnoreCase))
+				endpoint = string.Format(CultureInfo.InvariantCulture, RestConstants.WiserHubOpentherm, _wiserApiConnection.Host);
 			else
 				{
-				_LOGGER.Error ($"Invalid data class: {dataClass}. Valid options are 'domain', 'network', 'schedules', or 'opentherm'.");
+				_LOGGER.Error ($"Invalid _data class: {dataClass}. Valid options are 'domain', 'network', 'schedules', or 'opentherm'.");
 				return false;
 				}
 
-			// Get raw json data
+			// Get raw json _data
 			if (_wiserRestController != null)
 				{
 				var data = (Dictionary<string, object>)await _wiserRestController.GetHubDataAsync (endpoint, cancellationToken: cancellationToken).ConfigureAwait (false);
@@ -313,14 +321,14 @@ namespace WiserHeatingAPI
 			return false;
 			}
 
-		private void LogResponseToFile (Dictionary<string, object> data, string filename, string filePath)
+		private static void LogResponseToFile (Dictionary<string, object> data, string filename, string filePath)
 			{
 			string fullPath = Path.Combine (filePath, filename);
 			string jsonData = JsonConvert.SerializeObject (data, new JsonSerializerSettings { Formatting = Formatting.Indented });
 			File.WriteAllText (fullPath, jsonData);
 			}
 
-		private async Task LogResponseToFileAsync (Dictionary<string, object> data, string filename, string filePath)
+		private static async Task LogResponseToFileAsync (Dictionary<string, object> data, string filename, string filePath)
 			{
 			string fullPath = Path.Combine (filePath, filename);
 			string jsonData = JsonConvert.SerializeObject (data, new JsonSerializerSettings { Formatting = Formatting.Indented });
@@ -331,6 +339,21 @@ namespace WiserHeatingAPI
 				await writer.WriteAsync (jsonData).ConfigureAwait (false);
 				}
 			}
+
+		public void Dispose ()
+			{
+			// Dispose of managed resources
+			if (_wiserRestController != null)
+				{
+				_wiserRestController.Dispose ();
+				_wiserRestController = null;
+				}
+
+			// Dispose of unmanaged resources if any
+			// (e.g., close any open connections, files, etc.)
+			// Add any additional cleanup code here
+			GC.SuppressFinalize (this);
+			}
 		}
 
 	public static class StringExtensions
@@ -340,22 +363,22 @@ namespace WiserHeatingAPI
 			if (string.IsNullOrEmpty (input))
 				return input;
 
-			return $"{char.ToUpper(input[0])}{input.Substring(1).ToLower()}";
+			return $"{char.ToUpper (input[0], CultureInfo.InvariantCulture)}{input.Substring (1).ToLower (CultureInfo.InvariantCulture)}";
 			}
 		}
 
 	// Constants
 	public static class WiserConstants
 		{
-		public const double DEFAULT_AWAY_MODE_TEMP = 16.0;
-		public const double DEFAULT_DEGRADED_TEMP = 18.0;
-		public const int MAX_BOOST_INCREASE = 5;
-		public const double TEMP_ERROR = -1;
-		public const double TEMP_HW_ON = -20;
-		public const double TEMP_HW_OFF = -20.5;
-		public const double TEMP_MINIMUM = 5;
-		public const double TEMP_MAXIMUM = 30;
-		public const double TEMP_OFF = -20;
+		public const double DEFAULTAWAYMODETEMP = 16.0;
+		public const double DEFAULTDEGRADEDTEMP = 18.0;
+		public const int MAXBOOSTINCREASE = 5;
+		public const double TEMPERROR = -1;
+		public const double TEMPHWON = -20;
+		public const double TEMPHWOFF = -20.5;
+		public const double TEMPMINIMUM = 5;
+		public const double TEMPMAXIMUM = 30;
+		public const double TEMPOFF = -20;
 		public const string WISERHUBDOMAIN = "domain";
 		public const string WISERHUBNETWORK = "network";
 		public const string WISERHUBSCHEDULES = "schedules";

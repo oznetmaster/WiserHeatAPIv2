@@ -4,10 +4,7 @@
 //     Copyright (c) . All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,14 +27,14 @@ namespace WiserHeatApiV2
 			_data = new ConcurrentDictionary<string, object> (room);
 			_schedule = schedule;
 			_devices = devices;
-			// Initialize properties from the room data
-			_id = _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+			// Initialize properties from the room _data
+			_id = _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 			_mode = EffectiveHeatingMode (
 				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : string.Empty,
 				 CurrentTargetTemperature
 			);
 			_name = room.TryGetValue ("Name", out var name) ? name.ToString () : string.Empty;
-			_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection);
+			_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection, CultureInfo.InvariantCulture);
 
 			// Add device id to schedule
 			if (_schedule != null)
@@ -56,7 +53,7 @@ namespace WiserHeatApiV2
 
 				var dhs = _data.Keys.ToHashSet<string> ();
 				var newKeys = room.Keys.ToHashSet<string> ();
-				// Remove keys that are not in the new data
+				// Remove keys that are not in the new _data
 				foreach (var key in dhs.Except (newKeys))
 					{
 					_data.TryRemove (key, out _);
@@ -71,7 +68,7 @@ namespace WiserHeatApiV2
 				var newDeviceIds = devices.Select (d => d.Id).ToHashSet ();
 				var deletedDevices = dhi.Except (newDeviceIds).ToList ();
 				var addedDevices = newDeviceIds.Except (dhi).ToList ();
-				// Remove devices that are not in the new data
+				// Remove devices that are not in the new _data
 				_devices.RemoveAll (d => deletedDevices.Contains (d.Id));
 
 				foreach (var device in devices) 
@@ -88,9 +85,9 @@ namespace WiserHeatApiV2
 					 CurrentTargetTemperature
 					);
 
-				_id = room.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+				_id = room.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 				_name = room.TryGetValue ("Name", out var name) ? name.ToString () : string.Empty;
-				_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection);
+				_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && Convert.ToBoolean (detection, CultureInfo.InvariantCulture);
 
 				// Add device id to schedule
 				if (schedule != null)
@@ -110,33 +107,38 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		private string EffectiveHeatingMode (string mode, double temp)
+		private static string EffectiveHeatingMode (string mode, double temp)
 			{
-			if (mode.Equals (Constants.TEXT_MANUAL, StringComparison.OrdinalIgnoreCase) && temp == Constants.TEMP_OFF)
+			if (mode.Equals (Constants.TextManual, StringComparison.OrdinalIgnoreCase) && temp == Constants.TempOff)
 				{
-				return WiserHeatingModeEnum.Off.ToString ();
+				return WiserHeatingMode.Off.ToString ();
 				}
-			else if (mode.Equals (Constants.TEXT_MANUAL, StringComparison.OrdinalIgnoreCase))
+			else if (mode.Equals (Constants.TextManual, StringComparison.OrdinalIgnoreCase))
 				{
-				return WiserHeatingModeEnum.Manual.ToString ();
+				return WiserHeatingMode.Manual.ToString ();
 				}
-			return WiserHeatingModeEnum.Auto.ToString ();
+			return WiserHeatingMode.Auto.ToString ();
 			}
 
-		private Task<bool> SendCommandAsync (object? cmd, WiserRestActionEnum method = WiserRestActionEnum.PATCH, CancellationToken cancellationToken = default)
+		private Task<bool> SendCommandAsync (object? cmd, WiserRestAction method = WiserRestAction.PATCH, CancellationToken cancellationToken = default)
 			{
-			return _wiserRestController.SendCommandAsync (string.Format (RestConstants.WISERROOM, Id), cmd, method, cancellationToken);
+			return _wiserRestController.SendCommandAsync (
+				string.Format (CultureInfo.InvariantCulture, RestConstants.WiserRoom, Id),
+				cmd,
+				method,
+				cancellationToken
+			);
 			}
 
-		public List<string> AvailableModes => Enum.GetValues (typeof (WiserHeatingModeEnum))
-			 .Cast<WiserHeatingModeEnum> ()
+		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserHeatingMode))
+			 .Cast<WiserHeatingMode> ()
 			 .Select (m => m.ToString ())
 			 .ToList ();
 
-		public bool AwayModeSuppressed => _data.TryGetValue ("AwayModeSuppressed", out var suppressed) && Convert.ToBoolean (suppressed);
+		public bool AwayModeSuppressed => _data.TryGetValue ("AwayModeSuppressed", out var suppressed) && Convert.ToBoolean (suppressed, CultureInfo.InvariantCulture);
 
-		public DateTime BoostEndTime => _data.TryGetValue ("OverrideTimeoutUnixTime", out var time) && Convert.ToInt32 (time) > 0
-			 ? DateTimeOffset.FromUnixTimeSeconds (Convert.ToInt32 (time)).DateTime
+		public DateTime BoostEndTime => _data.TryGetValue ("OverrideTimeoutUnixTime", out var time) && Convert.ToInt32 (time, CultureInfo.InvariantCulture) > 0
+			 ? DateTimeOffset.FromUnixTimeSeconds (Convert.ToInt32 (time, CultureInfo.InvariantCulture)).DateTime
 			 : DateTime.MinValue;
 
 		public DateTime BoostEndTimeLocal => BoostEndTime.ToLocalTime ();
@@ -145,15 +147,15 @@ namespace WiserHeatApiV2
 			 ? (BoostEndTimeLocal - DateTime.Now).TotalSeconds
 			 : 0;
 
-		public int ComfortModeScore => _data.TryGetValue ("ComfortModeScore", out var score) ? Convert.ToInt32 (score) : 0;
+		public int ComfortModeScore => _data.TryGetValue ("ComfortModeScore", out var score) ? Convert.ToInt32 (score, CultureInfo.InvariantCulture) : 0;
 
-		public string ControlDirection => _data.TryGetValue ("ControlDirection", out var direction) ? direction.ToString () : Constants.TEXT_UNKNOWN;
+		public string ControlDirection => _data.TryGetValue ("ControlDirection", out var direction) ? direction.ToString () : Constants.TextUnknown;
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("CurrentSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM);
+			 _data.TryGetValue ("CurrentSetPoint", out var setPoint) ? setPoint : Constants.TempMinimum);
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("CalculatedTemperature", out var temp) ? temp : Constants.TEMP_MINIMUM, "current");
+			 _data.TryGetValue ("CalculatedTemperature", out var temp) ? temp : Constants.TempMinimum, "current");
 
 		public int? CurrentHumidity
 			{
@@ -170,21 +172,21 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public string DemandType => _data.TryGetValue ("DemandType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+		public string DemandType => _data.TryGetValue ("DemandType", out var type) ? type.ToString () : Constants.TextUnknown;
 
 		public List<WiserDevice> Devices => _devices;
 
 		public double DisplayedSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("DisplayedSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM, "current");
+			 _data.TryGetValue ("DisplayedSetPoint", out var setPoint) ? setPoint : Constants.TempMinimum, "current");
 
 #if HEATACTUATOR
 		public List<int> HeatingActuatorIds => _data.TryGetValue ("HeatingActuatorIds", out var ids) && ids is List<object> idsList
-			 ? idsList.Select (id => Convert.ToInt32 (id)).OrderBy (id => id).ToList ()
+			 ? idsList.Select (id => Convert.ToInt32 (id, CultureInfo.InvariantCulture)).OrderBy (id => id).ToList ()
 			 : new List<int> ();
 #endif
-		public string HeatingRate => _data.TryGetValue ("HeatingRate", out var rate) ? rate.ToString () : Constants.TEXT_UNKNOWN;
+		public string HeatingRate => _data.TryGetValue ("HeatingRate", out var rate) ? rate.ToString () : Constants.TextUnknown;
 
-		public string HeatingType => _data.TryGetValue ("HeatingType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+		public string HeatingType => _data.TryGetValue ("HeatingType", out var type) ? type.ToString () : Constants.TextUnknown;
 
 		public int Id => _id;
 
@@ -195,13 +197,13 @@ namespace WiserHeatApiV2
 									 _data.TryGetValue ("SetPointOrigin", out var origin2) && origin2.ToString ().Contains ("Boost");
 
 		public bool IsOverride => _data.TryGetValue ("OverrideType", out var type) &&
-										 type.ToString () != Constants.TEXT_UNKNOWN &&
-										 type.ToString () != Constants.TEXT_NONE;
+										 type.ToString () != Constants.TextUnknown &&
+										 type.ToString () != Constants.TextNone;
 
-		public bool IsHeating => _data.TryGetValue ("ControlOutputState", out var state) && state.ToString () == Constants.TEXT_ON;
+		public bool IsHeating => _data.TryGetValue ("ControlOutputState", out var state) && state.ToString () == Constants.TextOn;
 
 		public double ManualTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM);
+			 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? setPoint : Constants.TempMinimum);
 
 		public string Mode
 			{
@@ -222,7 +224,7 @@ namespace WiserHeatApiV2
 		{
 			try
 			{
-				WiserHeatingModeEnum mode = (WiserHeatingModeEnum)Enum.Parse(typeof(WiserHeatingModeEnum), value, true);
+				WiserHeatingMode mode = (WiserHeatingMode)Enum.Parse(typeof(WiserHeatingMode), value, true);
 
 				// Cancel any overrides on mode change
 				if (IsOverride)
@@ -230,23 +232,23 @@ namespace WiserHeatApiV2
 					await CancelOverridesAsync(cancellationToken).ConfigureAwait(false);
 				}
 
-				if (mode == WiserHeatingModeEnum.Off)
+				if (mode == WiserHeatingMode.Off)
 				{
-					await SetManualTemperatureAsync(Constants.TEMP_OFF, cancellationToken).ConfigureAwait(false);
+					await SetManualTemperatureAsync(Constants.TempOff, cancellationToken).ConfigureAwait(false);
 				}
-				else if (mode == WiserHeatingModeEnum.Manual)
+				else if (mode == WiserHeatingMode.Manual)
 				{
-					if (await SendCommandAsync(new { Mode = WiserHeatingModeEnum.Manual.ToString() }, cancellationToken: cancellationToken).ConfigureAwait(false))
+					if (await SendCommandAsync(new { Mode = WiserHeatingMode.Manual.ToString() }, cancellationToken: cancellationToken).ConfigureAwait(false))
 					{
-						if (CurrentTargetTemperature == Constants.TEMP_OFF)
+						if (CurrentTargetTemperature == Constants.TempOff)
 						{
 							await SetTargetTemperatureAsync(ScheduledTargetTemperature, cancellationToken).ConfigureAwait(false);
 						}
 					}
 				}
-				else if (mode == WiserHeatingModeEnum.Auto)
+				else if (mode == WiserHeatingMode.Auto)
 				{
-					await SendCommandAsync(new { Mode = WiserHeatingModeEnum.Auto.ToString() }, cancellationToken: cancellationToken).ConfigureAwait(false);
+					await SendCommandAsync(new { Mode = WiserHeatingMode.Auto.ToString() }, cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 
 				_mode = mode.ToString();
@@ -289,35 +291,35 @@ namespace WiserHeatApiV2
 
 		public int NumberOfSmartvalves => SmartvalveIds.Count;
 
-		public double OverrideTargetTemperature => _data.TryGetValue ("OverrideSetpoint", out var setPoint) ? Convert.ToDouble (setPoint) / 10 : 0;
+		public double OverrideTargetTemperature => _data.TryGetValue ("OverrideSetpoint", out var setPoint) ? Convert.ToDouble (setPoint, CultureInfo.InvariantCulture) / 10 : 0;
 
-		public string OverrideType => _data.TryGetValue ("OverrideType", out var type) ? type.ToString () : Constants.TEXT_NONE;
+		public string OverrideType => _data.TryGetValue ("OverrideType", out var type) ? type.ToString () : Constants.TextNone;
 
-		public int PercentageDemand => _data.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand) : 0;
+		public int PercentageDemand => _data.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
 
-		public int? RoomstatId => _data.TryGetValue ("RoomStatId", out var id) ? (int?)Convert.ToInt32 (id) : null;
+		public int? RoomstatId => _data.TryGetValue ("RoomStatId", out var id) ? (int?)Convert.ToInt32 (id, CultureInfo.InvariantCulture) : null;
 
 		public WiserSchedule? Schedule => _schedule;
 
-		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0;
+		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
 		public double ScheduledTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 _data.TryGetValue ("ScheduledSetPoint", out var setPoint) ? setPoint : Constants.TEMP_MINIMUM);
+			 _data.TryGetValue ("ScheduledSetPoint", out var setPoint) ? setPoint : Constants.TempMinimum);
 
 		public List<int> SmartvalveIds => _data.TryGetValue ("SmartValveIds", out var ids) && ids is List<object> idsList
-			 ? idsList.Select (id => Convert.ToInt32 (id)).OrderBy (id => id).ToList ()
+			 ? idsList.Select (id => Convert.ToInt32 (id, CultureInfo.InvariantCulture)).OrderBy (id => id).ToList ()
 			 : new List<int> ();
 
 		public string TargetTemperatureOrigin => _data.TryGetValue ("SetpointOrigin", out var origin)
 			 ? origin.ToString ()
 			 : _data.TryGetValue ("SetPointOrigin", out var origin2)
 				  ? origin2.ToString ()
-				  : Constants.TEXT_UNKNOWN;
+				  : Constants.TextUnknown;
 
-		public int? UnderfloorHeatingId => _data.TryGetValue ("UnderFloorHeatingId", out var id) ? (int?)Convert.ToInt32 (id) : null;
+		public int? UnderfloorHeatingId => _data.TryGetValue ("UnderFloorHeatingId", out var id) ? (int?)Convert.ToInt32 (id, CultureInfo.InvariantCulture) : null;
 
 		public List<int> UnderfloorHeatingRelayIds => _data.TryGetValue ("UfhRelayIds", out var ids) && ids is List<object> idsList
-			 ? idsList.Select (id => Convert.ToInt32 (id)).OrderBy (id => id).ToList ()
+			 ? idsList.Select (id => Convert.ToInt32 (id, CultureInfo.InvariantCulture)).OrderBy (id => id).ToList ()
 			 : new List<int> ();
 
 		public bool WindowDetectionActive
@@ -345,11 +347,11 @@ namespace WiserHeatApiV2
 			return false;
 		}
 
-		public string WindowState => _data.TryGetValue ("WindowState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
+		public string WindowState => _data.TryGetValue ("WindowState", out var state) ? state.ToString () : Constants.TextUnknown;
 
 		public Task<bool> DeleteAsync (CancellationToken cancellationToken = default)
 			{
-			return SendCommandAsync (null, WiserRestActionEnum.DELETE, cancellationToken);
+			return SendCommandAsync (null, WiserRestAction.DELETE, cancellationToken);
 			}
 
 		public Task<bool> BoostAsync (double incTemp, int duration, CancellationToken cancellationToken = default)
@@ -380,7 +382,7 @@ namespace WiserHeatApiV2
 				{
 				RequestOverride = new
 					{
-					Type = Constants.TEXT_MANUAL,
+					Type = Constants.TextManual,
 					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
 					}
 				}, cancellationToken: cancellationToken);
@@ -392,7 +394,7 @@ namespace WiserHeatApiV2
 				{
 				RequestOverride = new
 					{
-					Type = Constants.TEXT_MANUAL,
+					Type = Constants.TextManual,
 					DurationMinutes = duration,
 					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
 					}
@@ -409,7 +411,7 @@ namespace WiserHeatApiV2
 				{
 				RequestOverride = new
 					{
-					Type = Constants.TEXT_MANUAL,
+					Type = Constants.TextManual,
 					DurationMinutes = (int)Math.Ceiling ((Schedule.Next.DateTime - DateTime.Now).TotalMinutes),
 					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
 					}
@@ -418,9 +420,9 @@ namespace WiserHeatApiV2
 
 		public Task<bool> SetManualTemperatureAsync (double temp, CancellationToken cancellationToken = default)
 			{
-			if (Mode != WiserHeatingModeEnum.Manual.ToString ())
+			if (Mode != WiserHeatingMode.Manual.ToString ())
 				{
-				Mode = WiserHeatingModeEnum.Manual.ToString ();
+				Mode = WiserHeatingMode.Manual.ToString ();
 				}
 			return SetTargetTemperatureAsync (temp, cancellationToken);
 			}
@@ -433,7 +435,7 @@ namespace WiserHeatApiV2
 				}
 			if (await CancelBoostAsync (cancellationToken).ConfigureAwait (false))
 				{
-				return await SetTargetTemperatureAsync (Convert.ToDouble (Schedule.Next.Setting), cancellationToken).ConfigureAwait (false);
+				return await SetTargetTemperatureAsync (Convert.ToDouble (Schedule.Next.Setting, CultureInfo.InvariantCulture), cancellationToken).ConfigureAwait (false);
 				}
 			return false;
 			}
@@ -444,26 +446,26 @@ namespace WiserHeatApiV2
 				{
 				RequestOverride = new
 					{
-					Type = Constants.TEXT_NONE
+					Type = Constants.TextNone
 					}
 				}, cancellationToken: cancellationToken);
 			}
 		}
-	public class WiserRoomCollection
+	public class WiserRooms
 		{
 		private readonly WiserRestController _wiserRestController;
 		private readonly List<WiserRoom> _rooms = new List<WiserRoom> ();
 
-		public WiserRoomCollection (WiserRestController wiserRestController, List<Dictionary<string, object>> roomData,
-														  WiserScheduleCollection schedules, WiserDeviceCollection devices)
+		public WiserRooms (WiserRestController wiserRestController, List<Dictionary<string, object>> roomData,
+														  WiserSchedules schedules, WiserDevices devices)
 			{
 			_wiserRestController = wiserRestController;
 			// Add room objects
 			foreach (var room in roomData)
 				{
-				var schedule = schedules.GetByType (WiserScheduleTypeEnum.Heating)
-					  .FirstOrDefault (s => s.Id == (room.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
-				var roomDevices = devices.GetByRoomId (room.TryGetValue ("id", out var roomId) ? Convert.ToInt32 (roomId) : 0);
+				var schedule = schedules.GetByType (WiserScheduleType.Heating)
+					  .FirstOrDefault (s => s.Id == (room.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0));
+				var roomDevices = devices.GetByRoomId (room.TryGetValue ("id", out var roomId) ? Convert.ToInt32 (roomId, CultureInfo.InvariantCulture) : 0);
 				_rooms.Add (new WiserRoom (
 					  wiserRestController,
 					  room,
@@ -473,23 +475,23 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public void Update (List<Dictionary<string, object>> roomData, WiserScheduleCollection schedules, WiserDeviceCollection devices)
+		public void Update (List<Dictionary<string, object>> roomData, WiserSchedules schedules, WiserDevices devices)
 			{
 			// For simplicity, just rebuild the collection
 			// (You can optimize this if needed)
 			// This assumes you have a Build method or similar
 			// Build(roomData, schedules, devices);
 
-			// Remove rooms that are not in the new data
-			var newRoomIds = new HashSet<int> (roomData.Select (r => r.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0));
+			// Remove rooms that are not in the new _data
+			var newRoomIds = new HashSet<int> (roomData.Select (r => r.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0));
 			_rooms.RemoveAll (room => !newRoomIds.Contains (room.Id));
 
 			// Update existing rooms or add new ones
 			foreach (var room in roomData)
 				{
-				var schedule = schedules.GetByType (WiserScheduleTypeEnum.Heating)
-					.FirstOrDefault (s => s.Id == (room.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id) : 0));
-				var idroom = room.TryGetValue ("id", out var roomId) ? Convert.ToInt32 (roomId) : 0;
+				var schedule = schedules.GetByType (WiserScheduleType.Heating)
+					.FirstOrDefault (s => s.Id == (room.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0));
+				var idroom = room.TryGetValue ("id", out var roomId) ? Convert.ToInt32 (roomId, CultureInfo.InvariantCulture) : 0;
 				var roomDevices = devices.GetByRoomId (idroom);
 				var existingRoom = _rooms.FirstOrDefault (r => r.Id == idroom);
 				if (existingRoom != null)
@@ -510,10 +512,10 @@ namespace WiserHeatApiV2
 		public int Count => _rooms.Count;
 		public Task<bool> AddAsync (string name, CancellationToken cancellationToken = default)
 			{
-			return _wiserRestController.SendCommandAsync (RestConstants.WISERROOM, new
+			return _wiserRestController.SendCommandAsync (RestConstants.WiserRoom, new
 				{
 				name = name
-				}, WiserRestActionEnum.POST, cancellationToken);
+				}, WiserRestAction.POST, cancellationToken);
 			}
 		public WiserRoom GetById (int id)
 			{

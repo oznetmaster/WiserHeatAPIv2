@@ -3,73 +3,67 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 // WiserHeatApiV2.cs
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-
 namespace WiserHeatApiV2
 	{
 	public static class Constants
 		{
 		// Temperature Constants
-		public const double DEFAULT_AWAY_MODE_TEMP = 10.5;
-		public const double DEFAULT_DEGRADED_TEMP = 18;
-		public const int MAX_BOOST_INCREASE = 5;
-		public const int TEMP_ERROR = 2000;
-		public const int TEMP_MINIMUM = 5;
-		public const int TEMP_MAXIMUM = 30;
-		public const int TEMP_HW_ON = 110;
-		public const int TEMP_HW_OFF = -20;
-		public const int TEMP_OFF = -20;
+		public const double DefaultAwayModeTemp = 10.5;
+		public const double DefaultDegradedTemp = 18;
+		public const int MaxBoostIncrease = 5;
+		public const int TempError = 2000;
+		public const int TempMinimum = 5;
+		public const int TempMaximum = 30;
+		public const int TempHwOn = 110;
+		public const int TempHwOff = -20;
+		public const int TempOff = -20;
 
 		// Battery Constants
-		public const double ROOMSTAT_MIN_BATTERY_LEVEL = 1.7;
-		public const double ROOMSTAT_FULL_BATTERY_LEVEL = 2.7;
-		public const double TRV_FULL_BATTERY_LEVEL = 3.0;
-		public const double TRV_MIN_BATTERY_LEVEL = 2.4;
+		public const double RoomstatMinBatteryLevel = 1.7;
+		public const double RoomstatFullBatteryLevel = 2.7;
+		public const double TrvFullBatteryLevel = 3.0;
+		public const double TrvMinBatteryLevel = 2.4;
 
 		// Text Values
-		public const string TEXT_AUTO = "Auto";
-		public const string TEXT_CLOSE = "Close";
-		public const string TEXT_DEGREESC = "DegreesC";
-		public const string TEXT_HEATING = "Heating";
-		public const string TEXT_LEVEL = "Level";
+		public const string TextAuto = "Auto";
+		public const string TextClose = "Close";
+		public const string TextDegreesC = "DegreesC";
+		public const string TextHeating = "Heating";
+		public const string TextLevel = "Level";
 #if LIGHT
-		public const string TEXT_LIGHTING = "Lighting";
+		public const string TextLighting = "Lighting";
 #endif
-		public const string TEXT_MANUAL = "Manual";
-		public const string TEXT_NO_CHANGE = "NoChange";
-		public const string TEXT_NONE = "None";
-		public const string TEXT_OFF = "Off";
-		public const string TEXT_ON = "On";
-		public const string TEXT_ONOFF = "OnOff";
-		public const string TEXT_OPEN = "Open";
-		public const string TEXT_SETPOINT = "Setpoint";
+		public const string TextManual = "Manual";
+		public const string TextNoChange = "NoChange";
+		public const string TextNone = "None";
+		public const string TextOff = "Off";
+		public const string TextOn = "On";
+		public const string TextOnOff = "OnOff";
+		public const string TextOpen = "Open";
+		public const string TextSetpoint = "Setpoint";
 #if SHUTTER
-		public const string TEXT_SHUTTERS = "Shutters";
+		public const string TextShutters = "Shutters";
 #endif
-		public const string TEXT_STATE = "State";
-		public const string TEXT_TEMP = "Temp";
-		public const string TEXT_TIME = "Time";
-		public const string TEXT_UNKNOWN = "Unknown";
-		public const string TEXT_WEEKDAYS = "Weekdays";
-		public const string TEXT_WEEKENDS = "Weekends";
+		public const string TextState = "State";
+		public const string TextTemp = "Temp";
+		public const string TextTime = "Time";
+		public const string TextUnknown = "Unknown";
+		public const string TextWeekdays = "Weekdays";
+		public const string TextWeekends = "Weekends";
 
 		// Day Value Lists
-		public static readonly List<string> WEEKDAYS = new List<string> { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" };
-		public static readonly List<string> WEEKENDS = new List<string> { "Saturday", "Sunday" };
-		public static readonly List<string> SPECIAL_DAYS = new List<string> { TEXT_WEEKDAYS, TEXT_WEEKENDS };
-		public static readonly Dictionary<string, int> SPECIAL_TIMES = new Dictionary<string, int> { { "Sunrise", 3000 }, { "Sunset", 4000 } };
+		public static readonly List<string> Weekdays = new List<string> { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" };
+		public static readonly List<string> Weekends = new List<string> { "Saturday", "Sunday" };
+		public static readonly List<string> SpecialDays = new List<string> { TextWeekdays, TextWeekends };
+		public static readonly Dictionary<string, int> SpecialTimes = new Dictionary<string, int> { { "Sunrise", 3000 }, { "Sunset", 4000 } };
 
 		// Battery Level Enum
-		public static readonly Dictionary<double, int> TRV_BATTERY_LEVEL_MAPPING = new Dictionary<double, int>
+		public static readonly Dictionary<double, int> TrvBatteryLevelMapping = new Dictionary<double, int>
 		  {
 				{ 3.0, 100 }, { 2.9, 80 }, { 2.8, 60 }, { 2.7, 40 }, { 2.6, 30 }, { 2.5, 20 }, { 2.4, 10 }, { 2.3, 0 }
 		  };
 
-
-		public static readonly Dictionary<string, Dictionary<string, object>> DEFAULT_LEVEL_SCHEDULE = new Dictionary<string, Dictionary<string, object>>
+		public static readonly Dictionary<string, Dictionary<string, object>> DefaultLevelSchedule = new Dictionary<string, Dictionary<string, object>>
 		  {
 				{ "Monday", new Dictionary<string, object> { { "Time", new List<string>() }, { "Level", new List<int>() } } },
 				{ "Tuesday", new Dictionary<string, object> { { "Time", new List<string>() }, { "Level", new List<int>() } } },
@@ -81,13 +75,13 @@ namespace WiserHeatApiV2
 		  };
 		}
 
-	public enum WiserUnitsEnum
+	public enum WiserUnits
 		{
 		Imperial,
 		Metric
 		}
 
-	public enum WiserScheduleTypeEnum
+	public enum WiserScheduleType
 		{
 		Heating,
 		OnOff,
@@ -96,41 +90,41 @@ namespace WiserHeatApiV2
 		Shutters
 		}
 
-	public enum WiserHeatingModeEnum
+	public enum WiserHeatingMode
 		{
 		Off,
 		Auto,
 		Manual
 		}
 
-	public enum WiserHotWaterModeEnum
+	public enum WiserHotWaterMode
 		{
 		Auto,
 		Manual
 		}
 
-	public enum WiserSmartPlugModeEnum
+	public enum WiserSmartPlugMode
 		{
 		Auto,
 		Manual
 		}
 
 #if SHUTTER
-	public enum WiserShutterModeEnum
+	public enum WiserShutterMode
 		{
 		Auto,
 		Manual
 		}
 #endif
 #if LIGHT
-	public enum WiserLightModeEnum
+	public enum WiserLightMode
 		{
 		Auto,
 		Manual
 		}
 #endif
 
-	public enum WiserAwayActionEnum
+	public enum WiserAwayAction
 		{
 		Off,
 		NoChange,
@@ -139,20 +133,20 @@ namespace WiserHeatApiV2
 
 	// Exception classes
 
-	public class WiserHubNotImplementedError : Exception
+	public class WiserHubNotImplementedException : Exception
 		{
-		public WiserHubNotImplementedError (string message) : base (message) { }
+		public WiserHubNotImplementedException (string message) : base (message) { }
 		}
 
 	// Helper classes
 	public static class WiserTemperatureFunctions
 		{
-		public static int ToWiserTemp (double temp, string type = "set_heating", WiserUnitsEnum units = WiserUnitsEnum.Metric)
+		public static int ToWiserTemp (double temp, string type = "set_heating", WiserUnits units = WiserUnits.Metric)
 			{
 			temp = (int)(ValidateTemperature (temp, type) * 10);
 
 			// Convert to metric if imperial units set
-			if (units == WiserUnitsEnum.Imperial)
+			if (units == WiserUnits.Imperial)
 				{
 				temp = ConvertFromF (temp);
 				}
@@ -160,7 +154,7 @@ namespace WiserHeatApiV2
 			return (int)temp;
 			}
 
-		public static double FromWiserTemp (object? temp, string type = "set_heating", WiserUnitsEnum units = WiserUnitsEnum.Metric)
+		public static double FromWiserTemp (object? temp, string type = "set_heating", WiserUnits units = WiserUnits.Metric)
 			{
 			if (temp == null || temp is DBNull)
 				return 0;
@@ -174,15 +168,15 @@ namespace WiserHeatApiV2
 			throw new ArgumentException ("Invalid temperature value type. Expected int or double.");
 			}
 
-		public static double FromWiserTemp (int? temp, string type = "set_heating", WiserUnitsEnum units = WiserUnitsEnum.Metric)
+		public static double FromWiserTemp (int? temp, string type = "set_heating", WiserUnits units = WiserUnits.Metric)
 			{
 			if (!temp.HasValue)
 				return 0;
 			double realTemp;
 
-			if (temp >= Constants.TEMP_ERROR)  // Fix high value from hub when lost sight of iTRV
+			if (temp >= Constants.TempError)  // Fix high value from hub when lost sight of iTRV
 				{
-				realTemp = Constants.TEMP_MINIMUM;
+				realTemp = Constants.TempMinimum;
 				}
 			else
 				{
@@ -190,7 +184,7 @@ namespace WiserHeatApiV2
 				}
 
 			// Convert to imperial if imperial units set
-			if (units == WiserUnitsEnum.Imperial)
+			if (units == WiserUnits.Imperial)
 				{
 				realTemp = ConvertToF (realTemp);
 				}
@@ -203,7 +197,7 @@ namespace WiserHeatApiV2
 		private static double ValidateTemperature (double temp, string type = "set_heating")
 			{
 			// Accommodate hw temps
-			if (type == "hotwater" && (temp == Constants.TEMP_HW_ON || temp == Constants.TEMP_HW_OFF))
+			if (type == "hotwater" && (temp == Constants.TempHwOn || temp == Constants.TempHwOff))
 				{
 				return temp;
 				}
@@ -211,28 +205,28 @@ namespace WiserHeatApiV2
 			// Accommodate temp deltas
 			if (type == "delta")
 				{
-				if (temp > Constants.MAX_BOOST_INCREASE)
-					return Constants.MAX_BOOST_INCREASE;
+				if (temp > Constants.MaxBoostIncrease)
+					return Constants.MaxBoostIncrease;
 				return temp;
 				}
 
 			// Accommodate reported current temps
 			if (type == "current")
 				{
-				if (temp < Constants.TEMP_OFF)
-					return Constants.TEMP_MINIMUM;
+				if (temp < Constants.TempOff)
+					return Constants.TempMinimum;
 				return temp;
 				}
 
 			// Accommodate heating temps
 			if (type == "set_heating")
 				{
-				if (temp >= Constants.TEMP_ERROR)
-					return Constants.TEMP_MINIMUM;
-				else if (temp > Constants.TEMP_MAXIMUM)
-					return Constants.TEMP_MAXIMUM;
-				else if (temp < Constants.TEMP_MINIMUM && temp != Constants.TEMP_OFF)
-					return Constants.TEMP_MINIMUM;
+				if (temp >= Constants.TempError)
+					return Constants.TempMinimum;
+				else if (temp > Constants.TempMaximum)
+					return Constants.TempMaximum;
+				else if (temp < Constants.TempMinimum && temp != Constants.TempOff)
+					return Constants.TempMinimum;
 				else
 					return temp;
 				}
@@ -272,23 +266,23 @@ namespace WiserHeatApiV2
 						{
 						return PercentageClip (
 							 (int)Math.Round (
-								  ((Voltage - Constants.ROOMSTAT_MIN_BATTERY_LEVEL) /
-								  (Constants.ROOMSTAT_FULL_BATTERY_LEVEL - Constants.ROOMSTAT_MIN_BATTERY_LEVEL)) * 100
+								  ((Voltage - Constants.RoomstatMinBatteryLevel) /
+								  (Constants.RoomstatFullBatteryLevel - Constants.RoomstatMinBatteryLevel)) * 100
 							 )
 						);
 						}
 					else if (productType.ToString () == "iTRV" && Level != "No Battery")
 						{
-						return Constants.TRV_BATTERY_LEVEL_MAPPING.TryGetValue (Voltage, out var level) ? level : 0;
+						return Constants.TrvBatteryLevelMapping.TryGetValue (Voltage, out var level) ? level : 0;
 						}
 					}
 				return 0;
 				}
 			}
 
-		public double Voltage => _data.TryGetValue ("BatteryVoltage", out var voltage) ? Convert.ToDouble (voltage) / 10 : 0;
+		public double Voltage => _data.TryGetValue ("BatteryVoltage", out var voltage) ? Convert.ToDouble (voltage, CultureInfo.InvariantCulture) / 10 : 0;
 
-		private int PercentageClip (int value)
+		private static int PercentageClip (int value)
 			{
 			return Math.Min (100, Math.Max (0, value));
 			}
@@ -303,7 +297,7 @@ namespace WiserHeatApiV2
 			_data = data;
 			}
 
-		public string DisplayedSignalStrength => _data.TryGetValue ("DisplayedSignalStrength", out var strength) ? strength.ToString () : Constants.TEXT_UNKNOWN;
+		public string DisplayedSignalStrength => _data.TryGetValue ("DisplayedSignalStrength", out var strength) ? strength.ToString () : Constants.TextUnknown;
 
 		public int? ControllerReceptionLqi
 			{
@@ -311,7 +305,7 @@ namespace WiserHeatApiV2
 				{
 				if (_data.TryGetValue ("ReceptionOfController", out var reception) && reception is Dictionary<string, object> receptionDict)
 					{
-					return receptionDict.TryGetValue ("Lqi", out var lqi) ? Convert.ToInt32 (lqi) : (int?)null;
+					return receptionDict.TryGetValue ("Lqi", out var lqi) ? Convert.ToInt32 (lqi, CultureInfo.InvariantCulture) : (int?)null;
 					}
 				return null;
 				}
@@ -323,7 +317,7 @@ namespace WiserHeatApiV2
 				{
 				if (_data.TryGetValue ("ReceptionOfController", out var reception) && reception is Dictionary<string, object> receptionDict)
 					{
-					return receptionDict.TryGetValue ("Rssi", out var rssi) ? Convert.ToInt32 (rssi) : (int?)null;
+					return receptionDict.TryGetValue ("Rssi", out var rssi) ? Convert.ToInt32 (rssi, CultureInfo.InvariantCulture) : (int?)null;
 					}
 				return null;
 				}
@@ -347,7 +341,7 @@ namespace WiserHeatApiV2
 				{
 				if (_data.TryGetValue ("ReceptionOfDevice", out var reception) && reception is Dictionary<string, object> receptionDict)
 					{
-					return receptionDict.TryGetValue ("Lqi", out var lqi) ? Convert.ToInt32 (lqi) : (int?)null;
+					return receptionDict.TryGetValue ("Lqi", out var lqi) ? Convert.ToInt32 (lqi, CultureInfo.InvariantCulture) : (int?)null;
 					}
 				return null;
 				}
@@ -359,7 +353,7 @@ namespace WiserHeatApiV2
 				{
 				if (_data.TryGetValue ("ReceptionOfDevice", out var reception) && reception is Dictionary<string, object> receptionDict)
 					{
-					return receptionDict.TryGetValue ("Rssi", out var rssi) ? Convert.ToInt32 (rssi) : (int?)null;
+					return receptionDict.TryGetValue ("Rssi", out var rssi) ? Convert.ToInt32 (rssi, CultureInfo.InvariantCulture) : (int?)null;
 					}
 				return null;
 				}
@@ -387,9 +381,9 @@ namespace WiserHeatApiV2
 			_data = data;
 			}
 
-		public double? Latitude => _data.TryGetValue ("Latitude", out var latitude) ? Convert.ToDouble (latitude) : (double?)null;
+		public double? Latitude => _data.TryGetValue ("Latitude", out var latitude) ? Convert.ToDouble (latitude, CultureInfo.InvariantCulture) : (double?)null;
 
-		public double? Longitude => _data.TryGetValue ("Longitude", out var longitude) ? Convert.ToDouble (longitude) : (double?)null;
+		public double? Longitude => _data.TryGetValue ("Longitude", out var longitude) ? Convert.ToDouble (longitude, CultureInfo.InvariantCulture) : (double?)null;
 		}
 
 	public class WiserCloud
@@ -403,17 +397,17 @@ namespace WiserHeatApiV2
 			_data = data;
 			}
 
-		public string ApiHost => _data.TryGetValue ("WiserApiHost", out var host) ? host.ToString () : Constants.TEXT_UNKNOWN;
+		public string ApiHost => _data.TryGetValue ("WiserApiHost", out var host) ? host.ToString () : Constants.TextUnknown;
 
-		public string BootstrapApiHost => _data.TryGetValue ("BootStrapApiHost", out var host) ? host.ToString () : Constants.TEXT_UNKNOWN;
+		public string BootstrapApiHost => _data.TryGetValue ("BootStrapApiHost", out var host) ? host.ToString () : Constants.TextUnknown;
 
 		public bool ConnectedToCloud => _cloudStatus == "Connected";
 
 		public string ConnectionStatus => _cloudStatus;
 
-		public bool DetailedPublishingEnabled => _data.TryGetValue ("DetailedPublishing", out var enabled) && Convert.ToBoolean (enabled);
+		public bool DetailedPublishingEnabled => _data.TryGetValue ("DetailedPublishing", out var enabled) && Convert.ToBoolean (enabled, CultureInfo.InvariantCulture);
 
-		public bool DiagnosticTelemetryEnabled => _data.TryGetValue ("EnableDiagnosticTelemetry", out var enabled) && Convert.ToBoolean (enabled);
+		public bool DiagnosticTelemetryEnabled => _data.TryGetValue ("EnableDiagnosticTelemetry", out var enabled) && Convert.ToBoolean (enabled, CultureInfo.InvariantCulture);
 		}
 
 	public class WiserFirmwareUpgradeItem
@@ -425,9 +419,9 @@ namespace WiserHeatApiV2
 			_data = data;
 			}
 
-		public int Id => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id) : 0;
+		public int Id => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public string Filename => _data.TryGetValue ("FirmwareFilename", out var filename) ? filename.ToString () : Constants.TEXT_UNKNOWN;
+		public string Filename => _data.TryGetValue ("FirmwareFilename", out var filename) ? filename.ToString () : Constants.TextUnknown;
 		}
 
 	public class WiserFirmwareUpgradeInfo
@@ -463,27 +457,27 @@ namespace WiserHeatApiV2
 
 		public Dictionary<string, object> All => new Dictionary<string, object> (_data);
 
-		public bool SmartPlug => _data.TryGetValue ("SmartPlug", out var value) && Convert.ToBoolean (value);
+		public bool SmartPlug => _data.TryGetValue ("SmartPlug", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool ITRV => _data.TryGetValue ("ITRV", out var value) && Convert.ToBoolean (value);
+		public bool ITRV => _data.TryGetValue ("ITRV", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool Roomstat => _data.TryGetValue ("Roomstat", out var value) && Convert.ToBoolean (value);
+		public bool Roomstat => _data.TryGetValue ("Roomstat", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool UFH => _data.TryGetValue ("UFH", out var value) && Convert.ToBoolean (value);
+		public bool UFH => _data.TryGetValue ("UFH", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool UFHFloorTempSensor => _data.TryGetValue ("UFHFloorTempSensor", out var value) && Convert.ToBoolean (value);
+		public bool UFHFloorTempSensor => _data.TryGetValue ("UFHFloorTempSensor", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool UFHDewSensor => _data.TryGetValue ("UFHDewSensor", out var value) && Convert.ToBoolean (value);
+		public bool UFHDewSensor => _data.TryGetValue ("UFHDewSensor", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool HACT => _data.TryGetValue ("HACT", out var value) && Convert.ToBoolean (value);
+		public bool HACT => _data.TryGetValue ("HACT", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool LACT => _data.TryGetValue ("LACT", out var value) && Convert.ToBoolean (value);
+		public bool LACT => _data.TryGetValue ("LACT", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool Light => _data.TryGetValue ("Light", out var value) && Convert.ToBoolean (value);
+		public bool Light => _data.TryGetValue ("Light", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool Shutter => _data.TryGetValue ("Shutter", out var value) && Convert.ToBoolean (value);
+		public bool Shutter => _data.TryGetValue ("Shutter", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 
-		public bool LoadController => _data.TryGetValue ("LoadController", out var value) && Convert.ToBoolean (value);
+		public bool LoadController => _data.TryGetValue ("LoadController", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
 		}
 
 
@@ -496,17 +490,17 @@ namespace WiserHeatApiV2
 			_data = data;
 			}
 
-		public int Error72Reset => _data.TryGetValue ("Error72Reset", out var value) ? Convert.ToInt32 (value) : 0;
+		public int Error72Reset => _data.TryGetValue ("Error72Reset", out var value) ? Convert.ToInt32 (value, CultureInfo.InvariantCulture) : 0;
 
-		public int JPANCount => _data.TryGetValue ("JPANCount", out var value) ? Convert.ToInt32 (value) : 0;
+		public int JPANCount => _data.TryGetValue ("JPANCount", out var value) ? Convert.ToInt32 (value, CultureInfo.InvariantCulture) : 0;
 
-		public int NetworkChannel => _data.TryGetValue ("NetworkChannel", out var value) ? Convert.ToInt32 (value) : 0;
+		public int NetworkChannel => _data.TryGetValue ("NetworkChannel", out var value) ? Convert.ToInt32 (value, CultureInfo.InvariantCulture) : 0;
 
-		public int NoSignalReset => _data.TryGetValue ("NoSignalReset", out var value) ? Convert.ToInt32 (value) : 0;
+		public int NoSignalReset => _data.TryGetValue ("NoSignalReset", out var value) ? Convert.ToInt32 (value, CultureInfo.InvariantCulture) : 0;
 
-		public string ModuleVersion => _data.TryGetValue ("ZigbeeModuleVersion", out var value) ? value.ToString () : Constants.TEXT_UNKNOWN;
+		public string ModuleVersion => _data.TryGetValue ("ZigbeeModuleVersion", out var value) ? value.ToString () : Constants.TextUnknown;
 
-		public string EUI => _data.TryGetValue ("ZigbeeEUI", out var value) ? value.ToString () : Constants.TEXT_UNKNOWN;
+		public string EUI => _data.TryGetValue ("ZigbeeEUI", out var value) ? value.ToString () : Constants.TextUnknown;
 		}
 
 	public static class SpecialTimes
@@ -515,7 +509,7 @@ namespace WiserHeatApiV2
 			{
 			var output = new Dictionary<string, string> ();
 			var today = (int)DateTime.Today.DayOfWeek;
-			var days = Constants.WEEKDAYS.Concat (Constants.WEEKENDS).ToList ();
+			var days = Constants.Weekdays.Concat(Constants.Weekends).ToList ();
 
 			for (int i = 0; i < 7; i++)
 				{
@@ -531,7 +525,7 @@ namespace WiserHeatApiV2
 
 		private static string FormatTime (int time)
 			{
-			var timeStr = time.ToString ().PadLeft (4, '0');
+			var timeStr = time.ToString (CultureInfo.InvariantCulture).PadLeft (4, '0');
 			return $"{timeStr.Substring (0, 2)}:{timeStr.Substring (2, 2)}";
 			}
 
@@ -555,7 +549,7 @@ namespace WiserHeatApiV2
 			}
 
 		// Lights and shutters currently have model identifier as Unknown
-		public override string Model => _data.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+		public override string Model => Data.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TextUnknown;
 		}
 
 
@@ -576,8 +570,8 @@ namespace WiserHeatApiV2
 			{
 			get
 				{
-				int timeValue = _data.TryGetValue ("Time", out var time) ? Convert.ToInt32 (time) : 0;
-				string timeStr = timeValue.ToString ("D4");
+				int timeValue = _data.TryGetValue ("Time", out var time) ? Convert.ToInt32 (time, CultureInfo.InvariantCulture) : 0;
+				string timeStr = timeValue.ToString ("D4", CultureInfo.InvariantCulture);
 				return TimeSpan.ParseExact ($"{timeStr.Substring (0, 2)}:{timeStr.Substring (2, 2)}", "hh\\:mm", null);
 				}
 			}
@@ -588,7 +582,7 @@ namespace WiserHeatApiV2
 				{
 				try
 					{
-					var allDays = Constants.WEEKDAYS.Concat (Constants.WEEKENDS).ToList ();
+					var allDays = Constants.Weekdays.Concat(Constants.Weekends).ToList ();
 					int nextScheduleDay = (allDays.IndexOf (Day) + 1) % 7;
 					TimeSpan nextScheduleTime = Time;
 					int currentDay = (int)DateTime.Today.DayOfWeek;
@@ -611,15 +605,15 @@ namespace WiserHeatApiV2
 			{
 			get
 				{
-				if (_scheduleType == Constants.TEXT_HEATING)
+				if (_scheduleType == Constants.TextHeating)
 					{
 					return WiserTemperatureFunctions.FromWiserTemp (_data.TryGetValue ("DegreesC", out var temp) ? temp : 0);
 					}
-				if (_scheduleType == Constants.TEXT_ONOFF)
+				if (_scheduleType == Constants.TextOnOff)
 					{
 					return _data.TryGetValue ("State", out var state) ? state : null;
 					}
-				if (_scheduleType == Constants.TEXT_LEVEL)
+				if (_scheduleType == Constants.TextLevel)
 					{
 					return _data.TryGetValue ("Level", out var level) ? level : null;
 					}
@@ -665,25 +659,20 @@ namespace WiserHeatApiV2
 
 	public static class WiserTimeExtensions
 		{
-		public static string ToWiserTime (this TimeSpan time)
+		public static string ToWiserTime (this long time)
 			{
-			return time.ToString (@"hh\:mm");
+			if (time < 0 || time > 2359)
+				throw new ArgumentOutOfRangeException (nameof (time), "Time must be between 0 and 2359.");
+			string timeStr = time.ToString ("D4", CultureInfo.InvariantCulture);
+			return $"{timeStr.Substring (0, 2)}:{timeStr.Substring (2, 2)}";
 			}
 		public static TimeSpan FromWiserTime (this string timeStr)
 			{
 			if (string.IsNullOrWhiteSpace (timeStr) || timeStr.Length != 5)
 				throw new ArgumentException ("Invalid time format. Expected 'HH:MM' format.");
-			int hours = int.Parse (timeStr.Substring (0, 2));
-			int minutes = int.Parse (timeStr.Substring (3, 2));
+			int hours = int.Parse (timeStr.Substring (0, 2), CultureInfo.InvariantCulture);
+			int minutes = int.Parse (timeStr.Substring (3, 2), CultureInfo.InvariantCulture);
 			return new TimeSpan (hours, minutes, 0);
-			}
-
-		public static string ToWiserTime (this long time)
-			{
-			if (time < 0 || time > 2359)
-				throw new ArgumentOutOfRangeException ("Time must be between 0 and 2359.");
-			string timeStr = time.ToString ("D4");
-			return $"{timeStr.Substring (0, 2)}:{timeStr.Substring (2, 2)}";
 			}
 
 		public static string ToWiserTime (this object timeObj)
@@ -716,14 +705,14 @@ namespace WiserHeatApiV2
 			{
 			if (string.IsNullOrWhiteSpace (str))
 				return str;
-			return CultureInfo.CurrentCulture.TextInfo.ToTitleCase (str.ToLower ());
+			return CultureInfo.CurrentCulture.TextInfo.ToTitleCase (str.ToLowerInvariant ());
 			}
 
 		public static string Capitalize (this string str)
 			{
 			if (string.IsNullOrWhiteSpace (str))
 				return str;
-			return $"{char.ToUpper(str[0])}{str.Substring(1).ToLower()}";
+			return $"{char.ToUpper (str[0], CultureInfo.InvariantCulture)}{str.Substring (1).ToLower (CultureInfo.InvariantCulture)}";
 			}
 		}
 	}
