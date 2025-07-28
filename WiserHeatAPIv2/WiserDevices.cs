@@ -477,7 +477,7 @@ namespace WiserHeatApiV2
 				 || (device is WiserShutter shutter && shutter.RoomId == roomId)
 #endif
 #if LIGHT
-				 || (device is WiserLight light && light.RoomId == roomId))
+				 || (device is WiserLight light && light.RoomId == roomId)
 #endif
 			)];
 

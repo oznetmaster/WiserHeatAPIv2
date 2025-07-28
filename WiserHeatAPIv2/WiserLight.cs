@@ -231,6 +231,5 @@ namespace WiserHeatApiV2
 
 		public List<WiserLight> GetByRoomId (int roomId) => [.. All.Where (light => light.RoomId == roomId)];
 			}
-		}
 #endif
-	}
+		}
