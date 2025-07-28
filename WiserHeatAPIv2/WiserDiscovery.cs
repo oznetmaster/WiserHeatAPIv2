@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,12 +27,13 @@ namespace WiserHeatApiV2
 		public int HttpTimeout { get; set; } = 1500;
 		public bool ShowProgress { get; set; }
 		public bool ShowDebug { get; set; }
+		public int MaxResults { get; set; }  // 0 means unlimited
 		}
 
 	public class NetworkInfo
 		{
 		private static readonly byte[] _zeroBitCountTable =
-			[.. Enumerable.Range (0, 256).Select (b => (byte)(8 - Convert.ToString (b, 2).Count (c => c == '1')))];
+			 [.. Enumerable.Range (0, 256).Select (b => (byte)(8 - Convert.ToString (b, 2).Count (c => c == '1')))];
 
 		public IPAddress NetworkBase { get; }
 		public IPAddress NetworkAddress { get; }
@@ -79,18 +81,20 @@ namespace WiserHeatApiV2
 	public class WiserHubDiscovery
 		{
 		private static readonly HttpClient _sharedHttpClient = new () { Timeout = TimeSpan.FromMilliseconds (3000) };
+		private static readonly IPAddress _subnetMask = new ([255, 255, 255, 0]);
+		private static readonly IPAddress[] _fallbackRanges = [new ([192, 168, 1, 0]), new ([192, 168, 0, 0]), new ([192, 168, 8, 0]), new ([10, 0, 0, 0]), new ([172, 16, 0, 0])];
+		private static readonly IPAddress _fallbackMask = new ([255, 255, 255, 0]);
 
 		/// <summary>
-		/// Smart discovery that adapts to network size with proper broadcast calculation
+		/// Discover Wiser Hubs as they are found (streaming results)
 		/// </summary>
-		public static async Task<ConcurrentBag<WiserDiscoveredHub>> DiscoverHubsAsync (
+		public static async IAsyncEnumerable<WiserDiscoveredHub> DiscoverHubsAsyncEnumerable (
 			 WiserDiscoveryOptions? options = null,
-			 CancellationToken cancellationToken = default)
+			 [EnumeratorCancellation] CancellationToken cancellationToken = default)
 			{
 			options ??= new WiserDiscoveryOptions ();
 
 			List<NetworkInfo> networkInfos = GetLocalNetworkInfos (options.ShowDebug);
-			var discoveredHubs = new ConcurrentBag<WiserDiscoveredHub> ();
 
 			if (options.ShowProgress)
 				{
@@ -104,127 +108,110 @@ namespace WiserHeatApiV2
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource (cancellationToken);
 			cts.CancelAfter (TimeSpan.FromSeconds (options.TimeoutSeconds));
 
-			try
+			foreach (NetworkInfo networkInfo in networkInfos)
 				{
-				foreach (NetworkInfo networkInfo in networkInfos)
-					{
-					if (cts.Token.IsCancellationRequested)
-						break;
+				if (cts.Token.IsCancellationRequested)
+					yield break;
 
-					if (networkInfo.HostCount > 1000) // Large network
-						{
-						if (options.ShowProgress)
-							Console.WriteLine ($"Large network detected ({networkInfo.NetworkAddress}), using smart scanning...");
-						ConcurrentBag<WiserDiscoveredHub> smartResults = await SmartScanLargeNetworkAsync (networkInfo, options, cts.Token).ConfigureAwait (false);
-						// Replace this line:
-						// discoveredHubs.AddRange (smartResults);
-						// With the following:
-						foreach (WiserDiscoveredHub hub in smartResults)
-							discoveredHubs.Add (hub);
-						}
-					else
-						{
-						// Use normal scanning for smaller networks
-						ConcurrentBag<WiserDiscoveredHub> normalResults = await FastScanNetworkAsync (networkInfo, options, cts.Token).ConfigureAwait (false);
-						foreach (WiserDiscoveredHub hub in normalResults)
-							discoveredHubs.Add (hub);
-						}
+				await foreach (WiserDiscoveredHub? hub in ScanNetworkAsyncEnumerable (networkInfo, options, cts.Token).ConfigureAwait (false))
+					{
+					yield return hub;
 					}
 				}
-			catch (OperationCanceledException)
-				{
-				if (options.ShowProgress)
-					Console.WriteLine ("Discovery timed out");
-				}
-
-			return discoveredHubs;
 			}
 
 		/// <summary>
-		/// Smart scanning for large networks - scan in /24 chunks
+		/// Scan a single network and stream discovered hubs
 		/// </summary>
-		private static async Task<ConcurrentBag<WiserDiscoveredHub>> SmartScanLargeNetworkAsync (
+		private static async IAsyncEnumerable<WiserDiscoveredHub> ScanNetworkAsyncEnumerable (
 			 NetworkInfo networkInfo,
 			 WiserDiscoveryOptions options,
-			 CancellationToken cancellationToken)
+			 [EnumeratorCancellation] CancellationToken cancellationToken)
 			{
-			var discoveredHubs = new ConcurrentBag<WiserDiscoveredHub> ();
-			var networkBytes = networkInfo.NetworkAddress.GetAddressBytes ();
-
-			// For /16 networks, focus on common IoT subnets
-			if (networkInfo.SubnetMask.Equals (new IPAddress ([255, 255, 0, 0])))
-				{
-				var commonSubnets = new[] { 0, 1, 10, 20, 50, 100, 150, 200 };
-
-				foreach (var subnet in commonSubnets)
-					{
-					if (cancellationToken.IsCancellationRequested)
-						break;
-
-					// Create /24 network info for this subnet
-					var subnetNetwork = new IPAddress ([.. networkBytes[0..2], (byte)subnet, 0]);
-					var subnetInfo = new NetworkInfo (subnetNetwork, _subnetMask);
-
-					if (options.ShowProgress)
-						Console.WriteLine ($"  Scanning IoT subnet: {subnetInfo.NetworkBase}.*");
-
-					ConcurrentBag<WiserDiscoveredHub> results = await FastScanNetworkAsync (subnetInfo, options, cancellationToken).ConfigureAwait (false);
-					foreach (WiserDiscoveredHub hub in results)
-						discoveredHubs.Add (hub);
-					}
-				}
-
-			return discoveredHubs;
-			}
-
-		/// <summary>
-		/// Fast scan of a network with proper broadcast address calculation
-		/// </summary>
-		private static async Task<ConcurrentBag<WiserDiscoveredHub>> FastScanNetworkAsync (
-			 NetworkInfo networkInfo,
-			 WiserDiscoveryOptions options,
-			 CancellationToken cancellationToken)
-			{
-			var discoveredHubs = new ConcurrentBag<WiserDiscoveredHub> ();
-
 			if (options.ShowProgress)
-				Console.WriteLine ($"  Ping scanning {networkInfo.NetworkBase}.*...");
+				Console.WriteLine ($"  Streaming scan {networkInfo.NetworkBase}.*...");
 
-			// Phase 1: Ping scan to find alive IPs
-			ConcurrentBag<IPAddress> aliveIPs = await PingScanNetworkAsync (networkInfo, options, cancellationToken).ConfigureAwait (false);
-
-			if (options.ShowProgress)
-				Console.WriteLine ($"  Found {aliveIPs.Count} alive IPs, checking for Wiser Hubs...");
-
-			// Phase 2: HTTP check only alive IPs
-			if (!aliveIPs.IsEmpty)
-				{
-				var httpSemaphore = new SemaphoreSlim (Math.Min (20, aliveIPs.Count));
-				Task[] httpTasks = [.. aliveIPs.Select (ip =>
-					 CheckWiserHubAsync (ip, httpSemaphore, discoveredHubs, options, cancellationToken))];
-
-				await Task.WhenAll (httpTasks).ConfigureAwait (false);
-				}
-
-			if (options.ShowProgress)
-				Console.WriteLine ($"  ✅ {networkInfo.NetworkBase}.* scan complete - Found {discoveredHubs.Count} hubs");
-
-			return discoveredHubs;
-			}
-
-		/// <summary>
-		/// Ping scan with proper subnet mask handling for ANY network size
-		/// </summary>
-		private static async Task<ConcurrentBag<IPAddress>> PingScanNetworkAsync (
-			 NetworkInfo networkInfo,
-			 WiserDiscoveryOptions options,
-			 CancellationToken cancellationToken)
-			{
-			var aliveIPs = new ConcurrentBag<IPAddress> ();
 			var semaphore = new SemaphoreSlim (options.MaxConcurrency);
+			var httpTasks = new List<Task<WiserDiscoveredHub?>> ();
+			var hubsReturned = 0;
+			var maxResults = options.MaxResults > 0 ? options.MaxResults : int.MaxValue;
 
-			// Get actual gateway IPs to skip them
+			await foreach (IPAddress aliveIP in PingNetworkAsyncEnumerable (networkInfo, options, cancellationToken).ConfigureAwait (false))
+				{
+				if (hubsReturned >= maxResults)
+					break;
+				await semaphore.WaitAsync (cancellationToken).ConfigureAwait (false);
+				Task<WiserDiscoveredHub?> task = Task.Run (async () =>
+					{
+					try
+						{
+						if (options.ShowDebug)
+							Console.WriteLine ($"    HTTP test: {aliveIP}");
+
+						using var cts = new CancellationTokenSource (options.HttpTimeout);
+						if (await IsWiserHubAsync (aliveIP).ConfigureAwait (false))
+							{
+							var hub = new WiserDiscoveredHub (aliveIP);
+							if (options.ShowProgress)
+								Console.WriteLine ($"    ✅ Found Wiser Hub: {hub.Url}");
+							return hub;
+							}
+						}
+					catch (Exception ex)
+						{
+						if (options.ShowDebug)
+							Console.WriteLine ($"    ❌ HTTP test failed for {aliveIP}: {ex.Message}");
+						}
+					finally
+						{
+							_ = semaphore.Release ();
+						}
+
+					return null;
+					}, cancellationToken);
+				httpTasks.Add (task);
+				}
+
+			// Stream results as soon as each HTTP test completes
+			while (httpTasks.Count > 0 && hubsReturned < maxResults)
+				{
+				Task<WiserDiscoveredHub?> finished = await Task.WhenAny (httpTasks).ConfigureAwait (false);
+				_ = httpTasks.Remove (finished);
+
+				WiserDiscoveredHub? hub = null;
+				try
+					{
+					hub = await finished.ConfigureAwait (false);
+					}
+				catch (Exception ex)
+					{
+					if (options.ShowDebug)
+						Console.WriteLine ($"    ❌ HTTP task exception: {ex.Message}");
+					}
+
+				if (hub != null)
+					{
+					yield return hub;
+					hubsReturned++;
+					if (hubsReturned >= maxResults)
+						break;
+					}
+				}
+
+			if (options.ShowProgress)
+				Console.WriteLine ($"  ✅ {networkInfo.NetworkBase}.* streaming scan complete");
+			}
+
+		/// <summary>
+		/// Ping network and stream alive IPs as they respond (simplified, reliable)
+		/// </summary>
+		private static async IAsyncEnumerable<IPAddress> PingNetworkAsyncEnumerable (
+			 NetworkInfo networkInfo,
+			 WiserDiscoveryOptions options,
+			 [EnumeratorCancellation] CancellationToken cancellationToken)
+			{
 			HashSet<IPAddress> gatewayIPs = GetGatewayIPs (networkInfo.NetworkAddress, options.ShowDebug);
+			var semaphore = new SemaphoreSlim (options.MaxConcurrency);
 
 			if (options.ShowDebug)
 				{
@@ -234,148 +221,92 @@ namespace WiserHeatApiV2
 				Console.WriteLine ($"    Host Count: {networkInfo.HostCount}");
 				}
 
-			// Handle different network sizes appropriately
-			if (networkInfo.HostCount <= 254) // Small networks (/24 and smaller)
-				{
-				await ScanSmallNetworkAsync (networkInfo, gatewayIPs, semaphore, aliveIPs, options, cancellationToken).ConfigureAwait (false);
-				}
-			else if (networkInfo.HostCount <= 65534) // Medium networks (/16)
-				{
-				await ScanMediumNetworkAsync (networkInfo, gatewayIPs, semaphore, aliveIPs, options, cancellationToken).ConfigureAwait (false);
-				}
-			else // Large networks (/8 and bigger)
-				{
-				await ScanLargeNetworkAsync (networkInfo, gatewayIPs, semaphore, aliveIPs, options, cancellationToken).ConfigureAwait (false);
-				}
+			var ipsToScan = GetIPsToScan (networkInfo, gatewayIPs, options).ToList ();
+			var pingTasks = ipsToScan.Select (ip =>
+				 PingIPSimpleAsync (ip, semaphore, options.PingTimeout, cancellationToken)).ToList ();
 
-			return aliveIPs;
+			var remainingTasks = new List<Task<IPAddress?>> (pingTasks);
+			while (remainingTasks.Count > 0)
+				{
+				cancellationToken.ThrowIfCancellationRequested ();
+				Task<IPAddress?> completedTask = await Task.WhenAny (remainingTasks).ConfigureAwait (false);
+				_ = remainingTasks.Remove (completedTask);
+				if (completedTask.IsCanceled || completedTask.IsFaulted)
+					continue;
+				IPAddress? result = await completedTask.ConfigureAwait (false);
+				if (result != null)
+					yield return result;
+				}
 			}
 
 		/// <summary>
-		/// Scan small networks (up to /24) by iterating through all valid host IPs
+		/// Ping an IP and return it if alive, null if not (simplified)
 		/// </summary>
-		private static async Task ScanSmallNetworkAsync (
+		private static async Task<IPAddress?> PingIPSimpleAsync (
+			 IPAddress ip,
+			 SemaphoreSlim semaphore,
+			 int timeout,
+			 CancellationToken cancellationToken)
+			{
+			await semaphore.WaitAsync (cancellationToken).ConfigureAwait (false);
+			try
+				{
+				using var ping = new Ping ();
+				PingReply reply = await ping.SendPingAsync (ip, timeout).ConfigureAwait (false);
+
+				return reply.Status == IPStatus.Success ? ip : null;
+				}
+			catch (OperationCanceledException)
+				{
+				// Propagate cancellation
+				throw;
+				}
+			catch
+				{
+				return null;
+				}
+			finally
+				{
+				_ = semaphore.Release ();
+				}
+			}
+
+		/// <summary>
+		/// Get all IPs to scan for a network
+		/// </summary>
+		private static IEnumerable<IPAddress> GetIPsToScan (
 			 NetworkInfo networkInfo,
 			 HashSet<IPAddress> gatewayIPs,
-			 SemaphoreSlim semaphore,
-			 ConcurrentBag<IPAddress> aliveIPs,
-			 WiserDiscoveryOptions options,
-			 CancellationToken cancellationToken)
+			 WiserDiscoveryOptions options)
 			{
 			var networkBytes = networkInfo.NetworkAddress.GetAddressBytes ();
 			var broadcastBytes = networkInfo.BroadcastAddress.GetAddressBytes ();
-			var tasks = new List<Task> ();
-
-			// Calculate the range of the last octet that can vary
 			var startLastOctet = networkBytes[3];
 			var endLastOctet = broadcastBytes[3];
 
 			if (options.ShowDebug)
-				Console.WriteLine ($"    Scanning small network: {networkBytes[0]}.{networkBytes[1]}.{networkBytes[2]}.{startLastOctet}-{endLastOctet}");
+				Console.WriteLine ($"    Scanning: {networkBytes[0]}.{networkBytes[1]}.{networkBytes[2]}.{startLastOctet}-{endLastOctet}");
 
 			for (int i = startLastOctet; i <= endLastOctet; i++)
 				{
-				if (cancellationToken.IsCancellationRequested)
-					break;
-
 				var ip = new IPAddress ([.. networkBytes[0..3], (byte)i]);
 
-				// Skip network address, broadcast address, and gateways
-				if (ShouldSkipIP (ip, networkInfo, gatewayIPs))
+				if (!ShouldSkipIP (ip, networkInfo, gatewayIPs))
 					{
-					if (options.ShowDebug)
-						{
-						if (ip == networkInfo.NetworkAddress)
-							Console.WriteLine ($"    ⏭️ Skipping network address: {ip}");
-						else if (ip == networkInfo.BroadcastAddress)
-							Console.WriteLine ($"    ⏭️ Skipping broadcast address: {ip}");
-						else if (gatewayIPs.Contains (ip))
-							Console.WriteLine ($"    ⏭️ Skipping gateway: {ip}");
-						}
-
-					continue;
+					yield return ip;
 					}
-
-				tasks.Add (PingIPAsync (ip, semaphore, aliveIPs, options.PingTimeout, cancellationToken));
-				}
-
-			await Task.WhenAll (tasks).ConfigureAwait (false);
-			}
-
-		// For /16 networks, scan common subnets to avoid overwhelming
-		private static readonly byte[] _commonSubnets = [0, 1, 8, 10, 20, 50, 100, 150, 200, 254];
-
-		/// <summary>
-		/// Scan medium networks (/16) in /24 chunks to avoid overwhelming the network
-		/// </summary>
-		private static async Task ScanMediumNetworkAsync (
-			 NetworkInfo networkInfo,
-			 HashSet<IPAddress> gatewayIPs,
-			 SemaphoreSlim semaphore,
-			 ConcurrentBag<IPAddress> aliveIPs,
-			 WiserDiscoveryOptions options,
-			 CancellationToken cancellationToken)
-			{
-			var networkBytes = networkInfo.NetworkAddress.GetAddressBytes ();
-
-			if (options.ShowDebug)
-				Console.WriteLine ($"    Scanning /16 network in /24 chunks: {networkBytes[0]}.{networkBytes[1]}.x.x");
-
-			foreach (var thirdOctet in _commonSubnets)
-				{
-				if (cancellationToken.IsCancellationRequested)
-					break;
-
-				// Create a /24 subnet to scan
-				var subnetAddress = new IPAddress ([.. networkBytes[0..2], thirdOctet, 0]);
-				//var subnetMask = IPAddress.Parse ("255.255.255.0");
-				var subnetInfo = new NetworkInfo (subnetAddress, _subnetMask);
-
-				if (options.ShowDebug)
-					Console.WriteLine ($"    Scanning /24 chunk: {networkBytes[0]}.{networkBytes[1]}.{thirdOctet}.*");
-
-				await ScanSmallNetworkAsync (subnetInfo, gatewayIPs, semaphore, aliveIPs, options, cancellationToken).ConfigureAwait (false);
+				else if (options.ShowDebug)
+					{
+					if (ip == networkInfo.NetworkAddress)
+						Console.WriteLine ($"    ⏭️ Skipping network address: {ip}");
+					else if (ip == networkInfo.BroadcastAddress)
+						Console.WriteLine ($"    ⏭️ Skipping broadcast address: {ip}");
+					else if (gatewayIPs.Contains (ip))
+						Console.WriteLine ($"    ⏭️ Skipping gateway: {ip}");
+					}
 				}
 			}
 
-		/// <summary>
-		/// Scan large networks (/8) with very limited scope
-		/// </summary>
-		private static async Task ScanLargeNetworkAsync (
-			 NetworkInfo networkInfo,
-			 HashSet<IPAddress> gatewayIPs,
-			 SemaphoreSlim semaphore,
-			 ConcurrentBag<IPAddress> aliveIPs,
-			 WiserDiscoveryOptions options,
-			 CancellationToken cancellationToken)
-			{
-			var networkBytes = networkInfo.NetworkAddress.GetAddressBytes ();
-
-			if (options.ShowDebug)
-				Console.WriteLine ($"    Scanning /8 network with limited scope: {networkBytes[0]}.x.x.x");
-
-			// For /8 networks, only scan very common subnets
-			IPAddress[] limitedRanges =
-			[
-				new IPAddress ([networkBytes[0], 0, 0, 0]),
-				new IPAddress ([networkBytes[0], 0, 1, 0]),
-				new IPAddress ([networkBytes[0], 1, 0, 0]),
-				new IPAddress ([networkBytes[0], 1, 1, 0]),
-	 ];
-
-			foreach (IPAddress range in limitedRanges)
-				{
-				if (cancellationToken.IsCancellationRequested)
-					break;
-
-				var subnetInfo = new NetworkInfo (range, _subnetMask);
-
-				if (options.ShowDebug)
-					Console.WriteLine ($"    Scanning limited /8 chunk: {range}.*");
-
-				await ScanSmallNetworkAsync (subnetInfo, gatewayIPs, semaphore, aliveIPs, options, cancellationToken).ConfigureAwait (false);
-				}
-			}
 		/// <summary>
 		/// Determine if an IP should be skipped based on actual network calculations
 		/// </summary>
@@ -393,9 +324,6 @@ namespace WiserHeatApiV2
 			return ip == networkInfo.BroadcastAddress;
 			}
 
-		private static readonly IPAddress _subnetMask = new ([255, 255, 255, 0]);
-		private static readonly IPAddress[] _fallbackRanges = [new ([192, 168, 1, 0]), new ([192, 168, 0, 0]), new ([192, 168, 8, 0]), new ([10, 0, 0, 0]), new ([172, 16, 0, 0])];
-		private static readonly IPAddress _fallbackMask = new ([255, 255, 255, 0]);
 		/// <summary>
 		/// Get network information with proper subnet mask calculations
 		/// </summary>
@@ -406,9 +334,9 @@ namespace WiserHeatApiV2
 			try
 				{
 				var networkInterfaces = NetworkInterface.GetAllNetworkInterfaces ()
-					 .Where (ni => ni.OperationalStatus == OperationalStatus.Up &&
-									 ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-					 .ToList ();
+					  .Where (ni => ni.OperationalStatus == OperationalStatus.Up &&
+											ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+					  .ToList ();
 
 				foreach (NetworkInterface? ni in networkInterfaces)
 					{
@@ -464,7 +392,7 @@ namespace WiserHeatApiV2
 			try
 				{
 				IEnumerable<NetworkInterface> networkInterfaces = NetworkInterface.GetAllNetworkInterfaces ()
-					 .Where (ni => ni.OperationalStatus == OperationalStatus.Up);
+					  .Where (ni => ni.OperationalStatus == OperationalStatus.Up);
 
 				if (showDebug)
 					Console.WriteLine ($"  🔍 Detecting gateways for network {networkBase}.*");
@@ -533,94 +461,6 @@ namespace WiserHeatApiV2
 			return gatewayIPs;
 			}
 
-		private static async Task PingIPAsync (
-			 IPAddress ip,
-			 SemaphoreSlim semaphore,
-			 ConcurrentBag<IPAddress> aliveIPs,
-			 int timeout,
-			 CancellationToken cancellationToken)
-			{
-			await semaphore.WaitAsync (cancellationToken);
-			try
-				{
-				using var ping = new Ping ();
-				PingReply reply = await ping.SendPingAsync (ip, timeout).ConfigureAwait (false);
-
-				if (reply.Status == IPStatus.Success)
-					// If ping is successful, add to alive IPs
-					aliveIPs.Add (ip);
-				}
-			catch
-				{
-				// Ping failed, ignore
-				}
-			finally
-				{
-				_ = semaphore.Release ();
-				}
-			}
-
-		/// <summary>
-		/// Check for Wiser Hub using individual HttpClient with improved error handling
-		/// </summary>
-		private static async Task CheckWiserHubAsync (
-			 IPAddress ip,
-			 SemaphoreSlim semaphore,
-			 ConcurrentBag<WiserDiscoveredHub> discoveredHubs,
-			 WiserDiscoveryOptions options,
-			 CancellationToken cancellationToken)
-			{
-			await semaphore.WaitAsync (cancellationToken).ConfigureAwait (false);
-			try
-				{
-				// Use longer timeout and better configuration
-				using var client = new HttpClient (new HttpClientHandler ()
-					{
-					ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-					})
-					{
-					Timeout = TimeSpan.FromMilliseconds (options.HttpTimeout),
-					DefaultRequestHeaders = { ConnectionClose = true }
-					};
-
-				if (await IsWiserHubWithClientAsync (ip, client).ConfigureAwait (false))
-					{
-					var hub = new WiserDiscoveredHub (ip);
-					discoveredHubs.Add (hub);
-					if (options.ShowProgress)
-						Console.WriteLine ($"    ✅ Found Wiser Hub: {hub.Url}");
-					}
-				}
-			catch (Exception ex) when (options.ShowDebug)
-				{
-				Console.WriteLine ($"    ❌ Error checking {ip}: {ex.Message}");
-				}
-			finally
-				{
-				_ = semaphore.Release ();
-				}
-			}
-		/// <summary>
-		/// Test if IP is a Wiser Hub using provided HttpClient
-		/// </summary>
-		private static async Task<bool> IsWiserHubWithClientAsync (IPAddress ipAddress, HttpClient client, int port = 80)
-			{
-			try
-				{
-				var baseUrl = $"http://{ipAddress}:{port}";
-				var endpoint = "/data/v2/domain/";
-
-				HttpResponseMessage response = await client.GetAsync (baseUrl + endpoint).ConfigureAwait (false);
-
-				// 401 Unauthorized is the Wiser Hub signature
-				return response.StatusCode == HttpStatusCode.Unauthorized;
-				}
-			catch
-				{
-				return false;
-				}
-			}
-
 		/// <summary>
 		/// Tests if a specific IP address is a Wiser Hub
 		/// </summary>
@@ -631,7 +471,8 @@ namespace WiserHeatApiV2
 				var baseUrl = $"http://{ipAddress}:{port}";
 				var endpoint = "/data/v2/domain/";
 
-				HttpResponseMessage response = await _sharedHttpClient.GetAsync (baseUrl + endpoint).ConfigureAwait (false);
+				using var cts = new CancellationTokenSource (1500); // Use options.HttpTimeout if available
+				HttpResponseMessage response = await _sharedHttpClient.GetAsync (baseUrl + endpoint, cts.Token).ConfigureAwait (false);
 
 				// 401 Unauthorized is the Wiser Hub signature
 				return response.StatusCode == HttpStatusCode.Unauthorized;
@@ -643,7 +484,43 @@ namespace WiserHeatApiV2
 			}
 
 		/// <summary>
-		/// Quick scan of specific IP range with proper broadcast calculation
+		/// Backward compatible method that collects all results
+		/// </summary>
+		public static async Task<ConcurrentBag<WiserDiscoveredHub>> DiscoverHubsAsync (
+			 WiserDiscoveryOptions? options = null,
+			 CancellationToken cancellationToken = default)
+			{
+			var discoveredHubs = new ConcurrentBag<WiserDiscoveredHub> ();
+
+			await foreach (WiserDiscoveredHub hub in DiscoverHubsAsyncEnumerable (options, cancellationToken).ConfigureAwait (false))
+				{
+				discoveredHubs.Add (hub);
+				}
+
+			return discoveredHubs;
+			}
+
+		/// <summary>
+		/// Streaming version of QuickScanRangeAsync
+		/// </summary>
+		public static async IAsyncEnumerable<WiserDiscoveredHub> QuickScanRangeAsyncEnumerable (
+			 IPAddress networkBase,
+			 int startIp = 0,
+			 int endIp = 254,
+			 WiserDiscoveryOptions? options = null,
+			 [EnumeratorCancellation] CancellationToken cancellationToken = default)
+			{
+			options ??= new WiserDiscoveryOptions { ShowProgress = true };
+			var networkInfo = new NetworkInfo (networkBase, _subnetMask);
+
+			await foreach (WiserDiscoveredHub hub in ScanNetworkAsyncEnumerable (networkInfo, options, cancellationToken).ConfigureAwait (false))
+				{
+				yield return hub;
+				}
+			}
+
+		/// <summary>
+		/// Backward compatible QuickScanRangeAsync
 		/// </summary>
 		public static async Task<ConcurrentBag<WiserDiscoveredHub>> QuickScanRangeAsync (
 			 IPAddress networkBase,
@@ -651,110 +528,14 @@ namespace WiserHeatApiV2
 			 int endIp = 254,
 			 WiserDiscoveryOptions? options = null)
 			{
-			options ??= new WiserDiscoveryOptions { ShowProgress = true };
-
-			// Create a /24 network info for the range
-			//var networkAddress = IPAddress.Parse ($"{networkBase.ToString().Substring(0, networkBase.ToString().LastIndexOf('.'))}.0");
-			//var subnetMask = IPAddress.Parse ("255.255.255.0");
-			//var networkInfo = new NetworkInfo (networkAddress, subnetMask);
-			var networkInfo = new NetworkInfo (networkBase, _subnetMask);
-
-			var aliveIPs = new ConcurrentBag<IPAddress> ();
-			var pingSemaphore = new SemaphoreSlim (100);
-			var pingTasks = new List<Task> ();
-
-			// Get gateway IPs to skip them
-			HashSet<IPAddress> gatewayIPs = GetGatewayIPs (networkBase, options.ShowDebug);
-
-			for (var i = startIp; i <= endIp; i++)
-				{
-				var baseBytes = networkBase.GetAddressBytes ();
-				var ip = new IPAddress ([.. baseBytes[0..3], (byte)i]); //{ baseBytes[0], baseBytes[1], baseBytes[2], (byte)i });
-
-				// Apply proper network-aware skipping logic
-				if (ShouldSkipIP (ip, networkInfo, gatewayIPs))
-					continue;
-
-				pingTasks.Add (PingIPAsync (ip, pingSemaphore, aliveIPs, options.PingTimeout, CancellationToken.None));
-				}
-
-			await Task.WhenAll (pingTasks).ConfigureAwait (false);
-
 			var discoveredHubs = new ConcurrentBag<WiserDiscoveredHub> ();
-			var httpSemaphore = new SemaphoreSlim (20);
-			Task[] httpTasks = [.. aliveIPs.Select (ip =>
-				 CheckWiserHubAsync (ip, httpSemaphore, discoveredHubs, options, CancellationToken.None))];
 
-			await Task.WhenAll (httpTasks).ConfigureAwait (false);
+			await foreach (WiserDiscoveredHub hub in QuickScanRangeAsyncEnumerable (networkBase, startIp, endIp, options))
+				{
+				discoveredHubs.Add (hub);
+				}
+
 			return discoveredHubs;
-			}
-
-		/// <summary>
-		/// Test the known hub IP directly for debugging
-		/// </summary>
-		public static async Task<string> DiagnoseKnownHubAsync (string ipAddress = "192.168.8.196")
-			{
-			var results = new List<string>
-				{
-				$"=== Diagnosing {ipAddress} ==="
-				};
-
-			// Test 1: Ping
-			try
-				{
-				using var ping = new Ping ();
-				PingReply reply = await ping.SendPingAsync (ipAddress, 500).ConfigureAwait (false);
-				results.Add ($"Ping: {reply.Status} ({reply.RoundtripTime}ms)");
-				}
-			catch (Exception ex)
-				{
-				results.Add ($"Ping failed: {ex.Message}");
-				}
-
-			// Test 2: Shared HttpClient
-			try
-				{
-				HttpResponseMessage response = await _sharedHttpClient.GetAsync ($"http://{ipAddress}/data/v2/domain/").ConfigureAwait (false);
-				results.Add ($"Shared HttpClient: {response.StatusCode}");
-				}
-			catch (Exception ex)
-				{
-				results.Add ($"Shared HttpClient failed: {ex.Message}");
-				}
-
-			// Test 3: Individual HttpClient
-			try
-				{
-				using var client = new HttpClient { Timeout = TimeSpan.FromMilliseconds (1500) };
-				HttpResponseMessage response = await client.GetAsync ($"http://{ipAddress}/data/v2/domain/").ConfigureAwait (false);
-				results.Add ($"Individual HttpClient: {response.StatusCode}");
-				}
-			catch (Exception ex)
-				{
-				results.Add ($"Individual HttpClient failed: {ex.Message}");
-				}
-
-			return string.Join ("\n", results);
-			}
-
-		/// <summary>
-		/// Diagnose network and gateway detection for debugging
-		/// </summary>
-		public static void DiagnoseNetworks ()
-			{
-			Console.WriteLine ("=== Network Detection Diagnosis ===");
-
-			List<NetworkInfo> networkInfos = GetLocalNetworkInfos (true);
-			foreach (NetworkInfo networkInfo in networkInfos)
-				{
-				Console.WriteLine ($"\nNetwork: {networkInfo.NetworkAddress}/{networkInfo.SubnetMask}");
-				Console.WriteLine ($"  Base: {networkInfo.NetworkBase}.*");
-				Console.WriteLine ($"  Broadcast: {networkInfo.BroadcastAddress}");
-				Console.WriteLine ($"  Host count: {networkInfo.HostCount}");
-
-				HashSet<IPAddress> gateways = GetGatewayIPs (networkInfo.NetworkAddress, true);
-				Console.WriteLine ($"  Gateways: {(gateways.Count != 0 ? string.Join (", ", gateways) : "None detected")}");
-				}
 			}
 		}
 	}

@@ -459,6 +459,22 @@ namespace WiserHeatApiV2
 			ConcurrentBag<WiserDiscoveredHub> hubs = await WiserHubDiscovery.DiscoverHubsAsync (options, cancellationToken).ConfigureAwait (false);
 			return [.. hubs];
 			}
+
+		public static async Task<List<WiserDiscoveredHub>> DiscoverHubAsync(int maxSearchTime = 30, int maxResults = 0, CancellationToken cancellationToken = default)
+		{
+			WiserDiscoveryOptions options = new()
+			{
+				ShowDebug = false,
+				ShowProgress = true,
+				MaxConcurrency = 10,
+				TimeoutSeconds = maxSearchTime,
+				HttpTimeout = 5000,
+				PingTimeout = 1000,
+				MaxResults = maxResults
+			};
+			ConcurrentBag<WiserDiscoveredHub> hubs = await WiserHubDiscovery.DiscoverHubsAsync(options, cancellationToken).ConfigureAwait(false);
+			return [.. hubs];
+		}
 		}
 
 	public static class WiserTimeExtensions

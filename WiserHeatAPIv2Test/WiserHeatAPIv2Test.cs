@@ -72,7 +72,7 @@ namespace WiserHeatAPIv2Test
 				{
 				Console.WriteLine ("Discovering Wiser Hub IP address...");
 				// Discover the Wiser Hub IP address
-				List<WiserDiscoveredHub> discoveredHubs = await WiserDiscovery.DiscoverHubAsync (60, CancellationToken.None).ConfigureAwait (false);
+				List<WiserDiscoveredHub> discoveredHubs = await WiserDiscovery.DiscoverHubAsync (60, 2, CancellationToken.None).ConfigureAwait (false);
 				if (discoveredHubs != null)
 					{
 					if (discoveredHubs.Count == 1)
