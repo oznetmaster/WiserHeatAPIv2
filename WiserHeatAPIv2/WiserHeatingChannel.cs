@@ -4,70 +4,53 @@
 
 namespace WiserHeatApiV2
 	{
-	public class WiserHeatingChannel
+	public class WiserHeatingChannel (IDictionary<string, object> data)
 		{
-		private readonly IDictionary<string, object> _data;
+		public string DemandOnOffOutput => data.TryGetValue ("DemandOnOffOutput", out var output) ? output.ToString () : Constants.TextUnknown;
 
-		public WiserHeatingChannel (IDictionary<string, object> data)
-			{
-			_data = data;
-			}
+		public string HeatingRelayStatus => data.TryGetValue ("HeatingRelayState", out var state) ? state.ToString () : Constants.TextUnknown;
 
-		public string DemandOnOffOutput => _data.TryGetValue ("DemandOnOffOutput", out var output) ? output.ToString () : Constants.TextUnknown;
+		public int Id => data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public string HeatingRelayStatus => _data.TryGetValue ("HeatingRelayState", out var state) ? state.ToString () : Constants.TextUnknown;
+		public bool IsSmartValvePreventingDemand => data.TryGetValue ("IsSmartValvePreventingDemand", out var preventing) && Convert.ToBoolean (preventing, CultureInfo.InvariantCulture);
 
-		public int Id => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public string Name => data.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
-		public bool IsSmartValvePreventingDemand => _data.TryGetValue ("IsSmartValvePreventingDemand", out var preventing) && Convert.ToBoolean (preventing, CultureInfo.InvariantCulture);
+		public int PercentageDemand => data.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
 
-		public string Name => _data.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
-
-		public int PercentageDemand => _data.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
-
-		public List<int> RoomIds => _data.TryGetValue ("RoomIds", out var roomIds) && roomIds is List<object> roomIdsList
-			 ? roomIdsList.Select (id => Convert.ToInt32 (id, CultureInfo.InvariantCulture)).ToList ()
+		public List<int> RoomIds => data.TryGetValue ("RoomIds", out var roomIds) && roomIds is List<object> roomIdsList
+			 ? [.. roomIdsList.Select (id => Convert.ToInt32 (id, CultureInfo.InvariantCulture))]
 			 : new List<int> ();
 		}
 
 	public class WiserHeatingChannels
 		{
-		private readonly List<WiserHeatingChannel> _heatingChannels = new List<WiserHeatingChannel> ();
 		private WiserRooms _rooms;
 
 		public WiserHeatingChannels (List<Dictionary<string, object>> heatingChannelData, WiserRooms rooms)
 			{
 			_rooms = rooms;
-			foreach (var channel in heatingChannelData)
+			foreach (Dictionary<string, object> channel in heatingChannelData)
 				{
-				_heatingChannels.Add (new WiserHeatingChannel (channel));
+				All.Add (new WiserHeatingChannel (channel));
 				}
 			}
 
 		public void Update (List<Dictionary<string, object>> heatingChannelData, WiserRooms rooms)
 			{
 			_rooms = rooms;
-			_heatingChannels.Clear ();
-			foreach (var channel in heatingChannelData)
+			All.Clear ();
+			foreach (Dictionary<string, object> channel in heatingChannelData)
 				{
-				_heatingChannels.Add (new WiserHeatingChannel (channel));
+				All.Add (new WiserHeatingChannel (channel));
 				}
 			}
 
-		public List<WiserHeatingChannel> All => _heatingChannels;
-		public int Count => _heatingChannels.Count;
-		public WiserHeatingChannel GetById (int id)
-			{
-			return _heatingChannels.FirstOrDefault (channel => channel.Id == id);
-			}
-		public WiserHeatingChannel GetByRoomId (int id)
-			{
-			return _heatingChannels.FirstOrDefault (channel => channel.RoomIds.Contains (id));
-			}
-		public WiserHeatingChannel? GetByRoomName (string roomName)
-			{
-			var room = _rooms.GetByName (roomName);
-			return room != null ? GetByRoomId (room.Id) : null;
-			}
+		public List<WiserHeatingChannel> All { get; } = [];
+		public int Count => All.Count;
+		public WiserHeatingChannel GetById (int id) => All.FirstOrDefault (channel => channel.Id == id);
+		public WiserHeatingChannel GetByRoomId (int id) => All.FirstOrDefault (channel => channel.RoomIds.Contains (id));
+		public WiserHeatingChannel? GetByRoomName (string roomName) =>
+			_rooms.GetByName (roomName) is WiserRoom room ? GetByRoomId (room.Id) : null;
 		}
 	}

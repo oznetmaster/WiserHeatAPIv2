@@ -10,27 +10,26 @@ namespace WiserHeatApiV2
 		private readonly Dictionary<string, object> _data;
 		private readonly Dictionary<string, object> _dhcpStatus;
 		private readonly Dictionary<string, object> _networkInterface;
-		private readonly List<WiserDetectedNetwork> _detectedAccessPoints = new List<WiserDetectedNetwork> ();
 
 		public WiserNetwork (Dictionary<string, object> data)
 			{
 			_data = data;
 			_dhcpStatus = _data.TryGetValue ("DhcpStatus", out var dhcpStatus) && dhcpStatus is Dictionary<string, object> dhcpDict
-				 ? dhcpDict : new Dictionary<string, object> ();
+				 ? dhcpDict : [];
 			_networkInterface = _data.TryGetValue ("NetworkInterface", out var networkInterface) && networkInterface is Dictionary<string, object> networkDict
-				 ? networkDict : new Dictionary<string, object> ();
+				 ? networkDict : [];
 
 			if (_data.TryGetValue ("DetectedAccessPoints", out var accessPoints) && accessPoints is List<object> accessPointsList)
 				{
 				foreach (var ap in accessPointsList)
 					{
 					if (ap is Dictionary<string, object> apDict)
-						_detectedAccessPoints.Add (new WiserDetectedNetwork (apDict));
+						DetectedAccessPoints.Add (new WiserDetectedNetwork (apDict));
 					}
 				}
 			}
 
-		public List<WiserDetectedNetwork> DetectedAccessPoints => _detectedAccessPoints;
+		public List<WiserDetectedNetwork> DetectedAccessPoints { get; } = [];
 
 		public string DhcpMode => _networkInterface.TryGetValue ("DhcpMode", out var mode) ? mode.ToString () : Constants.TextUnknown;
 
@@ -41,7 +40,9 @@ namespace WiserHeatApiV2
 			get
 				{
 				if (DhcpMode == "Client")
+					{
 					return _dhcpStatus.TryGetValue ("IPv4Address", out var address) ? address.ToString () : Constants.TextUnknown;
+					}
 				else
 					{
 					return _networkInterface.TryGetValue ("IPv4HostAddress", out var address) ? address.ToString () : Constants.TextUnknown;
@@ -54,7 +55,9 @@ namespace WiserHeatApiV2
 			get
 				{
 				if (DhcpMode == "Client")
+					{
 					return _dhcpStatus.TryGetValue ("IPv4SubnetMask", out var mask) ? mask.ToString () : Constants.TextUnknown;
+					}
 				else
 					{
 					return _networkInterface.TryGetValue ("IPv4SubnetMask", out var mask) ? mask.ToString () : Constants.TextUnknown;
@@ -67,7 +70,9 @@ namespace WiserHeatApiV2
 			get
 				{
 				if (DhcpMode == "Client")
+					{
 					return _dhcpStatus.TryGetValue ("IPv4DefaultGateway", out var gateway) ? gateway.ToString () : Constants.TextUnknown;
+					}
 				else
 					{
 					return _networkInterface.TryGetValue ("IPv4DefaultGateway", out var gateway) ? gateway.ToString () : Constants.TextUnknown;
@@ -80,7 +85,9 @@ namespace WiserHeatApiV2
 			get
 				{
 				if (DhcpMode == "Client")
+					{
 					return _dhcpStatus.TryGetValue ("IPv4PrimaryDNS", out var dns) ? dns.ToString () : Constants.TextUnknown;
+					}
 				else
 					{
 					return _networkInterface.TryGetValue ("IPv4PrimaryDNS", out var dns) ? dns.ToString () : Constants.TextUnknown;
@@ -93,7 +100,9 @@ namespace WiserHeatApiV2
 			get
 				{
 				if (DhcpMode == "Client")
+					{
 					return _dhcpStatus.TryGetValue ("IPv4SecondaryDNS", out var dns) ? dns.ToString () : Constants.TextUnknown;
+					}
 				else
 					{
 					return _networkInterface.TryGetValue ("IPv4SecondaryDNS", out var dns) ? dns.ToString () : Constants.TextUnknown;
@@ -103,67 +112,36 @@ namespace WiserHeatApiV2
 
 		public string MacAddress => _data.TryGetValue ("MacAddress", out var mac) ? mac.ToString () : Constants.TextUnknown;
 
-		public int SignalPercent
-			{
-			get
-				{
-				if (_data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Current", out var current))
-					return Math.Min (100, 2 * (Convert.ToInt32 (current, CultureInfo.InvariantCulture) + 100));
-				return 0;
-				}
-			}
+		public int SignalPercent => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Current", out var current)
+					? Math.Min (100, 2 * (Convert.ToInt32 (current, CultureInfo.InvariantCulture) + 100))
+					: 0;
 
-		public int SignalRssi
-			{
-			get
-				{
-				if (_data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Current", out var current))
-					return Convert.ToInt32 (current, CultureInfo.InvariantCulture);
-				return 0;
-				}
-			}
+		public int SignalRssi => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Current", out var current)
+					? Convert.ToInt32 (current, CultureInfo.InvariantCulture)
+					: 0;
 
-		public int SignalRssiMin
-			{
-			get
-				{
-				if (_data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Min", out var min))
-					return Convert.ToInt32 (min, CultureInfo.InvariantCulture);
-				return 0;
-				}
-			}
+		public int SignalRssiMin => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Min", out var min)
+					? Convert.ToInt32 (min, CultureInfo.InvariantCulture)
+					: 0;
 
-		public int SignalRssiMax
-			{
-			get
-				{
-				if (_data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Max", out var max))
-					return Convert.ToInt32 (max, CultureInfo.InvariantCulture);
-				return 0;
-				}
-			}
+		public int SignalRssiMax => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Max", out var max)
+					? Convert.ToInt32 (max, CultureInfo.InvariantCulture)
+					: 0;
 
 		public string SecurityMode => _data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : Constants.TextUnknown;
 
 		public string SSID => _data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : Constants.TextUnknown;
 		}
 
-	public class WiserDetectedNetwork
+	public class WiserDetectedNetwork (Dictionary<string, object> data)
 		{
-		private readonly Dictionary<string, object> _data;
+		public string? SSID => data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : null;
 
-		public WiserDetectedNetwork (Dictionary<string, object> data)
-			{
-			_data = data;
-			}
+		public int? Channel => data.TryGetValue ("Channel", out var channel) ? Convert.ToInt32 (channel, CultureInfo.InvariantCulture) : (int?)null;
 
-		public string? SSID => _data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : null;
+		public string? SecurityMode => data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : null;
 
-		public int? Channel => _data.TryGetValue ("Channel", out var channel) ? Convert.ToInt32 (channel, CultureInfo.InvariantCulture) : (int?)null;
-
-		public string? SecurityMode => _data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : null;
-
-		public int? RSSI => _data.TryGetValue ("RSSI", out var rssi) ? Convert.ToInt32 (rssi, CultureInfo.InvariantCulture) : (int?)null;
+		public int? RSSI => data.TryGetValue ("RSSI", out var rssi) ? Convert.ToInt32 (rssi, CultureInfo.InvariantCulture) : (int?)null;
 		}
 	}
 

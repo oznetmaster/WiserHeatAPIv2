@@ -4,15 +4,9 @@
 
 namespace WiserHeatApiV2
 	{
-	public class WiserSmartValve : WiserDevice
+	public class WiserSmartValve (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData) : WiserDevice(wiserRestController, data, deviceTypeData)
 		{
-
-		public WiserSmartValve (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData)
-			 : base (wiserRestController, data, deviceTypeData)
-			{
-			}
-
-		public WiserBattery Battery => new WiserBattery (Data);
+		public WiserBattery Battery => new (Data);
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 DeviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0);
@@ -28,15 +22,10 @@ namespace WiserHeatApiV2
 
 	public class WiserSmartValves
 		{
-		private readonly List<WiserSmartValve> _smartValves = new List<WiserSmartValve> ();
+		public List<WiserSmartValve> All { get; } = [];
 
-		public List<WiserSmartValve> All => _smartValves;
+		public int Count => All.Count;
 
-		public int Count => _smartValves.Count;
-
-		public WiserSmartValve GetById (int id)
-			{
-			return _smartValves.FirstOrDefault (valve => valve.Id == id);
-			}
+		public WiserSmartValve GetById (int id) => All.FirstOrDefault (valve => valve.Id == id);
 		}
 	}

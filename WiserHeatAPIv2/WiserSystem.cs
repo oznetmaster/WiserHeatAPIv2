@@ -12,23 +12,13 @@ namespace WiserHeatApiV2
 		private readonly WiserRestController _wiserRestController;
 		private readonly IDictionary<string, object> _data;
 		private Dictionary<string, object>? _systemData;
-		private WiserHubCapabilitiesInfo? _capabilityData;
-		private WiserCloud? _cloudData;
 		private Dictionary<string, object>? _deviceData;
-		private WiserNetwork? _networkData;
-#if OPENTHERM
-		private WiserOpentherm? _openthermData;
-#endif
-		private WiserSignalStrength? _signal;
 		private WiserFirmwareUpgradeInfo? _upgradeData;
-		private WiserZigbee? _zigbeeData;
-
 		private bool _automaticDaylightSaving;
 		private bool _awayModeAffectsHotwater;
 		private int _awayModeTargetTemperature;
 		private bool _comfortModeEnabled;
 		private int _degradedModeTargetTemperature;
-		private DateTime _hubTime;
 		private string? _overrideType;
 		private int _timezoneOffset;
 		private bool _valveProtectionEnabled;
@@ -46,28 +36,28 @@ namespace WiserHeatApiV2
 		private void Build (IDictionary<string, object> networkData, List<Dictionary<string, object>> deviceData, IDictionary<string, object> openthermData)
 			{
 			_systemData = _data.TryGetValue ("System", out var system) && system is Dictionary<string, object> systemDict
-				 ? systemDict : new Dictionary<string, object> ();
+				 ? systemDict : [];
 
 			// Sub classes for system setting values
-			_capabilityData = new WiserHubCapabilitiesInfo (_data.TryGetValue ("DeviceCapabilityMatrix", out var matrix) && matrix is Dictionary<string, object> matrixDict
-				 ? matrixDict : new Dictionary<string, object> ());
-			_cloudData = new WiserCloud (_systemData.TryGetValue ("CloudConnectionStatus", out var status) ? status.ToString () : "",
+			Capabilities = new WiserHubCapabilitiesInfo (_data.TryGetValue ("DeviceCapabilityMatrix", out var matrix) && matrix is Dictionary<string, object> matrixDict
+				 ? matrixDict : []);
+			Cloud = new WiserCloud (_systemData.TryGetValue ("CloudConnectionStatus", out var status) ? status.ToString () : "",
 				 _data.TryGetValue ("Cloud", out var cloud) && cloud is Dictionary<string, object> cloudDict
-				 ? cloudDict : new Dictionary<string, object> ());
+				 ? cloudDict : []);
 			_deviceData = GetSystemDevice (/*deviceData.TryGetValue ("Device", out var devices) && devices is List<object> deviceList
 				 ? deviceList.Cast<Dictionary<string, object>> ().ToList ()
 				 : new List<Dictionary<string, object>> ()*/ deviceData);
-			_networkData = new WiserNetwork (networkData.TryGetValue ("Station", out var station) && station is Dictionary<string, object> stationDict
-				 ? stationDict : new Dictionary<string, object> ());
+			Network = new WiserNetwork (networkData.TryGetValue ("Station", out var station) && station is Dictionary<string, object> stationDict
+				 ? stationDict : []);
 #if OPENTHERM
-			_openthermData = new WiserOpentherm (openthermData,
+			Opentherm = new WiserOpentherm (openthermData,
 				 _systemData.TryGetValue ("OpenThermConnectionStatus", out var otStatus) ? otStatus.ToString () : Constants.TextUnknown);
 #endif
-			_signal = new WiserSignalStrength (_deviceData);
+			Signal = new WiserSignalStrength (_deviceData);
 			_upgradeData = new WiserFirmwareUpgradeInfo (_data.TryGetValue ("UpgradeInfo", out var upgrade) && upgrade is List<object> upgradeList
-				 ? upgradeList.Cast<Dictionary<string, object>> ().ToList () : new List<Dictionary<string, object>> ());
-			_zigbeeData = new WiserZigbee (_data.TryGetValue ("Zigbee", out var zigbee) && zigbee is Dictionary<string, object> zigbeeDict
-				 ? zigbeeDict : new Dictionary<string, object> ());
+				 ? upgradeList.Cast<Dictionary<string, object>> ().ToList () : []);
+			Zigbee = new WiserZigbee (_data.TryGetValue ("Zigbee", out var zigbee) && zigbee is Dictionary<string, object> zigbeeDict
+				 ? zigbeeDict : []);
 
 			// Variables to hold values for settable values
 			_automaticDaylightSaving = _systemData.TryGetValue ("AutomaticDaylightSaving", out var ads) && Convert.ToBoolean (ads, CultureInfo.InvariantCulture);
@@ -75,7 +65,7 @@ namespace WiserHeatApiV2
 			_awayModeTargetTemperature = _systemData.TryGetValue ("AwayModeSetPointLimit", out var amtl) ? Convert.ToInt32 (amtl, CultureInfo.InvariantCulture) : 0;
 			_comfortModeEnabled = _systemData.TryGetValue ("ComfortModeEnabled", out var cme) && Convert.ToBoolean (cme, CultureInfo.InvariantCulture);
 			_degradedModeTargetTemperature = _systemData.TryGetValue ("DegradedModeSetpointThreshold", out var dmst) ? Convert.ToInt32 (dmst, CultureInfo.InvariantCulture) : 0;
-			_hubTime = _systemData.TryGetValue ("UnixTime", out var time) ? DateTimeOffset.FromUnixTimeSeconds (Convert.ToInt32 (time, CultureInfo.InvariantCulture)).DateTime : DateTime.Now;
+			HubTime = _systemData.TryGetValue ("UnixTime", out var time) ? DateTimeOffset.FromUnixTimeSeconds (Convert.ToInt32 (time, CultureInfo.InvariantCulture)).DateTime : DateTime.Now;
 			_overrideType = _systemData.TryGetValue ("OverrideType", out var ot) ? ot.ToString () : "";
 			_timezoneOffset = _systemData.TryGetValue ("TimeZoneOffset", out var tzo) ? Convert.ToInt32 (tzo, CultureInfo.InvariantCulture) : 0;
 			_valveProtectionEnabled = _systemData.TryGetValue ("ValveProtectionEnabled", out var vpe) && Convert.ToBoolean (vpe, CultureInfo.InvariantCulture);
@@ -86,7 +76,7 @@ namespace WiserHeatApiV2
 			if (domainData != null)
 				{
 				_data.Clear ();
-				foreach (var kv in domainData)
+				foreach (KeyValuePair<string, object> kv in domainData)
 					_data[kv.Key] = kv.Value;
 				}
 
@@ -95,19 +85,20 @@ namespace WiserHeatApiV2
 
 		private static Dictionary<string, object> GetSystemDevice (List<Dictionary<string, object>> deviceData)
 			{
-			foreach (var device in deviceData)
+			foreach (Dictionary<string, object> device in deviceData)
 				{
 				if (device.TryGetValue ("ProductType", out var productType) && productType.ToString () == "Controller")
 					{
 					return device;
 					}
 				}
-			return new Dictionary<string, object> ();
+
+			return [];
 			}
 
 		private Task<bool> SendCommandAsync (object cmd, string? path = null, CancellationToken cancellationToken = default)
 			{
-			string url = path != null ? $"{RestConstants.WiserSystem}/{path}" : RestConstants.WiserSystem;
+			var url = path != null ? $"{RestConstants.WiserSystem}/{path}" : RestConstants.WiserSystem;
 			return _wiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
@@ -166,7 +157,7 @@ namespace WiserHeatApiV2
 			get => WiserTemperatureFunctions.FromWiserTemp (_awayModeTargetTemperature);
 			set
 				{
-				int temp = WiserTemperatureFunctions.ToWiserTemp (value);
+				var temp = WiserTemperatureFunctions.ToWiserTemp (value);
 				if (SendCommandAsync (new
 					{
 					AwayModeSetPointLimit = temp
@@ -183,9 +174,9 @@ namespace WiserHeatApiV2
 
 		public string? BrandName => _systemData == null ? null : _systemData.TryGetValue ("BrandName", out var brand) ? brand.ToString () : null;
 
-		public WiserHubCapabilitiesInfo? Capabilities => _capabilityData;
+		public WiserHubCapabilitiesInfo? Capabilities { get; private set; }
 
-		public WiserCloud? Cloud => _cloudData;
+		public WiserCloud? Cloud { get; private set; }
 
 		public bool ComfortModeEnabled
 			{
@@ -207,7 +198,7 @@ namespace WiserHeatApiV2
 			get => WiserTemperatureFunctions.FromWiserTemp (_degradedModeTargetTemperature);
 			set
 				{
-				int temp = WiserTemperatureFunctions.ToWiserTemp (value);
+				var temp = WiserTemperatureFunctions.ToWiserTemp (value);
 				if (SendCommandAsync (new
 					{
 					DegradedModeSetpointThreshold = temp
@@ -220,7 +211,7 @@ namespace WiserHeatApiV2
 
 		public bool EcoModeEnabled
 			{
-			get => _systemData != null ? _systemData.TryGetValue ("EcoModeEnabled", out var eco) && Convert.ToBoolean (eco, CultureInfo.InvariantCulture) : false;
+			get => _systemData != null && _systemData.TryGetValue ("EcoModeEnabled", out var eco) && Convert.ToBoolean (eco, CultureInfo.InvariantCulture);
 			set
 				{
 				if (SendCommandAsync (new
@@ -237,8 +228,8 @@ namespace WiserHeatApiV2
 
 		public string? FirmwareVersion => _deviceData!.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TextUnknown;
 
-		public WiserGPS GeoPosition => new WiserGPS (_systemData!.TryGetValue ("GeoPosition", out var geo) && geo is Dictionary<string, object> geoDict
-			 ? geoDict : new Dictionary<string, object> ());
+		public WiserGPS GeoPosition => new (_systemData!.TryGetValue ("GeoPosition", out var geo) && geo is Dictionary<string, object> geoDict
+			 ? geoDict : []);
 
 		public int HardwareGeneration => _systemData!.TryGetValue ("HardwareGeneration", out var gen) ? Convert.ToInt32 (gen, CultureInfo.InvariantCulture) : 0;
 
@@ -246,7 +237,7 @@ namespace WiserHeatApiV2
 
 		public bool HotwaterButtonOverrideState => _systemData!.TryGetValue ("HotWaterButtonOverrideState", out var state) && state.ToString () == Constants.TextOn;
 
-		public DateTime HubTime => _hubTime;
+		public DateTime HubTime { get; private set; }
 
 		public int Id => _deviceData!.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
@@ -256,12 +247,12 @@ namespace WiserHeatApiV2
 
 		public string Name => Network?.Hostname ?? "No Name";
 
-		public WiserNetwork? Network => _networkData;
+		public WiserNetwork? Network { get; private set; }
 
 		public int NodeId => _deviceData!.TryGetValue ("NodeId", out var nodeId) ? Convert.ToInt32 (nodeId, CultureInfo.InvariantCulture) : 0;
 
 #if OPENTHERM
-		public WiserOpentherm? Opentherm => _openthermData;
+		public WiserOpentherm? Opentherm { get; private set; }
 #endif
 
 		public string PairingStatus => _systemData!.TryGetValue ("PairingStatus", out var status) ? status.ToString () : Constants.TextUnknown;
@@ -270,15 +261,15 @@ namespace WiserHeatApiV2
 
 		public string ProductType => _deviceData!.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TextUnknown;
 
-		public WiserSignalStrength? Signal => _signal;
+		public WiserSignalStrength? Signal { get; private set; }
 
 		public Dictionary<string, string> SunriseTimes => _systemData!.TryGetValue ("SunriseTimes", out var times) && times is List<object> timesList
-			 ? SpecialTimes.SunriseTimes (timesList.Select (s => Convert.ToInt32 (s, CultureInfo.InvariantCulture)).ToList ())
-			 : new Dictionary<string, string> ();
+			 ? SpecialTimes.SunriseTimes ([.. timesList.Select (s => Convert.ToInt32 (s, CultureInfo.InvariantCulture))])
+			 : [];
 
 		public Dictionary<string, string> SunsetTimes => _systemData!.TryGetValue ("SunsetTimes", out var times) && times is List<object> timesList
-			 ? SpecialTimes.SunsetTimes (timesList.Select (s => Convert.ToInt32 (s, CultureInfo.InvariantCulture)).ToList ())
-			 : new Dictionary<string, string> ();
+			 ? SpecialTimes.SunsetTimes ([.. timesList.Select (s => Convert.ToInt32 (s, CultureInfo.InvariantCulture))])
+			 : [];
 
 		public string SystemMode => _systemData!.TryGetValue ("SystemMode", out var mode) ? mode.ToString () : Constants.TextUnknown;
 
@@ -314,16 +305,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public WiserZigbee? Zigbee => _zigbeeData;
+		public WiserZigbee? Zigbee { get; private set; }
 
-		public Task<bool> AllowAddDeviceAsync (int allowTime = 120, CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (allowTime, "RequestPermitJoin", cancellationToken);
-			}
+		public Task<bool> AllowAddDeviceAsync (int allowTime = 120, CancellationToken cancellationToken = default) =>
+			SendCommandAsync (allowTime, "RequestPermitJoin", cancellationToken);
 
-		public Task<bool> BoostAllRoomsAsync (double incTemp, int duration, CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (new
+		public Task<bool> BoostAllRoomsAsync (double incTemp, int duration, CancellationToken cancellationToken = default) =>
+			SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
@@ -332,18 +320,15 @@ namespace WiserHeatApiV2
 					IncreaseSetPointBy = WiserTemperatureFunctions.ToWiserTemp (incTemp, "delta")
 					}
 				}, cancellationToken: cancellationToken);
-			}
 
-		public Task<bool> CancelAllOverridesAsync (CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (new
+		public Task<bool> CancelAllOverridesAsync (CancellationToken cancellationToken = default) =>
+			SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
 					Type = "CancelUserOverrides"
 					}
 				}, cancellationToken: cancellationToken);
-			}
 
 		public Task<bool> ConnectToNetworkAsync (string ssid, string password, int? channel = null, string? securityMode = null, CancellationToken cancellationToken = default)
 			{
@@ -366,8 +351,8 @@ namespace WiserHeatApiV2
 				}
 
 			// Use the host from the private data dictionary, which is set from the constructor
-			string host = _wiserRestController.GetHost();
-			return _wiserRestController.SendCommandAsync ($"{string.Format(System.Globalization.CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, host)}/Station", cmdData, cancellationToken: cancellationToken);
+			var host = _wiserRestController.GetHost ();
+			return _wiserRestController.SendCommandAsync ($"{string.Format (System.Globalization.CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, host)}/Station", cmdData, cancellationToken: cancellationToken);
 			}
 		}
 	}

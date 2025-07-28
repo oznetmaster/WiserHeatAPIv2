@@ -6,63 +6,46 @@ using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
 	{
-	public class WiserMoment
+	public class WiserMoment (WiserRestController wiserRestController, IDictionary<string, object> momentData)
 		{
-		private readonly WiserRestController _wiserRestController;
-		private readonly IDictionary<string, object> _momentData;
+		private Task<bool> SendCommandAsync (object cmd, System.Threading.CancellationToken cancellationToken = default) =>
+			wiserRestController.SendCommandAsync (RestConstants.WiserSystem, cmd, cancellationToken: cancellationToken);
 
-		public WiserMoment (WiserRestController wiserRestController, IDictionary<string, object> momentData)
-			{
-			_wiserRestController = wiserRestController;
-			_momentData = momentData;
-			}
+		public int Id => momentData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		private Task<bool> SendCommandAsync (object cmd, System.Threading.CancellationToken cancellationToken = default)
-			{
-			return _wiserRestController.SendCommandAsync (RestConstants.WiserSystem, cmd, cancellationToken: cancellationToken);
-			}
+		public string Name => momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
-		public int Id => _momentData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
-
-		public string Name => _momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
-
-		public Task<bool> ActivateAsync (System.Threading.CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (new
+		public Task<bool> ActivateAsync (System.Threading.CancellationToken cancellationToken = default) =>
+			SendCommandAsync (new
 				{
 				TriggerMoment = Id
 				}, cancellationToken);
-			}
 		}
 
 	public class WiserMoments
 		{
-		private readonly List<WiserMoment> _moments = new List<WiserMoment> ();
 		private readonly WiserRestController _wiserRestController;
 
 		public WiserMoments (WiserRestController wiserRestController, List<Dictionary<string, object>> momentsData)
 			{
 			_wiserRestController = wiserRestController;
-			foreach (var moment in momentsData)
+			foreach (Dictionary<string, object> moment in momentsData)
 				{
-				_moments.Add (new WiserMoment (wiserRestController, moment));
+				All.Add (new WiserMoment (wiserRestController, moment));
 				}
 			}
 
 		public void Update (List<Dictionary<string, object>> momentsData)
 			{
-			_moments.Clear ();
-			foreach (var moment in momentsData)
+			All.Clear ();
+			foreach (Dictionary<string, object> moment in momentsData)
 				{
-				_moments.Add (new WiserMoment (_wiserRestController, moment));
+				All.Add (new WiserMoment (_wiserRestController, moment));
 				}
 			}
 
-		public List<WiserMoment> All => _moments;
-		public int Count => _moments.Count;
-		public WiserMoment GetById (int id)
-			{
-			return _moments.FirstOrDefault (moment => moment.Id == id);
-			}
+		public List<WiserMoment> All { get; } = [];
+		public int Count => All.Count;
+		public WiserMoment GetById (int id) => All.FirstOrDefault (moment => moment.Id == id);
 		}
 	}

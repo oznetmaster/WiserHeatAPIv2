@@ -10,78 +10,59 @@ namespace WiserHeatApiV2
 #if SHUTTER
 	public class WiserShutter : WiserElectricalLevelDevice
 		{
-		public class WiserLiftMovementRange
+		public class WiserLiftMovementRange (WiserShutter shutterInstance, Dictionary<string, object>? data)
 			{
-			private readonly WiserShutter _shutterInstance;
-			private readonly Dictionary<string, object>? _data;
+			public int? OpenTime => data?.TryGetValue ("LiftOpenTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
 
-			public WiserLiftMovementRange (WiserShutter shutterInstance, Dictionary<string, object>? data)
-				{
-				_shutterInstance = shutterInstance;
-				_data = data;
-				}
+			public int? CloseTime => data?.TryGetValue ("LiftCloseTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
 
-			public int? OpenTime => _data?.TryGetValue ("LiftOpenTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
+			public async Task SetOpenTimeAsync (int time, CancellationToken cancellationToken = default) =>
+				_ = await shutterInstance.SendCommandAsync (new { LiftOpenTime = time, LiftCloseTime = CloseTime }, cancellationToken: cancellationToken).ConfigureAwait (false);
 
-			public int? CloseTime => _data?.TryGetValue ("LiftCloseTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
-
-			public async Task SetOpenTimeAsync (int time, CancellationToken cancellationToken = default)
-				{
-				await _shutterInstance.SendCommandAsync (new { LiftOpenTime = time, LiftCloseTime = CloseTime }, cancellationToken: cancellationToken).ConfigureAwait (false);
-				}
-
-			public async Task SetCloseTimeAsync (int time, CancellationToken cancellationToken = default)
-				{
-				await _shutterInstance.SendCommandAsync (new { LiftOpenTime = OpenTime, LiftCloseTime = time }, cancellationToken: cancellationToken).ConfigureAwait (false);
-				}
+			public async Task SetCloseTimeAsync (int time, CancellationToken cancellationToken = default) =>
+				_ = await shutterInstance.SendCommandAsync (new { LiftOpenTime = OpenTime, LiftCloseTime = time }, cancellationToken: cancellationToken).ConfigureAwait (false);
 			}
 
-		private readonly WiserSchedule? _schedule;
 		private string _awayAction;
 		private string _mode;
+		//private string _name;
 
 		public WiserShutter (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
 			 : base (wiserRestController, data, deviceTypeData)
 			{
-			_schedule = schedule;
+			Schedule = schedule;
 			_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TextUnknown;
 			_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TextUnknown;
+			//_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
 			// Add device id to schedule
-			if (_schedule != null)
+			if (Schedule != null)
 				{
-				_schedule.Assignments.Add (new Dictionary<string, object> { { "id", ShutterId }, { "name", Name } });
-				_schedule.DeviceIds.Add (Id);
+				Schedule.Assignments.Add (new Dictionary<string, object> { { "id", ShutterId }, { "name", Name } });
+				Schedule.DeviceIds.Add (Id);
 				}
 			}
 
 		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			string url = string.Format (CultureInfo.InvariantCulture, RestConstants.WiserShutter, ShutterId);
+			var url = string.Format (CultureInfo.InvariantCulture, RestConstants.WiserShutter, ShutterId);
 
 			return WiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
 
-		private static bool ValidateMode (string mode)
-			{
-			return AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
-			}
+		private static bool ValidateMode (string mode) => AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
 
-		private static bool ValidateAwayAction (string action)
-			{
-			return AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
-			}
+		private static bool ValidateAwayAction (string action) =>
+			AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 
-		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserShutterMode))
+		public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserShutterMode))
 			 .Cast<WiserShutterMode> ()
-			 .Select (m => m.ToString ())
-			 .ToList ();
+			 .Select (m => m.ToString ())];
 
-		public static List<string> AvailableAwayModeActions => Enum.GetValues (typeof (WiserAwayAction))
+		public static List<string> AvailableAwayModeActions => [.. Enum.GetValues (typeof (WiserAwayAction))
 			 .Cast<WiserAwayAction> ()
-			 .Where (a => a == WiserAwayAction.Close || a == WiserAwayAction.NoChange)
-			 .Select (a => a.ToString ())
-			 .ToList ();
+			 .Where (a => a is WiserAwayAction.Close or WiserAwayAction.NoChange)
+			 .Select (a => a.ToString ())];
 
 		public string AwayModeAction
 			{
@@ -108,29 +89,15 @@ namespace WiserHeatApiV2
 
 		public int CurrentLift => DeviceTypeData.TryGetValue ("CurrentLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
 
-		public async Task SetCurrentLiftAsync (int percentage, CancellationToken cancellationToken = default)
-			{
-			if (percentage >= 0 && percentage <= 100)
-				{
-				await SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = percentage } }, cancellationToken: cancellationToken).ConfigureAwait (false);
-				}
-			else
-				{
-				throw new ArgumentException ("Shutter percentage must be between 0 and 100");
-				}
-			}
+		public async Task SetCurrentLiftAsync (int percentage, CancellationToken cancellationToken = default) => 
+			_ = percentage is >= 0 and <= 100
+				? await SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = percentage } }, cancellationToken: cancellationToken).ConfigureAwait (false)
+				: throw new ArgumentException ("Shutter percentage must be between 0 and 100");
 
-		public WiserLiftMovementRange DriveConfig
-			{
-			get
-				{
-				if (DeviceTypeData.TryGetValue ("DriveConfig", out var config) && config is Dictionary<string, object> configDict)
-					{
-					return new WiserLiftMovementRange (this, configDict);
-					}
-				return new WiserLiftMovementRange (this, null);
-				}
-			}
+		public WiserLiftMovementRange DriveConfig =>
+			DeviceTypeData.TryGetValue ("DriveConfig", out var config) && config is Dictionary<string, object> configDict
+					? new WiserLiftMovementRange (this, configDict)
+					: new WiserLiftMovementRange (this, null);
 
 		public bool IsOpen => CurrentLift == 100;
 
@@ -167,29 +134,33 @@ namespace WiserHeatApiV2
 				}
 			}
 
+		/*
 		override public string Name
 			{
-			get => base.Name;
+			get => _name;
 			set
 				{
-				if (value == base.Name)
+				if (value == _name)
 					return;
 				if (string.IsNullOrWhiteSpace (value))
 					{
 					throw new ArgumentException ("Name cannot be null or empty.");
 					}
+
 				if (value.Length > 50)
 					{
 					throw new ArgumentException ("Name cannot exceed 50 characters.");
 					}
+
 				if (SendCommandAsync (new { Name = value }).Result)
 					{
-					base.Name = value;
+					_name = value;
 					}
 				}
 			}
+		*/
 
-		public WiserSchedule? Schedule => _schedule;
+		public WiserSchedule? Schedule { get; }
 
 		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
@@ -199,49 +170,31 @@ namespace WiserHeatApiV2
 
 		public int TargetLift => DeviceTypeData.TryGetValue ("TargetLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
 
-		public Task OpenAsync (CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }, cancellationToken: cancellationToken);
-			}
+		public Task OpenAsync (CancellationToken cancellationToken = default) =>
+			SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }, cancellationToken: cancellationToken);
 
-		public Task CloseAsync (CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 0 } }, cancellationToken: cancellationToken);
-			}
+		public Task CloseAsync (CancellationToken cancellationToken = default) =>
+			SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 0 } }, cancellationToken: cancellationToken);
 
-		public Task StopAsync (CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (new { RequestAction = new { Action = "Stop" } }, cancellationToken: cancellationToken);
-			}
+		public Task StopAsync (CancellationToken cancellationToken = default) =>
+			SendCommandAsync (new { RequestAction = new { Action = "Stop" } }, cancellationToken: cancellationToken);
 		}
 
 	public class WiserShutters
 		{
-		private readonly List<WiserShutter> _shutters = new List<WiserShutter> ();
+		public List<WiserShutter> All { get; } = [];
 
-		public List<WiserShutter> All => _shutters;
-
-		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserShutterMode))
+		public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserShutterMode))
 			 .Cast<WiserShutterMode> ()
-			 .Select (m => m.ToString ())
-			 .ToList ();
+			 .Select (m => m.ToString ())];
 
-		public int Count => _shutters.Count;
+		public int Count => All.Count;
 
-		public WiserShutter GetById (int id)
-			{
-			return _shutters.FirstOrDefault (shutter => shutter.Id == id);
-			}
+		public WiserShutter GetById (int id) => All.FirstOrDefault (shutter => shutter.Id == id);
 
-		public WiserShutter GetByShutterId (int shutterId)
-			{
-			return _shutters.FirstOrDefault (shutter => shutter.ShutterId == shutterId);
-			}
+		public WiserShutter GetByShutterId (int shutterId) => All.FirstOrDefault (shutter => shutter.ShutterId == shutterId);
 
-		public List<WiserShutter> GetByRoomId (int roomId)
-			{
-			return _shutters.Where (shutter => shutter.RoomId == roomId).ToList ();
-			}
+		public List<WiserShutter> GetByRoomId (int roomId) => [.. All.Where (shutter => shutter.RoomId == roomId)];
 		}
 #endif
 	}

@@ -7,13 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reflection;
 
 using log4net;
 using log4net.Config;
 
 using WiserHeatApiV2;
-
-using WiserHeatingAPI;
 
 namespace WiserHeatAPIv2Test
 	{
@@ -24,13 +23,30 @@ namespace WiserHeatAPIv2Test
 		public static string wiserkey = string.Empty;
 		public static string wiserip = string.Empty;
 
-		private static WiserAPI? wapi;
+		private static WiserAPI? _wapi;
 
-		static async Task Main (string[] args)
+		static async Task Main ()
 			{
 			// Load log4net configuration
-			XmlConfigurator.Configure (new FileInfo ("log4net.config"));
+			_ = XmlConfigurator.Configure (new FileInfo ("log4net.config"));
 
+			Console.WriteLine ("Wiser Heat API v2 Test");
+			Console.WriteLine ("-------------------------------");
+			Console.WriteLine ("This test requires a file named wiserkeys.params in the current directory.");
+			Console.WriteLine ("This file should contain the Wiser key and Wiser hub IP address in the following format:");
+			Console.WriteLine ("wiserkey=your_wiser_key_here");
+			Console.WriteLine ("wiserhubip=your_wiser_hub_ip_here or discover");
+			Console.WriteLine ("-------------------------------");
+			if (!File.Exists ("wiserkeys.params"))
+				{
+				Console.WriteLine ("wiserkeys.params file not found.");
+				Console.WriteLine ("Please create a file named wiserkeys.params with the following format:");
+				Console.WriteLine ("wiserkey=your_wiser_key_here");
+				Console.WriteLine ("wiserhubip=your_wiser_hub_ip_here or discover");
+				return;
+				}
+
+			// Read the Wiser key and Wiser hub IP from the file
 			var data = File.ReadAllLines ("wiserkeys.params");
 			foreach (var lines in data)
 				{
@@ -41,11 +57,50 @@ namespace WiserHeatAPIv2Test
 					wiserip = line[1];
 				}
 
+			if (string.IsNullOrEmpty (wiserkey) || string.IsNullOrEmpty (wiserip))
+				{
+				Console.WriteLine ("wiserkeys.params file is missing or does not contain the required keys.");
+				Console.WriteLine ("Please create a file named wiserkeys.params with the following format:");
+				Console.WriteLine ("wiserkey=your_wiser_key_here");
+				Console.WriteLine ("wiserhubip=your_wiser_hub_ip_here or discover");
+				return;
+				}
+
 			Console.WriteLine ($" Wiser Hub IP = {wiserip}, WiserKey = {wiserkey}");
 
+			if (string.Equals (wiserip, "discover", StringComparison.OrdinalIgnoreCase))
+				{
+				Console.WriteLine ("Discovering Wiser Hub IP address...");
+				// Discover the Wiser Hub IP address
+				List<WiserDiscoveredHub> discoveredHubs = await WiserDiscovery.DiscoverHubAsync (60, CancellationToken.None).ConfigureAwait (false);
+				if (discoveredHubs != null)
+					{
+					if (discoveredHubs.Count == 1)
+						{
+						wiserip = discoveredHubs.First ().IpAddress.ToString ();
+						Console.WriteLine ($"Discovered Wiser Hub IP: {wiserip}");
+						}
+					else if (discoveredHubs.Count > 1)
+						{
+						Console.WriteLine ("Multiple Wiser Hubs discovered. Please specify the IP address in the wiserkeys.params file.");
+						foreach (WiserDiscoveredHub hub in discoveredHubs)
+							{
+							Console.WriteLine ($"Discovered Wiser Hub IP: {hub.IpAddress}");
+							}
 
-			wapi = new WiserAPI (wiserip, wiserkey);
-			if (wapi != null) {
+						return;
+						}
+					else
+						{
+						Console.WriteLine ("Failed to discover Wiser Hub IP address.");
+						return;
+						}
+					}
+				}
+
+			_wapi = new WiserAPI (wiserip, wiserkey);
+			if (_wapi != null)
+				{
 				Console.WriteLine ("WiserAPI created successfully");
 				}
 			else
@@ -54,64 +109,70 @@ namespace WiserHeatAPIv2Test
 				return;
 				}
 			// Read the hub data
-			await wapi.InitializeAsync (CancellationToken.None);
+			await _wapi.InitializeAsync (CancellationToken.None);
 
 			Console.WriteLine ("-------------------------------");
-			Console.WriteLine ($"Running tests on Version {wapi.System?.ActiveSystemVersion}");
+			Console.WriteLine ($"Running tests on Version {_wapi.System?.ActiveSystemVersion}");
 			Console.WriteLine ("-------------------------------");
-			Console.WriteLine ($"Model # {wapi.System?.Model}");
-			Console.WriteLine ($"Hub Date/Time: {wapi.System?.HubTime}");
-			Console.WriteLine ($"Hub ZigBee Channel: {wapi.System?.Zigbee?.NetworkChannel}");
+			Console.WriteLine ($"Model # {_wapi.System?.Model}");
+			Console.WriteLine ($"Hub Date/Time: {_wapi.System?.HubTime}");
+			Console.WriteLine ($"Hub ZigBee Channel: {_wapi.System?.Zigbee?.NetworkChannel}");
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("Wiser Hub Capabilities");
 			Console.WriteLine ("--------------------------------");
 
-			var capabilities = wapi.System?.Capabilities;
-			var capabilityProperties = capabilities?.GetType ().GetProperties ();
+			WiserHubCapabilitiesInfo? capabilities = _wapi.System?.Capabilities;
+			System.Reflection.PropertyInfo[]? capabilityProperties = capabilities?.GetType ().GetProperties ();
 
 			if (capabilities == null || capabilityProperties == null || capabilityProperties.Length == 0)
 				{
 				Console.WriteLine ("No capabilities found.");
 				}
 			else
-				foreach (var property in capabilityProperties)
+				{
+				foreach (PropertyInfo property in capabilityProperties)
 					{
 					if (property.PropertyType == typeof (bool) && (bool)property.GetValue (capabilities))
 						{
 						Console.WriteLine ($"{property.Name}");
 						}
 					}
+				}
 
 			// Display some states
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("Some States");
 			Console.WriteLine ("--------------------------------");
 			// Heating State
-			Console.WriteLine ($"Hot water status {(wapi.Hotwater != null ? (wapi.Hotwater.IsHeating ? "Heating" : "Idle") : "Unknown")}");
+			Console.WriteLine ($"Hot water status {(_wapi.Hotwater != null ? (_wapi.Hotwater.IsHeating ? "Heating" : "Idle") : "Unknown")}");
 			// Assumes at least one roomstat
-			Console.WriteLine ($"Roomstat humidity {wapi.Rooms!.All[3].CurrentHumidity}%");
+			Console.WriteLine ($"Roomstat humidity {_wapi.Rooms!.All[3].CurrentHumidity}%");
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("List of Devices");
 			Console.WriteLine ("--------------------------------");
 
-			if (wapi.Devices != null && wapi.Devices.All.Count > 0)
-				foreach (var device in wapi.Devices.All)
+			if (_wapi.Devices != null && _wapi.Devices.All.Count > 0)
+				{
+				foreach (WiserDevice device in _wapi.Devices.All)
 					{
 					var deviceId = device.Id;
-					var room = wapi.Rooms.GetByDeviceId (deviceId);
+					WiserRoom? room = _wapi.Rooms.GetByDeviceId (deviceId);
 					Console.WriteLine ($"Device : Id {deviceId} Room {room?.Name} Type {device.ProductType}, SignalStrength {device.Signal.DisplayedSignalStrength}");
 					}
+				}
 
 			Console.WriteLine ("--------------------------------");
 			Console.WriteLine ("Listing all Rooms");
 			Console.WriteLine ("--------------------------------");
-			foreach (var roomTest in wapi.Rooms.All)
+			foreach (WiserRoom roomTest in _wapi.Rooms.All)
 				{
-				var smartValves = roomTest.SmartvalveIds;
+				List<int>? smartValves = roomTest.SmartvalveIds;
 				if (smartValves is null || smartValves.Count == 0)
+					{
 					Console.WriteLine ($"Room ({roomTest.Id}) {roomTest.Name} has no smartValves");
+					}
 				else
 					{
 					Console.WriteLine (
@@ -120,7 +181,7 @@ namespace WiserHeatAPIv2Test
 					Console.WriteLine ("\tSmartvalves in this room:");
 					foreach (var smartValveId in smartValves)
 						{
-						var smartValve = wapi.Devices!.Smartvalves.All.FirstOrDefault (x => x.Id == smartValveId);
+						WiserSmartValve smartValve = _wapi.Devices!.Smartvalves.All.FirstOrDefault (x => x.Id == smartValveId);
 						if (smartValve != null)
 							{
 							Console.WriteLine ($"\t\tSmartvalve ({smartValve.Name}) {smartValve.Id}, setpoint={smartValve.CurrentTargetTemperature}C, current temp={smartValve.CurrentTemperature}C, battery={smartValve.Battery.Percent}% {smartValve.Battery.Level}");
@@ -131,17 +192,18 @@ namespace WiserHeatAPIv2Test
 							}
 						}
 					}
+
 				if (roomTest.RoomstatId != null)
 					{
-					var roomStat = wapi.Devices!.Roomstats.All.FirstOrDefault (x => x.Id == roomTest.RoomstatId);
+					WiserRoomStat roomStat = _wapi.Devices!.Roomstats.All.FirstOrDefault (x => x.Id == roomTest.RoomstatId);
 					Console.WriteLine ($"\tRoomstat ({roomStat.Name}) {roomStat.Id}, setpoint={roomStat.CurrentTargetTemperature}C, current temp={roomStat.CurrentTemperature}C, current humidity={roomStat.CurrentHumidity}% battery={roomStat.Battery.Percent}% {roomStat.Battery.Level}");
 					}
 
-				var smartPlugs = wapi.Devices!.Smartplugs.All.Where (x => x.RoomId == roomTest.Id).ToList ();
+				var smartPlugs = _wapi.Devices!.Smartplugs.All.Where (x => x.RoomId == roomTest.Id).ToList ();
 				if (smartPlugs.Count > 0)
 					{
 					Console.WriteLine ("\tSmartplugs in this room:");
-					foreach (var smartPlug in smartPlugs)
+					foreach (WiserSmartPlug smartPlug in smartPlugs)
 						{
 						Console.WriteLine ($"\t\tSmartplug ({smartPlug.Name}) {smartPlug.Id}, state={(smartPlug.IsOn ? "On" : "Off")}, scheduled state={smartPlug.ScheduledState}");
 						}
@@ -151,44 +213,44 @@ namespace WiserHeatAPIv2Test
 					Console.WriteLine ("\tNo Smartplugs in this room");
 					}
 
-				var lowBattery = (roomTest.RoomstatId.HasValue && wapi.Devices.Roomstats.GetById (roomTest.RoomstatId.Value)?.Battery.Level == "Low")
-					|| (roomTest.SmartvalveIds?.Count > 0 && roomTest.SmartvalveIds.Any (svid => wapi.Devices.Smartvalves.GetById (svid).Battery.Level == "Low"));
+				var lowBattery = (roomTest.RoomstatId.HasValue && _wapi.Devices.Roomstats.GetById (roomTest.RoomstatId.Value)?.Battery.Level == "Low")
+					|| (roomTest.SmartvalveIds?.Count > 0 && roomTest.SmartvalveIds.Any (svid => _wapi.Devices.Smartvalves.GetById (svid).Battery.Level == "Low"));
 				if (lowBattery)
 					{
-					Console.WriteLine($"\tLow battery warning in room: {roomTest.Name}");
+					Console.WriteLine ($"\tLow battery warning in room: {roomTest.Name}");
 					}
 				}
 
 				{
 				var roomToTest = 5;
-				var room = wapi.Rooms.GetById (roomToTest);
+				WiserRoom room = _wapi.Rooms.GetById (roomToTest);
 				Console.WriteLine ($"Room {room.Name} setpoint is {room.CurrentTargetTemperature}");
 				Console.WriteLine ($"Room {room.Name} IsOverride is {room.IsOverride}, IsBoost is {room.IsBoost}");
-				await room.CancelBoostAsync ();
-				await room.CancelOverridesAsync ();
-				await room.SetTargetTemperatureForDurationOfScheduleAsync (14);
-				await wapi.ReadHubDataAsync ();
+				_ = await room.CancelBoostAsync ();
+				_ = await room.CancelOverridesAsync ();
+				_ = await room.SetTargetTemperatureForDurationOfScheduleAsync (14);
+				_ = await _wapi.ReadHubDataAsync ();
 				//room = wapi.Rooms.GetById (roomToTest);
 				Console.WriteLine ($"Room {room.Name} setpoint is now {room.CurrentTargetTemperature}, scheduled setpoint is {room.ScheduledTargetTemperature}, override setpoint is {room.OverrideTargetTemperature}");
 				Console.WriteLine ($"Room {room.Name} IsOverride is {room.IsOverride}, IsBoost is {room.IsBoost}");
-				await room.CancelOverridesAsync ();
-				await wapi.ReadHubDataAsync ();
+				_ = await room.CancelOverridesAsync ();
+				_ = await _wapi.ReadHubDataAsync ();
 				//room = wapi.Rooms.GetById (roomToTest);
 				Console.WriteLine ($"Room {room.Name} setpoint is now reset to {room.CurrentTargetTemperature}");
 				Console.WriteLine ($"Room {room.Name} IsOverride is {room.IsOverride}, IsBoost is {room.IsBoost}");
 				}
 
 			// Display some states
-			var state = wapi.Devices!.Smartplugs.All[0].IsOn;
-			await wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
+			var state = _wapi.Devices!.Smartplugs.All[0].IsOn;
+			_ = await _wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
 			Thread.Sleep (1);
-			await wapi.Devices.Smartplugs.All[0].TurnOnAsync ();
+			_ = await _wapi.Devices.Smartplugs.All[0].TurnOnAsync ();
 			Thread.Sleep (1);
 			if (!state)
-				await wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
+				_ = await _wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
 
-			int scheduleRoomTest = 5;
-			var schedule = wapi.Schedules!.GetByRoomId (scheduleRoomTest);
+			var scheduleRoomTest = 5;
+			WiserHeatingSchedule? schedule = _wapi.Schedules!.GetByRoomId (scheduleRoomTest);
 			if (schedule == null)
 				{
 				Console.WriteLine ($"No schedule found for Room {scheduleRoomTest}");
@@ -196,31 +258,30 @@ namespace WiserHeatAPIv2Test
 			else
 				{
 				Console.WriteLine ("--------------------------------");
-				Console.WriteLine ($"Schedule for Room {scheduleRoomTest} [{wapi.Rooms.GetById (scheduleRoomTest).Name}] {schedule.Name} Type = {schedule.ScheduleType}");
+				Console.WriteLine ($"Schedule for Room {scheduleRoomTest} [{_wapi.Rooms.GetById (scheduleRoomTest).Name}] {schedule.Name} Type = {schedule.ScheduleType}");
 				Console.WriteLine ("--------------------------------");
 
 				Console.WriteLine ($"Schedule.Next: DateTime {schedule.Next?.DateTime} Day {schedule.Next?.Day} Time {schedule.Next?.Time} Setting {schedule.Next?.Setting}");
 
 				// Assume 'schedule' is an instance of WiserSchedule
-				var scheduleData = schedule.ScheduleData;
+				IDictionary<string, object> scheduleData = schedule.ScheduleData;
 
 				foreach (var day in scheduleData.Keys.OrderBy (k => Enum.Parse (typeof (DayOfWeek), k)))
 					{
 					Console.WriteLine ($"Day: {day}");
-					var slots = scheduleData[day] as Dictionary<string, object>;
-					if (slots == null)
+					if (scheduleData[day] is not Dictionary<string, object> slots)
 						{
 						Console.WriteLine ($"\tNo slots found for {day}");
 						continue;
 						}
-					var times = slots["Time"] as List<object>;
-					var settings = slots["DegreesC"] as List<object>;
-					if (times == null || settings == null)
+
+					if (slots["Time"] is not List<object> times || slots["DegreesC"] is not List<object> settings)
 						{
 						Console.WriteLine ($"\tNo times or settings found for {day}");
 						continue;
 						}
-					for (int i = 0; i < times.Count; i++)
+
+					for (var i = 0; i < times.Count; i++)
 						{
 						Console.WriteLine ($"\tTime: {times[i].ToWiserTime ()}, Setting: {WiserTemperatureFunctions.FromWiserTemp (settings[i]):f1}");
 						}

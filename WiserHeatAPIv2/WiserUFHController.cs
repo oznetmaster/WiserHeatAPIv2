@@ -6,8 +6,6 @@ namespace WiserHeatApiV2
 	{
 	public class WiserUFHController : WiserDevice
 		{
-		private readonly List<WiserUFHRelay> _relays = new List<WiserUFHRelay> ();
-
 		public WiserUFHController (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData)
 			 : base (wiserRestController, data, deviceTypeData)
 			{
@@ -19,7 +17,7 @@ namespace WiserHeatApiV2
 					{
 					if (relay is Dictionary<string, object> relayDict)
 						{
-						_relays.Add (new WiserUFHRelay (relayDict));
+						Relays.Add (new WiserUFHRelay (relayDict));
 						}
 					}
 				}
@@ -39,44 +37,30 @@ namespace WiserHeatApiV2
 
 		public string OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TextUnknown;
 
-		public List<WiserUFHRelay> Relays => _relays;
+		public List<WiserUFHRelay> Relays { get; } = [];
 		}
 
 	public class WiserUFHControllers
 		{
-		private readonly List<WiserUFHController> _ufhControllers = new List<WiserUFHController> ();
+		public List<WiserUFHController> All { get; } = [];
 
-		public List<WiserUFHController> All => _ufhControllers;
+		public int Count => All.Count;
 
-		public int Count => _ufhControllers.Count;
-
-		public WiserUFHController GetById (int id)
-			{
-			return _ufhControllers.FirstOrDefault (controller => controller.Id == id);
-			}
+		public WiserUFHController GetById (int id) => All.FirstOrDefault (controller => controller.Id == id);
 		}
-	public class WiserUFHRelay
+	public class WiserUFHRelay (Dictionary<string, object> relayData)
 		{
 		public int DemandPercentage
 			{
 			get;
-			}
+			} = relayData.TryGetValue ("DemandPercentage", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
 		public bool Polarity
 			{
 			get;
-			}
+			} = relayData.TryGetValue ("Polarity", out var polarity) && Convert.ToBoolean (polarity, CultureInfo.InvariantCulture);
 		public int Id
 			{
 			get;
-			}
-
-		public WiserUFHRelay (Dictionary<string, object> relayData)
-			{
-			DemandPercentage = relayData.TryGetValue ("DemandPercentage", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
-			Polarity = relayData.TryGetValue ("Polarity", out var polarity) && Convert.ToBoolean (polarity, CultureInfo.InvariantCulture);
-			Id = relayData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
-			}
+			} = relayData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 		}
-
-
 	}

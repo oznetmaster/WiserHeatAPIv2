@@ -11,21 +11,17 @@ namespace WiserHeatApiV2
 		{
 		private readonly WiserRestController _wiserRestController;
 		private readonly IDictionary<string, object> _data;
-		private WiserSchedule? _schedule;
 		private string _mode;
 
 		public WiserHotwater (WiserRestController wiserRestController, IDictionary<string, object> hwData, WiserSchedule? schedule)
 			{
 			_wiserRestController = wiserRestController;
 			_data = hwData;
-			_schedule = schedule;
+			Schedule = schedule;
 			_mode = _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TextAuto;
 
 			// Add device id to schedule
-			if (_schedule != null)
-				{
-				_schedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
-				}
+			Schedule?.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
 			}
 
 		public void Update (IDictionary<string, object> hwData, WiserSchedule? schedule)
@@ -36,41 +32,36 @@ namespace WiserHeatApiV2
 			if (hwData != null)
 				{
 				_data.Clear ();
-				foreach (var kv in hwData)
+				foreach (KeyValuePair<string, object> kv in hwData)
 					_data[kv.Key] = kv.Value;
 				}
 
-			_schedule = schedule; // Uncomment if you want to update the schedule reference
+			Schedule = schedule; // Uncomment if you want to update the schedule reference
 			_mode = _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TextAuto;
-			if (_schedule != null)
+			if (Schedule != null)
 				{
 				if (oldId != Id || oldName != Name)
 					{
 					// Remove old assignment if the id or name has changed
-					_schedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
-					_schedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
+					_ = Schedule.Assignments.RemoveAll (a => (int)a["id"] == oldId || (string)a["name"] == oldName);
+					Schedule.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
 					}
 				}
-
 			}
-		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
-			{
-			return _wiserRestController.SendCommandAsync (
+
+		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default) =>
+			_wiserRestController.SendCommandAsync (
 				 string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHotWater, Id),
 				 cmd,
 				 cancellationToken: cancellationToken
 			);
-			}
 
-		private static bool ValidateMode (string mode)
-			{
-			return AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
-			}
+		private static bool ValidateMode (string mode) =>
+			AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
 
-		public static List<string> AvailableModes => Enum.GetValues (typeof (WiserHotWaterMode))
+		public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserHotWaterMode))
 			 .Cast<WiserHotWaterMode> ()
-			 .Select (m => m.ToString ())
-			 .ToList ();
+			 .Select (m => m.ToString ())];
 
 		public bool AwayModeSuppressed => _data.TryGetValue ("AwayModeSuppressed", out var suppressed) && Convert.ToBoolean (suppressed, CultureInfo.InvariantCulture);
 
@@ -109,7 +100,9 @@ namespace WiserHeatApiV2
 						{
 						Mode = value
 						}).Result)
+						{
 						_mode = value;
+						}
 					}
 				else
 					{
@@ -122,29 +115,24 @@ namespace WiserHeatApiV2
 
 		public static string ProductType => "HotWater";
 
-		public WiserSchedule? Schedule => _schedule;
+		public WiserSchedule? Schedule { get; private set; }
 
 		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
 
-		public Task<bool> BoostAsync (int duration, CancellationToken cancellationToken = default)
-			{
-			return OverrideStateForDurationAsync (Constants.TextOn, duration, cancellationToken);
-			}
-		public Task<bool> CancelBoostAsync (CancellationToken cancellationToken = default)
-			{
-			return IsBoost ? CancelOverridesAsync (cancellationToken) : Task.FromResult (true);
-			}
+		public Task<bool> BoostAsync (int duration, CancellationToken cancellationToken = default) =>
+			OverrideStateForDurationAsync (Constants.TextOn, duration, cancellationToken);
 
-		public Task<bool> CancelOverridesAsync (CancellationToken cancellationToken = default)
-			{
-			return SendCommandAsync (new
+		public Task<bool> CancelBoostAsync (CancellationToken cancellationToken = default) =>
+			IsBoost ? CancelOverridesAsync (cancellationToken) : Task.FromResult (true);
+
+		public Task<bool> CancelOverridesAsync (CancellationToken cancellationToken = default) =>
+			SendCommandAsync (new
 				{
 				RequestOverride = new
 					{
 					Type = Constants.TextNone
 					}
 				}, cancellationToken);
-			}
 
 		public async Task<bool> OverrideStateAsync (string state, CancellationToken cancellationToken = default)
 			{
@@ -161,22 +149,21 @@ namespace WiserHeatApiV2
 							}
 						}, cancellationToken).ConfigureAwait (false);
 					}
-				else if (state.Equals (Constants.TextOff, StringComparison.OrdinalIgnoreCase))
-					{
-					return await SendCommandAsync (new
-						{
-						RequestOverride = new
-							{
-							Type = Constants.TextManual,
-							SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TempHwOff, "hotwater")
-							}
-						}, cancellationToken).ConfigureAwait (false);
-					}
 				else
 					{
-					throw new ArgumentException ($"Invalid state value {state}. Should be {Constants.TextOn} or {Constants.TextOff}");
+					return state.Equals (Constants.TextOff, StringComparison.OrdinalIgnoreCase)
+						? await SendCommandAsync (new
+							{
+							RequestOverride = new
+								{
+								Type = Constants.TextManual,
+								SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TempHwOff, "hotwater")
+								}
+							}, cancellationToken).ConfigureAwait (false)
+						: throw new ArgumentException ($"Invalid state value {state}. Should be {Constants.TextOn} or {Constants.TextOff}");
 					}
 				}
+
 			return false;
 			}
 
@@ -194,21 +181,19 @@ namespace WiserHeatApiV2
 						}
 					}, cancellationToken);
 				}
-			else if (state.Equals (Constants.TextOff, StringComparison.OrdinalIgnoreCase))
-				{
-				return SendCommandAsync (new
-					{
-					RequestOverride = new
-						{
-						Type = Constants.TextManual,
-						DurationMinutes = duration,
-						SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TempHwOff)
-						}
-					}, cancellationToken);
-				}
 			else
 				{
-				throw new ArgumentException ($"Invalid state value {state}. Should be {Constants.TextOn} or {Constants.TextOff}");
+				return state.Equals (Constants.TextOff, StringComparison.OrdinalIgnoreCase)
+					? SendCommandAsync (new
+						{
+						RequestOverride = new
+							{
+							Type = Constants.TextManual,
+							DurationMinutes = duration,
+							SetPoint = WiserTemperatureFunctions.ToWiserTemp (Constants.TempHwOff)
+							}
+						}, cancellationToken)
+					: throw new ArgumentException ($"Invalid state value {state}. Should be {Constants.TextOn} or {Constants.TextOff}");
 				}
 			}
 
@@ -221,6 +206,7 @@ namespace WiserHeatApiV2
 					return await OverrideStateAsync (Schedule.Next.Setting!.ToString (), cancellationToken).ConfigureAwait (false);
 					}
 				}
+
 			return false;
 			}
 		}

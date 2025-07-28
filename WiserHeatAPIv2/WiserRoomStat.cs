@@ -4,15 +4,9 @@
 
 namespace WiserHeatApiV2
 	{
-	public class WiserRoomStat : WiserDevice
+	public class WiserRoomStat (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData) : WiserDevice(wiserRestController, data, deviceTypeData)
 		{
-
-		public WiserRoomStat (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData)
-			 : base (wiserRestController, data, deviceTypeData)
-			{
-			}
-
-		public WiserBattery Battery => new WiserBattery (Data);
+		public WiserBattery Battery => new (Data);
 
 		public int CurrentHumidity => DeviceTypeData.TryGetValue ("MeasuredHumidity", out var humidity) ? Convert.ToInt32 (humidity, CultureInfo.InvariantCulture) : 0;
 
@@ -28,15 +22,10 @@ namespace WiserHeatApiV2
 
 	public class WiserRoomStats
 		{
-		private readonly List<WiserRoomStat> _roomStats = new List<WiserRoomStat> ();
+		public List<WiserRoomStat> All { get; } = [];
 
-		public List<WiserRoomStat> All => _roomStats;
+		public int Count => All.Count;
 
-		public int Count => _roomStats.Count;
-
-		public WiserRoomStat GetById (int id)
-			{
-			return _roomStats.FirstOrDefault (stat => stat.Id == id);
-			}
+		public WiserRoomStat GetById (int id) => All.FirstOrDefault (stat => stat.Id == id);
 		}
 	}
