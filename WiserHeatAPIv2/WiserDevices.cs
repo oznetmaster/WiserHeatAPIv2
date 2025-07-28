@@ -428,10 +428,16 @@ namespace WiserHeatApiV2
 ,
 				 .. Roomstats.All,
 				 .. Smartplugs.All,
+#if HEATACTUATOR
 				 .. HeatingActuators.All,
+#endif
 				 .. UfhControllers.All,
+#if SHUTTER
 				 .. Shutters.All,
+#endif
+#if LIGHT
 				 .. Lights.All,
+				 #endif
 				 ];
 
 		public int Count => All.Count;
@@ -473,7 +479,7 @@ namespace WiserHeatApiV2
 #if LIGHT
 				 || (device is WiserLight light && light.RoomId == roomId))
 #endif
-			];
+			)];
 
 		public WiserDevice GetByNodeId (int nodeId) => All.FirstOrDefault (device => device.NodeId == nodeId);
 

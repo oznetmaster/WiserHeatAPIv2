@@ -1041,7 +1041,11 @@ namespace WiserHeatApiV2
 			}
 
 		public List<WiserSchedule> All => [.. HeatingSchedules.Cast<WiserSchedule> (),
-			 .. OnoffSchedules.Cast<WiserSchedule> (), .. LevelSchedules.Cast<WiserSchedule> ()];
+			 .. OnoffSchedules.Cast<WiserSchedule> (),
+#if LIGHT
+			.. LevelSchedules.Cast<WiserSchedule> ()
+#endif
+			];
 
 		public int Count => All.Count;
 
@@ -1098,9 +1102,9 @@ namespace WiserHeatApiV2
 #if LIGHT
 				return OnoffSchedules.Concat<WiserSchedule> (LevelSchedules)
 #else
-				return _onoffSchedules
-#endif
+				return OnoffSchedules
 					 .FirstOrDefault (s => s.DeviceIds.Contains (deviceId));
+#endif
 				}
 			catch (IndexOutOfRangeException)
 				{

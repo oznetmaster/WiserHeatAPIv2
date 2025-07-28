@@ -233,3 +233,4 @@ namespace WiserHeatApiV2
 			}
 		}
 #endif
+	}
