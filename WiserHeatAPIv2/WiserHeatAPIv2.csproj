@@ -13,6 +13,14 @@
 	  <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+	</PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>TRACE;DEBUG;LIGHTING SHUTTER LIGHT HEATACTUATOR OPENTHERM</DefineConstants>
     <NoWarn>CRR0029,CRRSP08</NoWarn>
