@@ -21,7 +21,7 @@ namespace WiserHeatApiV2
 		{
 		public const double RestBackoffFactor = 0.5;
 		public const int RestRetries = 3;
-		public const int RestTimeout = 10;
+		public const int RestTimeout = 30;
 		// Wiser Hub Rest Api URL Constants
 		public const string WiserHubUrl = "http://{0}/data/v2/";
 		public const string WiserHubDomain = WiserHubUrl + "domain/";
@@ -99,26 +99,81 @@ namespace WiserHeatApiV2
 #endif
 			_wiserConnection = wiserConnection ?? throw new ArgumentNullException (nameof (wiserConnection));
 
+			ServicePointManager.Expect100Continue = false;    // even though GET has no body, this avoids edge cases
+			ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;  // harmless for HTTP; needed for HTTPS
+			ServicePointManager.DefaultConnectionLimit = 10;
+
+			var handler = new HttpClientHandler
+				{
+				AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+				UseProxy = false,
+				Proxy = null,
+				AllowAutoRedirect = false
+				// leave AllowAutoRedirect = true (default) — redirects still work later
+				// If you’re hitting HTTPS directly and it’s self-signed, TEMP ONLY:
+				// ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+				};       
+			
 			// Configure HttpClient with retry logic (simplified for example)
-			_httpClient = new HttpClient
+			_httpClient = new HttpClient (handler)
 				{
 				Timeout = TimeSpan.FromSeconds (RestConstants.RestTimeout)
 				};
 			_httpClient.DefaultRequestHeaders.Add ("SECRET", _wiserConnection.Secret);
 			_httpClient.DefaultRequestHeaders.Accept.Add (new MediaTypeWithQualityHeaderValue ("application/json"));
-			_httpClient.DefaultRequestHeaders.ConnectionClose = true; // Equivalent to "Connection": "close"
+			_httpClient.DefaultRequestHeaders.UserAgent.Clear ();
+			_httpClient.DefaultRequestHeaders.UserAgent.Add (
+				 new ProductInfoHeaderValue ("WiserRestController", "2.0"));
+			//_httpClient.DefaultRequestHeaders.ExpectContinue = false; // global default (harmless for GETs)
+			//_httpClient.DefaultRequestHeaders.ConnectionClose = true; // Equivalent to "Connection": "close"
 			}
 
 		// Helper method for HTTP calls (switch expression, non-async)
-		private Task<HttpResponseMessage> SendHttpRequestAsync (WiserRestAction action, string url, StringContent? data, CancellationToken cancellationToken) =>
-			action switch
+		private async Task<HttpResponseMessage> SendHttpRequestAsync (WiserRestAction action, string url, StringContent? data, CancellationToken cancellationToken)
+			{
+			HttpMethod method = action switch
 				{
-					WiserRestAction.GET => _httpClient!.GetAsync (url, cancellationToken),
-					WiserRestAction.POST => _httpClient!.PostAsync (url, data, cancellationToken),
-					WiserRestAction.PATCH => _httpClient!.PatchAsync (url, data, cancellationToken),
-					WiserRestAction.DELETE => _httpClient!.DeleteAsync (url, cancellationToken),
+					WiserRestAction.GET => HttpMethod.Get,
+					WiserRestAction.POST => HttpMethod.Post,
+					WiserRestAction.PATCH => new HttpMethod ("PATCH"),
+					WiserRestAction.DELETE => HttpMethod.Delete,
 					_ => throw new ArgumentOutOfRangeException (nameof (action), action, "Invalid WiserRestAction"),
 					};
+
+			using (var req = new HttpRequestMessage (method, url))
+				{
+				if (data != null && method != HttpMethod.Get)
+					req.Content = data;
+				// v2 firmware quirk: schedules endpoint is more reliable with HTTP/1.0
+				if (url.IndexOf ("/schedules/", StringComparison.OrdinalIgnoreCase) >= 0)
+					req.Version = new Version (1, 0);
+
+				HttpResponseMessage resp = await _httpClient!.SendAsync (req, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait (false);
+
+				// Follow HTTP->HTTPS redirects (301/302/307/308)
+				// Replace the problematic line with the following, which uses pattern matching for defined values
+				// and an explicit integer check for 308 (Permanent Redirect):
+
+				if (resp.StatusCode is HttpStatusCode.MovedPermanently
+					 or HttpStatusCode.Found
+					 or HttpStatusCode.TemporaryRedirect
+					 || (int)resp.StatusCode == 308) // Permanent Redirect (not defined in .NET Framework 4.7.2)
+					{
+					resp.Dispose ();
+					var httpsUrl = url.StartsWith ("http://", StringComparison.OrdinalIgnoreCase) ? "https://" + url[7..] : url;
+					using (var req2 = new HttpRequestMessage (method, httpsUrl))
+						{
+						if (data != null && method != HttpMethod.Get)
+							req2.Content = data;
+						if (httpsUrl.IndexOf ("/schedules/", StringComparison.OrdinalIgnoreCase) >= 0)
+							req2.Version = new Version (1, 0);
+						resp = await _httpClient!.SendAsync (req2, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait (false);
+						}
+					}
+
+				return resp;
+				}
+			}
 
 		public async Task<HttpResponseMessage?> ExecuteHttpRequestAsync (
 			 WiserRestAction action,
@@ -191,7 +246,7 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				HttpResponseMessage? response = await ExecuteHttpRequestAsync (action, url, jsonContent, cancellationToken).ConfigureAwait (false);
+				using HttpResponseMessage? response = await ExecuteHttpRequestAsync (action, url, jsonContent, cancellationToken).ConfigureAwait (false);
 
 				if (response == null)
 					{
@@ -232,7 +287,7 @@ namespace WiserHeatApiV2
 
 			try
 				{
-				HttpResponseMessage? response = await ExecuteHttpRequestAsync (WiserRestAction.GET, url, jsonContent, cancellationToken).ConfigureAwait (false);
+				using HttpResponseMessage? response = await ExecuteHttpRequestAsync (WiserRestAction.GET, url, jsonContent, cancellationToken).ConfigureAwait (false);
 
 				if (response == null)
 					{

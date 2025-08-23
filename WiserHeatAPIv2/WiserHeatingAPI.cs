@@ -107,7 +107,7 @@ namespace WiserHeatApiV2
 				Dictionary<string, object> newDomainData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubDomain, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
 				Dictionary<string, object> newNetworkData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
 				Dictionary<string, object> newScheduleData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubSchedules, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
-				Dictionary<string, object> newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubOpentherm, _wiserApiConnection.Host), false, cancellationToken: cancellationToken).ConfigureAwait (false);
+				Dictionary<string, object> newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubOpentherm, _wiserApiConnection.Host), raiseForEndpointError: false, cancellationToken: cancellationToken).ConfigureAwait (false);
 
 				// Update internal data
 				_domainData = newDomainData;

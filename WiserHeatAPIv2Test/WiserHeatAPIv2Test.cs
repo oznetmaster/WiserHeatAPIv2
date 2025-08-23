@@ -222,7 +222,7 @@ namespace WiserHeatAPIv2Test
 				}
 
 				{
-				var roomToTest = 5;
+				var roomToTest = 9;
 				WiserRoom room = _wapi.Rooms.GetById (roomToTest);
 				Console.WriteLine ($"Room {room.Name} setpoint is {room.CurrentTargetTemperature}");
 				Console.WriteLine ($"Room {room.Name} IsOverride is {room.IsOverride}, IsBoost is {room.IsBoost}");
@@ -249,7 +249,7 @@ namespace WiserHeatAPIv2Test
 			if (!state)
 				_ = await _wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
 
-			var scheduleRoomTest = 5;
+			var scheduleRoomTest = 9;
 			WiserHeatingSchedule? schedule = _wapi.Schedules!.GetByRoomId (scheduleRoomTest);
 			if (schedule == null)
 				{
@@ -266,7 +266,7 @@ namespace WiserHeatAPIv2Test
 				// Assume 'schedule' is an instance of WiserSchedule
 				IDictionary<string, object> scheduleData = schedule.ScheduleData;
 
-				foreach (var day in scheduleData.Keys.OrderBy (k => Enum.Parse (typeof (DayOfWeek), k)))
+				foreach (var day in scheduleData.Keys.Where (k => Enum.TryParse<DayOfWeek> (k, out _)).OrderBy (k => Enum.Parse (typeof (DayOfWeek), k)))
 					{
 					Console.WriteLine ($"Day: {day}");
 					if (scheduleData[day] is not Dictionary<string, object> slots)
