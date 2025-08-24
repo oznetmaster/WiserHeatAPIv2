@@ -65,7 +65,7 @@ namespace WiserHeatApiV2
 				"WiserHub API v{0} Initialised - Host: {1}, Units: {2}",
 				_vERSION,
 				host,
-				_wiserApiConnection.Units.ToString ().Title ()
+				_wiserApiConnection.Units.ToString ().TitleCase ()
 			);
 
 			// Read hub data if hub IP and secret exist

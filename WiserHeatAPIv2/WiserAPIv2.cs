@@ -525,7 +525,7 @@ namespace WiserHeatApiV2
 
 	public static class StringExtensions
 		{
-		public static string Title (this string str) =>
+		public static string TitleCase (this string str) =>
 			string.IsNullOrWhiteSpace (str) ? str : CultureInfo.CurrentCulture.TextInfo.ToTitleCase (str.ToLowerInvariant ());
 
 		public static string Capitalize (this string str) =>

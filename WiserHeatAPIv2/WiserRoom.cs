@@ -270,9 +270,9 @@ namespace WiserHeatApiV2
 
 		public async Task<bool> SetNameAsync (string value, CancellationToken cancellationToken = default)
 			{
-			if (await SendCommandAsync (new { Name = value.Title () }, cancellationToken: cancellationToken).ConfigureAwait (false))
+			if (await SendCommandAsync (new { Name = value.TitleCase () }, cancellationToken: cancellationToken).ConfigureAwait (false))
 				{
-				_name = value.Title ();
+				_name = value.TitleCase ();
 				return true;
 				}
 

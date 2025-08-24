@@ -458,7 +458,7 @@ namespace WiserHeatApiV2
 				foreach (KeyValuePair<string, object> kvp in scheduleData)
 					{
 					var day = kvp.Key;
-					if (Constants.Weekdays.Contains (day.Title ()) || Constants.Weekends.Contains (day.Title ()) || Constants.SpecialDays.Contains (day.Title ()))
+					if (Constants.Weekdays.Contains (day.TitleCase ()) || Constants.Weekends.Contains (day.TitleCase ()) || Constants.SpecialDays.Contains (day.TitleCase ()))
 						{
 						List<IDictionary<string, object>> scheduleSetPoints = ConvertWiserToYamlDay (day, kvp.Value, replaceSpecialTimes, genericSetpoint);
 						scheduleOutput[day.Capitalize ()] = scheduleSetPoints;
@@ -483,14 +483,14 @@ namespace WiserHeatApiV2
 				foreach (KeyValuePair<string, object> kvp in scheduleData)
 					{
 					var day = kvp.Key;
-					if (Constants.Weekdays.Contains (day.Title ()) || Constants.Weekends.Contains (day.Title ()) || Constants.SpecialDays.Contains (day.Title ()))
+					if (Constants.Weekdays.Contains (day.TitleCase ()) || Constants.Weekends.Contains (day.TitleCase ()) || Constants.SpecialDays.Contains (day.TitleCase ()))
 						{
 						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<IDictionary<string, object>>);
 
 						// If using special days, convert to one entry for each weekday
-						if (Constants.SpecialDays.Contains (day.Title ()))
+						if (Constants.SpecialDays.Contains (day.TitleCase ()))
 							{
-							if (day.Title () == Constants.TextWeekdays)
+							if (day.TitleCase () == Constants.TextWeekdays)
 								{
 								foreach (var weekday in Constants.Weekdays)
 									{
@@ -498,7 +498,7 @@ namespace WiserHeatApiV2
 									}
 								}
 
-							if (day.Title () == Constants.TextWeekends)
+							if (day.TitleCase () == Constants.TextWeekends)
 								{
 								foreach (var weekendDay in Constants.Weekends)
 									{
@@ -626,7 +626,7 @@ namespace WiserHeatApiV2
 						}
 
 					if ((entry.TryGetValue ("State", out var stateValue) || entry.TryGetValue (Constants.TextSetpoint, out stateValue)) &&
-						 stateValue.ToString ().Title () == Constants.TextOff)
+						 stateValue.ToString ().TitleCase () == Constants.TextOff)
 						{
 						time = time != 0 ? -Math.Abs (time) : -2400;
 						}
@@ -659,7 +659,7 @@ namespace WiserHeatApiV2
 				foreach (KeyValuePair<string, object> kvp in scheduleData)
 					{
 					var day = kvp.Key;
-					if (Constants.Weekdays.Contains (day.Title ()) || Constants.Weekends.Contains (day.Title ()) || Constants.SpecialDays.Contains (day.Title ()))
+					if (Constants.Weekdays.Contains (day.TitleCase ()) || Constants.Weekends.Contains (day.TitleCase ()) || Constants.SpecialDays.Contains (day.TitleCase ()))
 						{
 						List<IDictionary<string, object>> scheduleSetPoints = ConvertWiserToYamlDay (day, kvp.Value, replaceSpecialTimes, genericSetpoint);
 						scheduleOutput[day.Capitalize ()] = scheduleSetPoints;
@@ -684,14 +684,14 @@ namespace WiserHeatApiV2
 				foreach (KeyValuePair<string, object> kvp in scheduleData)
 					{
 					var day = kvp.Key;
-					if (Constants.Weekdays.Contains (day.Title ()) || Constants.Weekends.Contains (day.Title ()) || Constants.SpecialDays.Contains (day.Title ()))
+					if (Constants.Weekdays.Contains (day.TitleCase ()) || Constants.Weekends.Contains (day.TitleCase ()) || Constants.SpecialDays.Contains (day.TitleCase ()))
 						{
 						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<IDictionary<string, object>>);
 
 						// If using special days, convert to one entry for each weekday
-						if (Constants.SpecialDays.Contains (day.Title ()))
+						if (Constants.SpecialDays.Contains (day.TitleCase ()))
 							{
-							if (day.Title () == Constants.TextWeekdays)
+							if (day.TitleCase () == Constants.TextWeekdays)
 								{
 								foreach (var weekday in Constants.Weekdays)
 									{
@@ -699,7 +699,7 @@ namespace WiserHeatApiV2
 									}
 								}
 
-							if (day.Title () == Constants.TextWeekends)
+							if (day.TitleCase () == Constants.TextWeekends)
 								{
 								foreach (var weekendDay in Constants.Weekends)
 									{
@@ -849,15 +849,17 @@ namespace WiserHeatApiV2
 				{
 				foreach (KeyValuePair<string, object> kvp in entry)
 					{
-					if (kvp.Key.Title () == Constants.TextTime)
+					var titleKey = kvp.Key.TitleCase ();
+					if (titleKey == TextTime)
 						{
-						var time = Constants.SpecialTimes.ContainsKey (kvp.Value.ToString ().Title ())
-							? Constants.SpecialTimes[kvp.Value.ToString ().Title ()]
-							: IsValidTime (kvp.Value.ToString ()) ? int.Parse (kvp.Value.ToString ().Replace (":", ""), CultureInfo.InvariantCulture) : 0;
+						var yamlTime = kvp.Value.ToString ();
+						var specialTime = yamlTime.TitleCase ();
+						var time = Constants.SpecialTimes.TryGetValue (specialTime, out var value)
+							? value : IsValidTime (yamlTime) ? int.Parse (yamlTime.Replace (":", ""), CultureInfo.InvariantCulture) : 0;
 						times.Add (time);
 						}
 
-					if (kvp.Key.Title () is Constants.TextLevel or Constants.TextSetpoint)
+					if (titleKey is TextLevel or TextSetpoint)
 						{
 						levels.Add (Convert.ToInt32 (kvp.Value, CultureInfo.InvariantCulture));
 						}
@@ -866,8 +868,8 @@ namespace WiserHeatApiV2
 
 			return new Dictionary<string, object>
 				{
-					 { Constants.TextTime, times },
-					 { Constants.TextLevel, levels }
+					 { TextTime, times },
+					 { TextLevel, levels }
 				};
 			}
 
@@ -885,7 +887,7 @@ namespace WiserHeatApiV2
 				foreach (KeyValuePair<string, object> kvp in scheduleData)
 					{
 					var day = kvp.Key;
-					if (Weekdays.Contains (day.Title ()) || Weekends.Contains (day.Title ()) || SpecialDays.Contains (day.Title ()))
+					if (Weekdays.Contains (day.TitleCase ()) || Weekends.Contains (day.TitleCase ()) || SpecialDays.Contains (day.TitleCase ()))
 						{
 						List<IDictionary<string, object>> scheduleSetPoints = ConvertWiserToYamlDay (day, kvp.Value, replaceSpecialTimes, genericSetpoint);
 						scheduleOutput[day.Capitalize ()] = scheduleSetPoints;
@@ -914,14 +916,14 @@ namespace WiserHeatApiV2
 				foreach (KeyValuePair<string, object> kvp in scheduleData)
 					{
 					var day = kvp.Key;
-					if (Weekdays.Contains (day.Title ()) || Weekends.Contains (day.Title ()) || SpecialDays.Contains (day.Title ()))
+					if (Weekdays.Contains (day.TitleCase ()) || Weekends.Contains (day.TitleCase ()) || SpecialDays.Contains (day.TitleCase ()))
 						{
 						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<IDictionary<string, object>> ?? []);
 
 						// If using special days, convert to one entry for each weekday
-						if (Constants.SpecialDays.Contains (day.Title ()))
+						if (Constants.SpecialDays.Contains (day.TitleCase ()))
 							{
-							if (day.Title () == Constants.TextWeekdays)
+							if (day.TitleCase () == Constants.TextWeekdays)
 								{
 								foreach (var weekday in Constants.Weekdays)
 									{
@@ -929,7 +931,7 @@ namespace WiserHeatApiV2
 									}
 								}
 
-							if (day.Title () == Constants.TextWeekends)
+							if (day.TitleCase () == Constants.TextWeekends)
 								{
 								foreach (var weekendDay in Constants.Weekends)
 									{
