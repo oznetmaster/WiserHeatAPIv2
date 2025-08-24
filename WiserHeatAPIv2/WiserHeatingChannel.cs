@@ -10,16 +10,16 @@ namespace WiserHeatApiV2
 
 		public string HeatingRelayStatus => data.TryGetValue ("HeatingRelayState", out var state) ? state.ToString () : Constants.TextUnknown;
 
-		public int Id => data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int Id => data.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
-		public bool IsSmartValvePreventingDemand => data.TryGetValue ("IsSmartValvePreventingDemand", out var preventing) && Convert.ToBoolean (preventing, CultureInfo.InvariantCulture);
+		public bool IsSmartValvePreventingDemand => data.TryGetValue ("IsSmartValvePreventingDemand", out var preventing) && ConvertInvariant.ToBoolean (preventing);
 
 		public string Name => data.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
-		public int PercentageDemand => data.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
+		public int PercentageDemand => data.TryGetValue ("PercentageDemand", out var demand) ? ConvertInvariant.ToInt32 (demand) : 0;
 
 		public List<int> RoomIds => data.TryGetValue ("RoomIds", out var roomIds) && roomIds is List<object> roomIdsList
-			 ? [.. roomIdsList.Select (id => Convert.ToInt32 (id, CultureInfo.InvariantCulture))]
+			 ? [.. roomIdsList.Select (ConvertInvariant.ToInt32)]
 			 : new List<int> ();
 		}
 

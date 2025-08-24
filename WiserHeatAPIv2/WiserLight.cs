@@ -4,6 +4,8 @@
 
 using System.Threading.Tasks;
 
+using static WiserHeatApiV2.RestConstants;
+
 namespace WiserHeatApiV2
 	{
 #if LIGHT
@@ -34,7 +36,7 @@ namespace WiserHeatApiV2
 
 		protected async Task<bool> SendCommandAsync (object cmd)
 			{
-			var url = string.Format (System.Globalization.CultureInfo.InvariantCulture, RestConstants.WiserLight, LightId);
+			var url = WiserRestLight.FormatInvariant (LightId);
 
 			var result = await WiserRestController.SendCommandAsync (url, cmd).ConfigureAwait (false);
 			return result;
@@ -78,7 +80,7 @@ namespace WiserHeatApiV2
 
 		public string CurrentState => DeviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : "0";
 
-		public bool IsDimmable => DeviceTypeData.TryGetValue ("IsDimmable", out var dimmable) && Convert.ToBoolean (dimmable, CultureInfo.InvariantCulture);
+		public bool IsDimmable => DeviceTypeData.TryGetValue ("IsDimmable", out var dimmable) && ConvertInvariant.ToBoolean (dimmable);
 
 		public bool IsOn => _currentState == Constants.TextOn;
 
@@ -140,9 +142,9 @@ namespace WiserHeatApiV2
 
 		public WiserSchedule? Schedule => Schedule1;
 
-		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
-		public int TargetState => DeviceTypeData.TryGetValue ("TargetState", out var state) ? Convert.ToInt32 (state, CultureInfo.InvariantCulture) : 0;
+		public int TargetState => DeviceTypeData.TryGetValue ("TargetState", out var state) ? ConvertInvariant.ToInt32 (state) : 0;
 
 		protected WiserSchedule? Schedule1 { get; }
 
@@ -175,16 +177,16 @@ namespace WiserHeatApiV2
 		{
 		public class WiserOutputRange (Dictionary<string, object>? data)
 			{
-			public int? Minimum => data?.TryGetValue ("Minimum", out var min) == true ? (int?)Convert.ToInt32 (min, CultureInfo.InvariantCulture) : null;
+			public int? Minimum => data?.TryGetValue ("Minimum", out var min) == true ? (int?)ConvertInvariant.ToInt32 (min) : null;
 
-			public int? Maximum => data?.TryGetValue ("Maximum", out var max) == true ? (int?)Convert.ToInt32 (max, CultureInfo.InvariantCulture) : null;
+			public int? Maximum => data?.TryGetValue ("Maximum", out var max) == true ? (int?)ConvertInvariant.ToInt32 (max) : null;
 			}
 
-		public int CurrentLevel => DeviceTypeData.TryGetValue ("CurrentLevel", out var level) ? Convert.ToInt32 (level, CultureInfo.InvariantCulture) : 0;
+		public int CurrentLevel => DeviceTypeData.TryGetValue ("CurrentLevel", out var level) ? ConvertInvariant.ToInt32 (level) : 0;
 
 		public int CurrentPercentage
 			{
-			get => DeviceTypeData.TryGetValue ("CurrentPercentage", out var percentage) ? Convert.ToInt32 (percentage, CultureInfo.InvariantCulture) : 0;
+			get => DeviceTypeData.TryGetValue ("CurrentPercentage", out var percentage) ? ConvertInvariant.ToInt32 (percentage) : 0;
 			set
 				{
 				if (value is >= 0 and <= 100)
@@ -198,17 +200,17 @@ namespace WiserHeatApiV2
 				}
 			}
 
-		public int ManualLevel => DeviceTypeData.TryGetValue ("ManualLevel", out var level) ? Convert.ToInt32 (level, CultureInfo.InvariantCulture) : 0;
+		public int ManualLevel => DeviceTypeData.TryGetValue ("ManualLevel", out var level) ? ConvertInvariant.ToInt32 (level) : 0;
 
-		public int OverrideLevel => DeviceTypeData.TryGetValue ("OverrideLevel", out var level) ? Convert.ToInt32 (level, CultureInfo.InvariantCulture) : 0;
+		public int OverrideLevel => DeviceTypeData.TryGetValue ("OverrideLevel", out var level) ? ConvertInvariant.ToInt32 (level) : 0;
 
 		public WiserOutputRange OutputRange => DeviceTypeData.TryGetValue ("OutputRange", out var range) && range is Dictionary<string, object> rangeDict
 					? new WiserOutputRange (rangeDict)
 					: new WiserOutputRange (null);
 
-		public int ScheduledPercentage => Data.TryGetValue ("ScheduledPercentage", out var percentage) ? Convert.ToInt32 (percentage, CultureInfo.InvariantCulture) : 0;
+		public int ScheduledPercentage => Data.TryGetValue ("ScheduledPercentage", out var percentage) ? ConvertInvariant.ToInt32 (percentage) : 0;
 
-		public int TargetPercentage => DeviceTypeData.TryGetValue ("TargetPercentage", out var percentage) ? Convert.ToInt32 (percentage, CultureInfo.InvariantCulture) : 0;
+		public int TargetPercentage => DeviceTypeData.TryGetValue ("TargetPercentage", out var percentage) ? ConvertInvariant.ToInt32 (percentage) : 0;
 		}
 
 	public class WiserLights

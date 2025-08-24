@@ -9,9 +9,9 @@ namespace WiserHeatApiV2
 	public class WiserMoment (WiserRestController wiserRestController, IDictionary<string, object> momentData)
 		{
 		private Task<bool> SendCommandAsync (object cmd, System.Threading.CancellationToken cancellationToken = default) =>
-			wiserRestController.SendCommandAsync (RestConstants.WiserSystem, cmd, cancellationToken: cancellationToken);
+			wiserRestController.SendCommandAsync (RestConstants.WiserRestSystem, cmd, cancellationToken: cancellationToken);
 
-		public int Id => momentData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int Id => momentData.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 		public string Name => momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 

@@ -3,6 +3,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -89,7 +90,7 @@ namespace WiserHeatApiV2
 
 		public List<IDictionary<string, object>> Assignments => Assignments1;
 
-		public List<int> AssignmentIds => [.. Assignments1.Select (a => Convert.ToInt32 (a["id"], CultureInfo.InvariantCulture))];
+		public List<int> AssignmentIds => [.. Assignments1.Select (a => ConvertInvariant.ToInt32 (a["id"]))];
 
 		public List<string> AssignmentNames => [.. Assignments1.Select (a => a["name"].ToString ())];
 
@@ -109,7 +110,7 @@ namespace WiserHeatApiV2
 					_ => null
 					};
 
-		public int Id => ScheduleData1.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int Id => ScheduleData1.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 		public string? Name => ScheduleData1.TryGetValue ("Name", out var name) ? name.ToString () : null;
 
@@ -390,8 +391,8 @@ namespace WiserHeatApiV2
 				{
 				for (var i = 0; i < times.Count; i++)
 					{
-					var timeValue = Convert.ToInt32 (times[i], CultureInfo.InvariantCulture).ToString ("D4", CultureInfo.InvariantCulture);
-					var time = DateTime.ParseExact (timeValue, "HHmm", null).ToString ("HH:mm", CultureInfo.InvariantCulture);
+					var timeValue = ConvertInvariant.ToInt32 (times[i]).ToStringInvariant ("D4");
+					var time = DateTime.ParseExact (timeValue, "HHmm", null).ToStringInvariant ("HH:mm");
 
 					scheduleSetPoints.Add (new Dictionary<string, object>
 						  {
@@ -431,7 +432,7 @@ namespace WiserHeatApiV2
 					{
 					var temp = tempValue.ToString ().Equals (Constants.TextOff, StringComparison.OrdinalIgnoreCase)
 						? Constants.TempOff
-						: Convert.ToDouble (tempValue, CultureInfo.InvariantCulture);
+						: ConvertInvariant.ToDouble (tempValue);
 
 					temps.Add (WiserTemperatureFunctions.ToWiserTemp (temp));
 					}
@@ -581,7 +582,7 @@ namespace WiserHeatApiV2
 				{
 				foreach (var item in dayList)
 					{
-					var timeValue = Convert.ToInt32 (item, CultureInfo.InvariantCulture);
+					var timeValue = ConvertInvariant.ToInt32 (item);
 					var absTime = Math.Abs (timeValue);
 
 					if (absTime > 2400)
@@ -589,8 +590,8 @@ namespace WiserHeatApiV2
 						absTime = 0;
 						}
 
-					var time = absTime.ToString ("D4", CultureInfo.InvariantCulture);
-					var formattedTime = DateTime.ParseExact (time, "HHmm", null).ToString ("HH:mm", CultureInfo.InvariantCulture);
+					var time = absTime.ToStringInvariant ("D4");
+					var formattedTime = DateTime.ParseExact (time, "HHmm", null).ToStringInvariant ("HH:mm");
 
 					scheduleSetPoints.Add (new Dictionary<string, object>
 						  {
@@ -621,7 +622,7 @@ namespace WiserHeatApiV2
 
 					if (entry.TryGetValue ("Time", out var timeValue) && IsValidTime (timeValue.ToString ()))
 						{
-						time = int.Parse (timeValue.ToString ().Replace (":", ""), CultureInfo.InvariantCulture);
+						time = timeValue.ToString ().Replace (":", "").ParseIntInvariant ();
 						time = time != 0 ? time : 2400;
 						}
 
@@ -818,7 +819,7 @@ namespace WiserHeatApiV2
 				{
 				for (var i = 0; i < times.Count; i++)
 					{
-					var timeValue = Convert.ToInt32 (times[i], CultureInfo.InvariantCulture);
+					var timeValue = ConvertInvariant.ToInt32 (times[i]);
 					string timeStr;
 
 					timeStr = Constants.SpecialTimes.ContainsValue (timeValue)
@@ -827,7 +828,7 @@ namespace WiserHeatApiV2
 								 ? Sunrises[day]
 								 : Sunsets[day]
 							: Constants.SpecialTimes.FirstOrDefault (x => x.Value == timeValue).Key
-						: DateTime.ParseExact (timeValue.ToString ("D4", CultureInfo.InvariantCulture), "HHmm", null).ToString ("HH:mm", CultureInfo.InvariantCulture);
+						: DateTime.ParseExact (timeValue.ToStringInvariant ("D4"), "HHmm", null).ToStringInvariant ("D4");
 
 					scheduleSetPoints.Add (new Dictionary<string, object>
 						  {
@@ -855,13 +856,13 @@ namespace WiserHeatApiV2
 						var yamlTime = kvp.Value.ToString ();
 						var specialTime = yamlTime.TitleCase ();
 						var time = Constants.SpecialTimes.TryGetValue (specialTime, out var value)
-							? value : IsValidTime (yamlTime) ? int.Parse (yamlTime.Replace (":", ""), CultureInfo.InvariantCulture) : 0;
+							? value : IsValidTime (yamlTime) ? yamlTime.Replace (":", "").ParseIntInvariant () : 0;
 						times.Add (time);
 						}
 
 					if (titleKey is TextLevel or TextSetpoint)
 						{
-						levels.Add (Convert.ToInt32 (kvp.Value, CultureInfo.InvariantCulture));
+						levels.Add (ConvertInvariant.ToInt32 (kvp.Value));
 						}
 					}
 				}
@@ -918,7 +919,7 @@ namespace WiserHeatApiV2
 					var day = kvp.Key;
 					if (Weekdays.Contains (day.TitleCase ()) || Weekends.Contains (day.TitleCase ()) || SpecialDays.Contains (day.TitleCase ()))
 						{
-						var scheduleDay = ConvertYamlToWiserDay (kvp.Value as List<IDictionary<string, object>> ?? []);
+						var scheduleDay = ConvertYamlToWiserDay ((List < IDictionary<string, object> > )kvp.Value);
 
 						// If using special days, convert to one entry for each weekday
 						if (Constants.SpecialDays.Contains (day.TitleCase ()))

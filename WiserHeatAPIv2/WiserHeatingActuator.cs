@@ -8,14 +8,14 @@ namespace WiserHeatApiV2
 	public class WiserHeatingActuator (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData) : WiserDevice (wiserRestController, data, deviceTypeData)
 		{
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-				 DeviceTypeData.TryGetValue ("OccupiedHeatingSetPoint", out var setPoint) ? Convert.ToInt32 (setPoint, CultureInfo.InvariantCulture) : Constants.TempOff);
+				 DeviceTypeData.TryGetValue ("OccupiedHeatingSetPoint", out var setPoint) ? ConvertInvariant.ToInt32 (setPoint) : Constants.TempOff);
 
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			  DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? Convert.ToInt32 (temp, CultureInfo.InvariantCulture) : Constants.TempOff, "current");
+			  DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? ConvertInvariant.ToInt32 (temp) : Constants.TempOff, "current");
 
-		public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : 0;
+		public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? ConvertInvariant.ToInt32 (power) : 0;
 
-		public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : 0;
+		public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? ConvertInvariant.ToInt32 (power) : 0;
 
 		public string OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TextUnknown;
 		}

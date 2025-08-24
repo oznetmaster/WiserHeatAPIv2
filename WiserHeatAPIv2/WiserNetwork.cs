@@ -113,19 +113,19 @@ namespace WiserHeatApiV2
 		public string MacAddress => _data.TryGetValue ("MacAddress", out var mac) ? mac.ToString () : Constants.TextUnknown;
 
 		public int SignalPercent => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Current", out var current)
-					? Math.Min (100, 2 * (Convert.ToInt32 (current, CultureInfo.InvariantCulture) + 100))
+					? Math.Min (100, 2 * (ConvertInvariant.ToInt32 (current) + 100))
 					: 0;
 
 		public int SignalRssi => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Current", out var current)
-					? Convert.ToInt32 (current, CultureInfo.InvariantCulture)
+					? ConvertInvariant.ToInt32 (current)
 					: 0;
 
 		public int SignalRssiMin => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Min", out var min)
-					? Convert.ToInt32 (min, CultureInfo.InvariantCulture)
+					? ConvertInvariant.ToInt32 (min)
 					: 0;
 
 		public int SignalRssiMax => _data.TryGetValue ("RSSI", out var rssi) && rssi is Dictionary<string, object> rssiDict && rssiDict.TryGetValue ("Max", out var max)
-					? Convert.ToInt32 (max, CultureInfo.InvariantCulture)
+					? ConvertInvariant.ToInt32 (max)
 					: 0;
 
 		public string SecurityMode => _data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : Constants.TextUnknown;
@@ -137,11 +137,11 @@ namespace WiserHeatApiV2
 		{
 		public string? SSID => data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : null;
 
-		public int? Channel => data.TryGetValue ("Channel", out var channel) ? Convert.ToInt32 (channel, CultureInfo.InvariantCulture) : (int?)null;
+		public int? Channel => data.TryGetValue ("Channel", out var channel) ? ConvertInvariant.ToInt32 (channel) : (int?)null;
 
 		public string? SecurityMode => data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : null;
 
-		public int? RSSI => data.TryGetValue ("RSSI", out var rssi) ? Convert.ToInt32 (rssi, CultureInfo.InvariantCulture) : (int?)null;
+		public int? RSSI => data.TryGetValue ("RSSI", out var rssi) ? ConvertInvariant.ToInt32 (rssi) : (int?)null;
 		}
 	}
 

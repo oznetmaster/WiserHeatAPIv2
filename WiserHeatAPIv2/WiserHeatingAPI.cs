@@ -10,7 +10,7 @@ using log4net;
 
 using Newtonsoft.Json;
 
-using static System.FormattableString;
+using static WiserHeatApiV2.RestConstants;
 
 namespace WiserHeatApiV2
 	{
@@ -60,12 +60,11 @@ namespace WiserHeatApiV2
 			_wiserRestController = null;
 
 			// Log initialization info
-			_lOGGER.InfoFormat (
-				CultureInfo.InvariantCulture,
+			_lOGGER.InfoFormatInvariant (
 				"WiserHub API v{0} Initialised - Host: {1}, Units: {2}",
 				_vERSION,
 				host,
-				_wiserApiConnection.Units.ToString ().TitleCase ()
+				_wiserApiConnection.Units.ToString().TitleCase ()
 			);
 
 			// Read hub data if hub IP and secret exist
@@ -104,10 +103,10 @@ namespace WiserHeatApiV2
 					return false;
 					}
 				// Read data from hub
-				Dictionary<string, object> newDomainData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubDomain, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
-				Dictionary<string, object> newNetworkData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubNetwork, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
-				Dictionary<string, object> newScheduleData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubSchedules, _wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
-				Dictionary<string, object> newOpenthermData = await _wiserRestController.GetHubDataAsync (string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubOpentherm, _wiserApiConnection.Host), raiseForEndpointError: false, cancellationToken: cancellationToken).ConfigureAwait (false);
+				Dictionary<string, object> newDomainData = await _wiserRestController.GetHubDataAsync(WiserHubDomain.FormatInvariant(_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait(false);
+				Dictionary<string, object> newNetworkData = await _wiserRestController.GetHubDataAsync(WiserHubNetwork.FormatInvariant(_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait(false);
+				Dictionary<string, object> newScheduleData = await _wiserRestController.GetHubDataAsync(WiserHubSchedules.FormatInvariant(_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait(false);
+				Dictionary<string, object> newOpenthermData = await _wiserRestController.GetHubDataAsync(WiserHubOpentherm.FormatInvariant(_wiserApiConnection.Host), raiseForEndpointError: false, cancellationToken: cancellationToken).ConfigureAwait(false);
 
 				// Update internal data
 				_domainData = newDomainData;
@@ -161,8 +160,8 @@ namespace WiserHeatApiV2
 						Dictionary<string, object> firstHotWaterData = hotWaterData[0];
 						// If ScheduleId is not present, default to 0
 						// Check if ScheduleId exists in the first hot water data item
-						scheduleId = firstHotWaterData.TryGetValue ("ScheduleId", out var scheduleIdObj)
-							? Convert.ToInt32 (scheduleIdObj, CultureInfo.InvariantCulture)
+						scheduleId = firstHotWaterData.TryGetValue("ScheduleId", out var scheduleIdObj)
+							? ConvertInvariant.ToInt32(scheduleIdObj)
 							: 0;
 						WiserSchedule? schedule = Schedules.GetById (WiserScheduleType.OnOff, scheduleId);
 						if (schedule == null)
@@ -195,10 +194,9 @@ namespace WiserHeatApiV2
 				return true;
 				}
 
-			_lOGGER.DebugFormat (
-				 CultureInfo.InvariantCulture,
+			_lOGGER.DebugFormatInvariant (
 				 "No update: _domainData: {0}, _networkData: {1}, _scheduleData: {2}",
-				 _domainData.Count, _networkData.Count, _scheduleData.Count
+				 _domainData.Count.ToStringInvariant(), _networkData.Count.ToStringInvariant(), _scheduleData.Count.ToStringInvariant()
 			);
 			return false;
 			}
@@ -278,9 +276,9 @@ namespace WiserHeatApiV2
 		public async Task<bool> OutputRawHubDataAsync (string dataClass, string filename, string filePath, CancellationToken cancellationToken = default)
 			{
 			// Get correct endpoint
-			var endpoint = _dataClassToEndpoint.TryGetValue (dataClass, out var endpointFormat)
-				? string.Format (CultureInfo.InvariantCulture, endpointFormat, _wiserApiConnection.Host)
-				: null;
+			var endpoint = _dataClassToEndpoint.TryGetValue(dataClass, out var endpointFormat)
+    ? endpointFormat.FormatInvariant(_wiserApiConnection.Host)
+    : null;
 
 			if (endpoint == null)
 				{

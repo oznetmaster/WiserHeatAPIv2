@@ -5,6 +5,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 
+using static WiserHeatApiV2.RestConstants;
+
 namespace WiserHeatApiV2
 	{
 	public class WiserHotwater
@@ -51,7 +53,7 @@ namespace WiserHeatApiV2
 
 		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default) =>
 			_wiserRestController.SendCommandAsync (
-				 string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHotWater, Id),
+				 WiserRestHotWater.FormatInvariant (Id),
 				 cmd,
 				 cancellationToken: cancellationToken
 			);
@@ -63,10 +65,10 @@ namespace WiserHeatApiV2
 			 .Cast<WiserHotWaterMode> ()
 			 .Select (m => m.ToString ())];
 
-		public bool AwayModeSuppressed => _data.TryGetValue ("AwayModeSuppressed", out var suppressed) && Convert.ToBoolean (suppressed, CultureInfo.InvariantCulture);
+		public bool AwayModeSuppressed => _data.TryGetValue ("AwayModeSuppressed", out var suppressed) && ConvertInvariant.ToBoolean (suppressed);
 
-		public DateTime BoostEndTime => _data.TryGetValue ("OverrideTimeoutUnixTime", out var time) && Convert.ToInt32 (time, CultureInfo.InvariantCulture) > 0
-			 ? DateTimeOffset.FromUnixTimeSeconds (Convert.ToInt32 (time, CultureInfo.InvariantCulture)).DateTime
+		public DateTime BoostEndTime => _data.TryGetValue ("OverrideTimeoutUnixTime", out var time) && ConvertInvariant.ToInt32 (time) > 0
+			 ? DateTimeOffset.FromUnixTimeSeconds (ConvertInvariant.ToInt32 (time)).DateTime
 			 : DateTime.MinValue;
 
 		public double BoostTimeRemaining => IsBoost
@@ -77,7 +79,7 @@ namespace WiserHeatApiV2
 
 		public string CurrentState => _data.TryGetValue ("HotWaterRelayState", out var state) ? state.ToString () : Constants.TextUnknown;
 
-		public int Id => _data.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int Id => _data.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 		public bool IsAwayMode => CurrentControlSource == "FromAwayMode";
 
@@ -117,7 +119,7 @@ namespace WiserHeatApiV2
 
 		public WiserSchedule? Schedule { get; private set; }
 
-		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int ScheduleId => _data.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 		public Task<bool> BoostAsync (int duration, CancellationToken cancellationToken = default) =>
 			OverrideStateForDurationAsync (Constants.TextOn, duration, cancellationToken);

@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using static WiserHeatApiV2.RestConstants;
 
 using log4net;
 
@@ -28,22 +29,22 @@ namespace WiserHeatApiV2
 		public const string WiserHubNetwork = WiserHubUrl + "network/";
 		public const string WiserHubSchedules = WiserHubUrl + "schedules/";
 		public const string WiserHubOpentherm = WiserHubUrl + "opentherm/";
-		public const string WiserSystem = "System";
-		public const string WiserDevice = "Device/{0}";
-		public const string WiserHotWater = "HotWater/{0}";
-		public const string WiserRoom = "Room/{0}";
-		public const string WiserSmartValve = "SmartValve/{0}";
-		public const string WiserRoomStat = "RoomStat/{0}";
-		public const string WiserSmartPlug = "SmartPlug/{0}";
+		public const string WiserRestSystem = "System";
+		public const string WiserRestDevice = "Device/{0}";
+		public const string WiserRestHotWater = "HotWater/{0}";
+		public const string WiserRestRoom = "Room/{0}";
+		public const string WiserRestSmartValve = "SmartValve/{0}";
+		public const string WiserRestRoomStat = "RoomStat/{0}";
+		public const string WiserRestSmartPlug = "SmartPlug/{0}";
 #if HEATACTUATOR
-		public const string WiserHeatingActuator = "HeatingActuator/{0}";
+		public const string WiserRestHeatingActuator = "HeatingActuator/{0}";
 #endif
-		public const string WiserUfhController = "UnderFloorHeating/{0}";
+		public const string WiserRestUfhController = "UnderFloorHeating/{0}";
 #if SHUTTER
-		public const string WiserShutter = "Shutter/{0}";
+		public const string WiserRestShutter = "Shutter/{0}";
 #endif
 #if LIGHT
-		public const string WiserLight = "Light/{0}";
+		public const string WiserRestLight = "Light/{0}";
 #endif
 		}
 
@@ -117,7 +118,7 @@ namespace WiserHeatApiV2
 			// Configure HttpClient with retry logic (simplified for example)
 			_httpClient = new HttpClient (handler)
 				{
-				Timeout = TimeSpan.FromSeconds (RestConstants.RestTimeout)
+				Timeout = TimeSpan.FromSeconds (RestTimeout)
 				};
 			_httpClient.DefaultRequestHeaders.Add ("SECRET", _wiserConnection.Secret);
 			_httpClient.DefaultRequestHeaders.Accept.Add (new MediaTypeWithQualityHeaderValue ("application/json"));
@@ -181,7 +182,7 @@ namespace WiserHeatApiV2
 			 StringContent? data = null,
 			 CancellationToken cancellationToken = default)
 			{
-			var retryCount = RestConstants.RestRetries;
+			var retryCount = RestRetries;
 			var delay = TimeSpan.FromSeconds (1);
 			var backoffFactor = 2.0;
 			HttpResponseMessage? response = null;
@@ -358,7 +359,7 @@ namespace WiserHeatApiV2
 
 		public Task<bool> SendCommandAsync (string url, object? commandData, WiserRestAction method = WiserRestAction.PATCH, CancellationToken cancellationToken = default)
 			{
-			var fullUrl = $"{string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubDomain, _wiserConnection.Host)}{url}";
+			var fullUrl = $"{WiserHubDomain.FormatInvariant (_wiserConnection.Host)}{url}";
 			_logger.DebugFormat ("Sending command to url: {0} with parameters {1}", fullUrl, JsonConvert.SerializeObject (commandData));
 
 			return DoHubActionAsync (method, fullUrl, commandData, cancellationToken: cancellationToken);
@@ -366,7 +367,7 @@ namespace WiserHeatApiV2
 
 		private Task<bool> DoScheduleActionAsync (WiserRestAction action, string url, object? scheduleData = null, CancellationToken cancellationToken = default)
 			{
-			var fullUrl = $"{string.Format (CultureInfo.InvariantCulture, RestConstants.WiserHubSchedules, _wiserConnection.Host)}{url}";
+			var fullUrl = $"{WiserHubSchedules.FormatInvariant (_wiserConnection.Host)}{url}";
 			_logger.DebugFormat ("Actioning schedule to url: {0} with action {1} and _data {2}", fullUrl, action.ToString (), JsonConvert.SerializeObject (scheduleData));
 
 			return DoHubActionAsync (action, fullUrl, scheduleData, cancellationToken: cancellationToken);
@@ -374,7 +375,7 @@ namespace WiserHeatApiV2
 
 		public Task<bool> SendScheduleCommandAsync (string action, object? scheduleData, int id = 0, string? scheduleType = null, CancellationToken cancellationToken = default)
 			{
-			switch (action.ToUpper (CultureInfo.InvariantCulture))
+			switch (action.ToUpperInvariant ())
 				{
 				case "UPDATE":
 					return DoScheduleActionAsync (

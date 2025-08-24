@@ -33,7 +33,7 @@ namespace WiserHeatApiV2
 
 		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default) =>
 			WiserRestController.SendCommandAsync (
-				 string.Format (CultureInfo.InvariantCulture, RestConstants.WiserSmartPlug, Id),
+				 RestConstants.WiserRestSmartPlug.FormatInvariant (Id),
 				 cmd,
 				 cancellationToken: cancellationToken);
 
@@ -113,9 +113,9 @@ namespace WiserHeatApiV2
 
 		public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TextUnknown;
 
-		public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : -1;
+		public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? ConvertInvariant.ToInt32 (power) : -1;
 
-		public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? Convert.ToInt32 (power, CultureInfo.InvariantCulture) : -1;
+		public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? ConvertInvariant.ToInt32 (power) : -1;
 
 		public string ManualState => DeviceTypeData.TryGetValue ("ManualState", out var state) ? state.ToString () : Constants.TextUnknown;
 
@@ -153,7 +153,7 @@ namespace WiserHeatApiV2
 
 		public WiserSchedule? Schedule { get; }
 
-		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 		public string ScheduledState => DeviceTypeData.TryGetValue ("ScheduledState", out var state) ? state.ToString () : Constants.TextUnknown;
 

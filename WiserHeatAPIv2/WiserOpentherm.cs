@@ -16,21 +16,21 @@ namespace WiserHeatApiV2
 		public double ChFlowActiveUpperSetpoint => WiserTemperatureFunctions.FromWiserTemp (
 			 _data.TryGetValue ("chFlowActiveUpperSetpoint", out var value) ? value : null, "current");
 
-		public bool Ch1FlowEnabled => _data.TryGetValue ("ch1FlowEnable", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
+		public bool Ch1FlowEnabled => _data.TryGetValue ("ch1FlowEnable", out var value) && ConvertInvariant.ToBoolean (value);
 
 		public double Ch1FlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
 			 _data.TryGetValue ("ch1FlowSetpoint", out var value) ? value : null, "current");
 
-		public bool Ch2FlowEnabled => _data.TryGetValue ("ch2FlowEnable", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
+		public bool Ch2FlowEnabled => _data.TryGetValue ("ch2FlowEnable", out var value) && ConvertInvariant.ToBoolean (value);
 
 		public double Ch2FlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
 			 _data.TryGetValue ("ch2FlowSetpoint", out var value) ? value : null, "current");
 
 		public string ConnectionStatus { get; } = enabledStatus;
 
-		public bool Enabled => _data.TryGetValue ("Enabled", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
+		public bool Enabled => _data.TryGetValue ("Enabled", out var value) && ConvertInvariant.ToBoolean (value);
 
-		public bool HwEnabled => _data.TryGetValue ("dhwEnable", out var value) && Convert.ToBoolean (value, CultureInfo.InvariantCulture);
+		public bool HwEnabled => _data.TryGetValue ("dhwEnable", out var value) && ConvertInvariant.ToBoolean (value);
 
 		public double HwFlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
 			 _data.TryGetValue ("dhwFlowSetpoint", out var value) ? value : null, "current");
@@ -51,23 +51,23 @@ namespace WiserHeatApiV2
 		public double RoomTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 _data.TryGetValue ("roomTemperature", out var value) ? value : null, "current");
 
-		public int? TrackedRoomId => _data.TryGetValue ("TrackedRoomId", out var value) ? (int?)Convert.ToInt32 (value, CultureInfo.InvariantCulture) : null;
+		public int? TrackedRoomId => _data.TryGetValue ("TrackedRoomId", out var value) ? (int?)ConvertInvariant.ToInt32 (value) : null;
 		}
 
 	public class WiserOpenThermBoilerParameters (Dictionary<string, object> data)
 		{
-		public bool? HwSetpointTransferEnable => data.TryGetValue ("dhwSetpointTransferEnable", out var value) ? (bool?)Convert.ToBoolean (value, CultureInfo.InvariantCulture) : null;
+		public bool? HwSetpointTransferEnable => data.TryGetValue ("dhwSetpointTransferEnable", out var value) ? (bool?)ConvertInvariant.ToBoolean (value) : null;
 
-		public bool? ChSetpointTransferEnable => data.TryGetValue ("maxChSetpointTransferEnable", out var value) ? (bool?)Convert.ToBoolean (value, CultureInfo.InvariantCulture) : null;
+		public bool? ChSetpointTransferEnable => data.TryGetValue ("maxChSetpointTransferEnable", out var value) ? (bool?)ConvertInvariant.ToBoolean (value) : null;
 
-		public bool? HwSetpointReadWrite => data.TryGetValue ("dhwSetpointReadWrite", out var value) ? (bool?)Convert.ToBoolean (value, CultureInfo.InvariantCulture) : null;
+		public bool? HwSetpointReadWrite => data.TryGetValue ("dhwSetpointReadWrite", out var value) ? (bool?)ConvertInvariant.ToBoolean (value) : null;
 
-		public bool? ChSetpointReadWrite => data.TryGetValue ("maxChSetpointReadWrite", out var value) ? (bool?)Convert.ToBoolean (value, CultureInfo.InvariantCulture) : null;
+		public bool? ChSetpointReadWrite => data.TryGetValue ("maxChSetpointReadWrite", out var value) ? (bool?)ConvertInvariant.ToBoolean (value) : null;
 		}
 
 	public class WiserOpenThermOperationalData (Dictionary<string, object> data)
 		{
-		public double ChPressureBar => data.TryGetValue ("ChPressureBar", out var value) ? Convert.ToDouble (value, CultureInfo.InvariantCulture) / 10 : 0;
+		public double ChPressureBar => data.TryGetValue ("ChPressureBar", out var value) ? ConvertInvariant.ToDouble (value) / 10 : 0;
 
 		public double ChFlowTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 data.TryGetValue ("Ch1FlowTemperature", out var value) ? value : (int?)null, "current");
@@ -78,9 +78,9 @@ namespace WiserHeatApiV2
 		public double HwTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 data.TryGetValue ("Dhw1Temperature", out var value) ? value : (int?)null, "current");
 
-		public int? RelativeModulationLevel => data.TryGetValue ("RelativeModulationLevel", out var value) ? (int?)Convert.ToInt32 (value, CultureInfo.InvariantCulture) : null;
+		public int? RelativeModulationLevel => data.TryGetValue ("RelativeModulationLevel", out var value) ? (int?)ConvertInvariant.ToInt32 (value) : null;
 
-		public int? SlaveStatus => data.TryGetValue ("SlaveStatus", out var value) ? (int?)Convert.ToInt32 (value, CultureInfo.InvariantCulture) : null;
+		public int? SlaveStatus => data.TryGetValue ("SlaveStatus", out var value) ? (int?)ConvertInvariant.ToInt32 (value) : null;
 		}
 #endif
 	}

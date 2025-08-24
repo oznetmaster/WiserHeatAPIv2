@@ -16,7 +16,7 @@ namespace WiserHeatApiV2
 
 		public string? MountingOrientation => DeviceTypeData.TryGetValue ("MountingOrientation", out var orientation) ? orientation.ToString () : null;
 
-		public int PercentageDemand => DeviceTypeData.TryGetValue ("PercentageDemand", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
+		public int PercentageDemand => DeviceTypeData.TryGetValue ("PercentageDemand", out var demand) ? ConvertInvariant.ToInt32 (demand) : 0;
 
 		}
 

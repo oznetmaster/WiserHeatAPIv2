@@ -8,7 +8,7 @@ namespace WiserHeatApiV2
 		{
 		public WiserBattery Battery => new (Data);
 
-		public int CurrentHumidity => DeviceTypeData.TryGetValue ("MeasuredHumidity", out var humidity) ? Convert.ToInt32 (humidity, CultureInfo.InvariantCulture) : 0;
+		public int CurrentHumidity => DeviceTypeData.TryGetValue ("MeasuredHumidity", out var humidity) ? ConvertInvariant.ToInt32 (humidity) : 0;
 
 		public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 DeviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0);

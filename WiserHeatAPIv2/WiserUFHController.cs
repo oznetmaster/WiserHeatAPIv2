@@ -25,15 +25,15 @@ namespace WiserHeatApiV2
 		public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
 			 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TempOff, "current");
 
-		public bool? DewDetected => DeviceTypeData.TryGetValue ("DewDetected", out var detected) ? (bool?)Convert.ToBoolean (detected, CultureInfo.InvariantCulture) : null;
+		public bool? DewDetected => DeviceTypeData.TryGetValue ("DewDetected", out var detected) ? ConvertInvariant.ToBoolean (detected) : null;
 
-		public bool? InterlockActive => DeviceTypeData.TryGetValue ("InterlockActive", out var active) ? (bool?)Convert.ToBoolean (active, CultureInfo.InvariantCulture) : null;
+		public bool? InterlockActive => DeviceTypeData.TryGetValue ("InterlockActive", out var active) ? ConvertInvariant.ToBoolean (active) : null;
 
-		public bool? IsFullStrip => DeviceTypeData.TryGetValue ("IsFullStrip", out var fullStrip) ? (bool?)Convert.ToBoolean (fullStrip, CultureInfo.InvariantCulture) : null;
+		public bool? IsFullStrip => DeviceTypeData.TryGetValue ("IsFullStrip", out var fullStrip) ? ConvertInvariant.ToBoolean (fullStrip) : null;
 
-		public int MaxFloorTemperature => DeviceTypeData.TryGetValue ("MaxHeatFloorTemperature", out var temp) ? Convert.ToInt32 (temp, CultureInfo.InvariantCulture) : Constants.TempMaximum;
+		public int MaxFloorTemperature => DeviceTypeData.TryGetValue ("MaxHeatFloorTemperature", out var temp) ? ConvertInvariant.ToInt32 (temp) : Constants.TempMaximum;
 
-		public int MinFloorTemperature => DeviceTypeData.TryGetValue ("MinHeatFloorTemperature", out var temp) ? Convert.ToInt32 (temp, CultureInfo.InvariantCulture) : Constants.TempOff;
+		public int MinFloorTemperature => DeviceTypeData.TryGetValue ("MinHeatFloorTemperature", out var temp) ? ConvertInvariant.ToInt32 (temp) : Constants.TempOff;
 
 		public string OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TextUnknown;
 
@@ -53,14 +53,14 @@ namespace WiserHeatApiV2
 		public int DemandPercentage
 			{
 			get;
-			} = relayData.TryGetValue ("DemandPercentage", out var demand) ? Convert.ToInt32 (demand, CultureInfo.InvariantCulture) : 0;
+			} = relayData.TryGetValue ("DemandPercentage", out var demand) ? ConvertInvariant.ToInt32 (demand) : 0;
 		public bool Polarity
 			{
 			get;
-			} = relayData.TryGetValue ("Polarity", out var polarity) && Convert.ToBoolean (polarity, CultureInfo.InvariantCulture);
+			} = relayData.TryGetValue ("Polarity", out var polarity) && ConvertInvariant.ToBoolean (polarity);
 		public int Id
 			{
 			get;
-			} = relayData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+			} = relayData.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 		}
 	}

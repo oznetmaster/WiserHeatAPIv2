@@ -12,9 +12,9 @@ namespace WiserHeatApiV2
 		{
 		public class WiserLiftMovementRange (WiserShutter shutterInstance, Dictionary<string, object>? data)
 			{
-			public int? OpenTime => data?.TryGetValue ("LiftOpenTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
+			public int? OpenTime => data?.TryGetValue ("LiftOpenTime", out var time) == true ? (int?)ConvertInvariant.ToInt32 (time) : null;
 
-			public int? CloseTime => data?.TryGetValue ("LiftCloseTime", out var time) == true ? (int?)Convert.ToInt32 (time, CultureInfo.InvariantCulture) : null;
+			public int? CloseTime => data?.TryGetValue ("LiftCloseTime", out var time) == true ? (int?)ConvertInvariant.ToInt32 (time) : null;
 
 			public async Task SetOpenTimeAsync (int time, CancellationToken cancellationToken = default) =>
 				_ = await shutterInstance.SendCommandAsync (new { LiftOpenTime = time, LiftCloseTime = CloseTime }, cancellationToken: cancellationToken).ConfigureAwait (false);
@@ -45,7 +45,7 @@ namespace WiserHeatApiV2
 
 		private Task<bool> SendCommandAsync (object cmd, CancellationToken cancellationToken = default)
 			{
-			var url = string.Format (CultureInfo.InvariantCulture, RestConstants.WiserShutter, ShutterId);
+			var url = RestConstants.WiserRestShutter.FormatInvariant (ShutterId);
 
 			return WiserRestController.SendCommandAsync (url, cmd, cancellationToken: cancellationToken);
 			}
@@ -87,7 +87,7 @@ namespace WiserHeatApiV2
 
 		public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TextUnknown;
 
-		public int CurrentLift => DeviceTypeData.TryGetValue ("CurrentLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
+		public int CurrentLift => DeviceTypeData.TryGetValue ("CurrentLift", out var lift) ? ConvertInvariant.ToInt32 (lift) : 0;
 
 		public async Task SetCurrentLiftAsync (int percentage, CancellationToken cancellationToken = default) => 
 			_ = percentage is >= 0 and <= 100
@@ -113,7 +113,7 @@ namespace WiserHeatApiV2
 
 		public string LiftMovement => DeviceTypeData.TryGetValue ("LiftMovement", out var movement) ? movement.ToString () : Constants.TextUnknown;
 
-		public int ManualLift => DeviceTypeData.TryGetValue ("ManualLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
+		public int ManualLift => DeviceTypeData.TryGetValue ("ManualLift", out var lift) ? ConvertInvariant.ToInt32 (lift) : 0;
 
 		public string Mode
 			{
@@ -162,13 +162,13 @@ namespace WiserHeatApiV2
 
 		public WiserSchedule? Schedule { get; }
 
-		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 		public string ScheduledLift => DeviceTypeData.TryGetValue ("ScheduledLift", out var lift) ? lift.ToString () : Constants.TextUnknown;
 
-		public int ShutterId => DeviceTypeData.TryGetValue ("id", out var id) ? Convert.ToInt32 (id, CultureInfo.InvariantCulture) : 0;
+		public int ShutterId => DeviceTypeData.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
-		public int TargetLift => DeviceTypeData.TryGetValue ("TargetLift", out var lift) ? Convert.ToInt32 (lift, CultureInfo.InvariantCulture) : 0;
+		public int TargetLift => DeviceTypeData.TryGetValue ("TargetLift", out var lift) ? ConvertInvariant.ToInt32 (lift) : 0;
 
 		public Task OpenAsync (CancellationToken cancellationToken = default) =>
 			SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }, cancellationToken: cancellationToken);
