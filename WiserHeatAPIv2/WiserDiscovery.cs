@@ -7,40 +7,74 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+using log4net;
+
 namespace WiserHeatApiV2
 	{
+	/// <summary>
+	/// Represents a discovered Wiser Hub endpoint.
+	/// </summary>
 	public class WiserDiscoveredHub (IPAddress ipAddress, int port = 80)
 		{
+		/// <summary>Gets the hub IP address.</summary>
 		public IPAddress IpAddress { get; } = ipAddress;
+		/// <summary>Gets the HTTP port used by the hub.</summary>
 		public int Port { get; } = port;
+		/// <summary>Gets the base URL to the hub (including port when non-default).</summary>
 		public string Url => Port == 80 ? $"http://{IpAddress}" : $"http://{IpAddress}:{Port}";
+		/// <summary>Gets the discovery timestamp.</summary>
 		public DateTime DiscoveredAt { get; } = DateTime.Now;
 
+		/// <inheritdoc />
 		public override string ToString () => $"{Url} (discovered at {DiscoveredAt:HH:mm:ss})";
 		}
 
+	/// <summary>
+	/// Options controlling hub discovery behavior.
+	/// </summary>
 	public class WiserDiscoveryOptions
 		{
+		/// <summary>Gets or sets the overall discovery timeout in seconds.</summary>
 		public int TimeoutSeconds { get; set; } = 30;
+		/// <summary>Gets or sets the maximum concurrent network operations.</summary>
 		public int MaxConcurrency { get; set; } = 50;
+		/// <summary>Gets or sets the ICMP ping timeout in milliseconds.</summary>
 		public int PingTimeout { get; set; } = 500;
+		/// <summary>Gets or sets the HTTP probe timeout in milliseconds.</summary>
 		public int HttpTimeout { get; set; } = 1500;
+		/// <summary>Gets or sets whether to display progress output.</summary>
 		public bool ShowProgress { get; set; }
+		/// <summary>Gets or sets whether to display verbose debug output.</summary>
 		public bool ShowDebug { get; set; }
+		/// <summary>Gets or sets the maximum number of hubs to return; 0 for unlimited.</summary>
 		public int MaxResults { get; set; }  // 0 means unlimited
 		}
 
+	/// <summary>
+	/// Network addressing information derived from an IP and subnet mask.
+	/// </summary>
 	public class NetworkInfo
 		{
 		private static readonly byte[] _zeroBitCountTable =
-			 [.. Enumerable.Range (0, 256).Select (b => (byte)(8 - Convert.ToString (b, 2).Count (c => c == '1')))];
+			 [.. Enumerable.Range (0, 256).Select (b => (byte)(8 - Convert.ToString (b, 2).Count (c => c == '1')))]
+			;
 
+		/// <summary>Gets the base network IP (x.y.z.0).</summary>
 		public IPAddress NetworkBase { get; }
+		/// <summary>Gets the calculated network address.</summary>
 		public IPAddress NetworkAddress { get; }
+		/// <summary>Gets the subnet mask.</summary>
 		public IPAddress SubnetMask { get; }
+		/// <summary>Gets the calculated broadcast address.</summary>
 		public IPAddress BroadcastAddress { get; }
+		/// <summary>Gets the number of usable host addresses in the subnet.</summary>
 		public int HostCount { get; }
 
+		/// <summary>
+		/// Creates a new <see cref="NetworkInfo"/> from a network address and mask.
+		/// </summary>
+		/// <param name="networkAddress">The network address.</param>
+		/// <param name="subnetMask">The subnet mask.</param>
 		public NetworkInfo (IPAddress networkAddress, IPAddress subnetMask)
 			{
 			NetworkAddress = networkAddress;
@@ -78,8 +112,13 @@ namespace WiserHeatApiV2
 		private static int CountZeroBits (byte value) => _zeroBitCountTable[value];
 		}
 
+	/// <summary>
+	/// Discovery helpers for scanning local networks and verifying Wiser hubs.
+	/// </summary>
 	public class WiserHubDiscovery
 		{
+		private static readonly ILog _log = LogManager.GetLogger (typeof (WiserHubDiscovery));
+
 		private static readonly HttpClient _sharedHttpClient = new () { Timeout = TimeSpan.FromMilliseconds (3000) };
 		private static readonly IPAddress _subnetMask = new ([255, 255, 255, 0]);
 		private static readonly IPAddress[] _fallbackRanges = [new ([192, 168, 1, 0]), new ([192, 168, 0, 0]), new ([192, 168, 8, 0]), new ([10, 0, 0, 0]), new ([172, 16, 0, 0])];
@@ -98,10 +137,10 @@ namespace WiserHeatApiV2
 
 			if (options.ShowProgress)
 				{
-				Console.WriteLine ($"Scanning {networkInfos.Count} networks:");
+				_log.Info ($"Scanning {networkInfos.Count} networks:");
 				foreach (NetworkInfo netInfo in networkInfos)
 					{
-					Console.WriteLine ($"  - {netInfo.NetworkAddress}/{netInfo.SubnetMask} ({netInfo.HostCount} hosts, broadcast: {netInfo.BroadcastAddress})");
+					_log.Info ($"  - {netInfo.NetworkAddress}/{netInfo.SubnetMask} ({netInfo.HostCount} hosts, broadcast: {netInfo.BroadcastAddress})");
 					}
 				}
 
@@ -129,7 +168,7 @@ namespace WiserHeatApiV2
 			 [EnumeratorCancellation] CancellationToken cancellationToken)
 			{
 			if (options.ShowProgress)
-				Console.WriteLine ($"  Streaming scan {networkInfo.NetworkBase}.*...");
+				_log.Info ($"  Streaming scan {networkInfo.NetworkBase}.*...");
 
 			var semaphore = new SemaphoreSlim (options.MaxConcurrency);
 			var httpTasks = new List<Task<WiserDiscoveredHub?>> ();
@@ -146,21 +185,21 @@ namespace WiserHeatApiV2
 					try
 						{
 						if (options.ShowDebug)
-							Console.WriteLine ($"    HTTP test: {aliveIP}");
+							_log.Debug ($"    HTTP test: {aliveIP}");
 
 						using var cts = new CancellationTokenSource (options.HttpTimeout);
 						if (await IsWiserHubAsync (aliveIP).ConfigureAwait (false))
 							{
 							var hub = new WiserDiscoveredHub (aliveIP);
 							if (options.ShowProgress)
-								Console.WriteLine ($"    ✅ Found Wiser Hub: {hub.Url}");
+								_log.Info ($"    ✅ Found Wiser Hub: {hub.Url}");
 							return hub;
 							}
 						}
 					catch (Exception ex)
 						{
 						if (options.ShowDebug)
-							Console.WriteLine ($"    ❌ HTTP test failed for {aliveIP}: {ex.Message}");
+							_log.Debug ($"    ❌ HTTP test failed for {aliveIP}: {ex.Message}");
 						}
 					finally
 						{
@@ -186,7 +225,7 @@ namespace WiserHeatApiV2
 				catch (Exception ex)
 					{
 					if (options.ShowDebug)
-						Console.WriteLine ($"    ❌ HTTP task exception: {ex.Message}");
+						_log.Debug ($"    ❌ HTTP task exception: {ex.Message}");
 					}
 
 				if (hub != null)
@@ -199,7 +238,7 @@ namespace WiserHeatApiV2
 				}
 
 			if (options.ShowProgress)
-				Console.WriteLine ($"  ✅ {networkInfo.NetworkBase}.* streaming scan complete");
+				_log.Info ($"  ✅ {networkInfo.NetworkBase}.* streaming scan complete");
 			}
 
 		/// <summary>
@@ -215,10 +254,10 @@ namespace WiserHeatApiV2
 
 			if (options.ShowDebug)
 				{
-				Console.WriteLine ($"    Network: {networkInfo.NetworkAddress}");
-				Console.WriteLine ($"    Subnet Mask: {networkInfo.SubnetMask}");
-				Console.WriteLine ($"    Broadcast: {networkInfo.BroadcastAddress}");
-				Console.WriteLine ($"    Host Count: {networkInfo.HostCount}");
+				_log.Debug ($"    Network: {networkInfo.NetworkAddress}");
+				_log.Debug ($"    Subnet Mask: {networkInfo.SubnetMask}");
+				_log.Debug ($"    Broadcast: {networkInfo.BroadcastAddress}");
+				_log.Debug ($"    Host Count: {networkInfo.HostCount}");
 				}
 
 			var ipsToScan = GetIPsToScan (networkInfo, gatewayIPs, options).ToList ();
@@ -285,7 +324,7 @@ namespace WiserHeatApiV2
 			var endLastOctet = broadcastBytes[3];
 
 			if (options.ShowDebug)
-				Console.WriteLine ($"    Scanning: {networkBytes[0]}.{networkBytes[1]}.{networkBytes[2]}.{startLastOctet}-{endLastOctet}");
+				_log.Debug ($"    Scanning: {networkBytes[0]}.{networkBytes[1]}.{networkBytes[2]}.{startLastOctet}-{endLastOctet}");
 
 			for (int i = startLastOctet; i <= endLastOctet; i++)
 				{
@@ -298,11 +337,11 @@ namespace WiserHeatApiV2
 				else if (options.ShowDebug)
 					{
 					if (ip == networkInfo.NetworkAddress)
-						Console.WriteLine ($"    ⏭️ Skipping network address: {ip}");
+						_log.Debug ($"    ⏭️ Skipping network address: {ip}");
 					else if (ip == networkInfo.BroadcastAddress)
-						Console.WriteLine ($"    ⏭️ Skipping broadcast address: {ip}");
+						_log.Debug ($"    ⏭️ Skipping broadcast address: {ip}");
 					else if (gatewayIPs.Contains (ip))
-						Console.WriteLine ($"    ⏭️ Skipping gateway: {ip}");
+						_log.Debug ($"    ⏭️ Skipping gateway: {ip}");
 					}
 				}
 			}
@@ -335,7 +374,7 @@ namespace WiserHeatApiV2
 				{
 				var networkInterfaces = NetworkInterface.GetAllNetworkInterfaces ()
 					  .Where (ni => ni.OperationalStatus == OperationalStatus.Up &&
-											ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+									ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
 					  .ToList ();
 
 				foreach (NetworkInterface? ni in networkInterfaces)
@@ -361,7 +400,7 @@ namespace WiserHeatApiV2
 								{
 								networkInfos.Add (networkInfo);
 								if (showDebug)
-									Console.WriteLine ($"  Added network: {networkAddress}/{addr.IPv4Mask} ({networkInfo.HostCount} hosts)");
+									_log.Debug ($"  Added network: {networkAddress}/{addr.IPv4Mask} ({networkInfo.HostCount} hosts)");
 								}
 							}
 						}
@@ -370,7 +409,7 @@ namespace WiserHeatApiV2
 			catch (Exception ex)
 				{
 				if (showDebug)
-					Console.WriteLine ($"Error getting network information: {ex.Message}");
+					_log.Debug ($"Error getting network information: {ex.Message}");
 				// Fallback to common private ranges as /24 networks
 
 				foreach (IPAddress range in _fallbackRanges)
@@ -395,7 +434,7 @@ namespace WiserHeatApiV2
 					  .Where (ni => ni.OperationalStatus == OperationalStatus.Up);
 
 				if (showDebug)
-					Console.WriteLine ($"  🔍 Detecting gateways for network {networkBase}.*");
+					_log.Debug ($"  🔍 Detecting gateways for network {networkBase}.*");
 
 				foreach (NetworkInterface? ni in networkInterfaces)
 					{
@@ -415,7 +454,7 @@ namespace WiserHeatApiV2
 									{
 									isTargetNetwork = true;
 									if (showDebug)
-										Console.WriteLine ($"    Interface '{ni.Name}' is on target network: {networkBase}");
+										_log.Debug ($"    Interface '{ni.Name}' is on target network: {networkBase}");
 
 									break;
 									}
@@ -434,7 +473,7 @@ namespace WiserHeatApiV2
 								_ = gatewayIPs.Add (gatewayIP);
 
 								if (showDebug)
-									Console.WriteLine ($"    ✅ Found gateway: {gatewayIP}");
+									_log.Debug ($"    ✅ Found gateway: {gatewayIP}");
 								}
 							}
 						}
@@ -443,18 +482,18 @@ namespace WiserHeatApiV2
 			catch (Exception ex)
 				{
 				if (showDebug)
-					Console.WriteLine ($"    ❌ Error detecting gateways: {ex.Message}");
+					_log.Debug ($"    ❌ Error detecting gateways: {ex.Message}");
 				}
 
 			if (showDebug)
 				{
 				if (gatewayIPs.Count > 0)
 					{
-					Console.WriteLine ($"    🎯 Total gateways to skip: {string.Join (", ", gatewayIPs)}");
+					_log.Debug ($"    🎯 Total gateways to skip: {string.Join (", ", gatewayIPs)}");
 					}
 				else
 					{
-					Console.WriteLine ($"    ℹ️ No gateways detected for {networkBase}.*");
+					_log.Debug ($"    ℹ️ No gateways detected for {networkBase}.*");
 					}
 				}
 

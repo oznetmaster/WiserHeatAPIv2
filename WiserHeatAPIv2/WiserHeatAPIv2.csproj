@@ -7,8 +7,10 @@
 	  <!-- Optional: enable the latest compiler and nullable analysis -->
 	  <LangVersion>latest</LangVersion>
 	  <Nullable>enable</Nullable>
-	  <EnableNETAnalyzers>True</EnableNETAnalyzers>
 	  <AnalysisLevel>latest-recommended</AnalysisLevel>
+	  <EnableNETAnalyzers>true</EnableNETAnalyzers>
+	  <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+	  <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
 	  <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 	  <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
@@ -22,6 +24,11 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     <ComVisible>false</ComVisible>
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <!-- Enable XML documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\WiserHeatAPIv2.xml</DocumentationFile>
   </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
 		<DebugType>portable</DebugType>

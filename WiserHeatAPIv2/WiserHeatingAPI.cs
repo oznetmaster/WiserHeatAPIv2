@@ -15,15 +15,13 @@ using static WiserHeatApiV2.RestConstants;
 namespace WiserHeatApiV2
 	{
 	/// <summary>
-	/// Wiser API Version 2
-	/// 
-	/// angelosantagata@gmail.com
-	/// msparker@sky.com
-	/// 
-	/// https://github.com/asantaga/wiserheatingapi
-	/// 
-	/// This API allows you to get information from and control your wiserhub.
+	/// Main Wiser API facade providing access to hub state, entities and control operations.
+	/// This is the primary entry point for interacting with a Wiser heating system.
 	/// </summary>
+	/// <remarks>
+	/// The API automatically reads and synchronizes with hub data during initialization.
+	/// Call <see cref="ReadHubDataAsync"/> periodically to refresh entity state.
+	/// </remarks>
 	// TODO: Keep objects and update instead of recreating on hub update
 	// TODO: Update entity values after commend issued to get current values
 	public class WiserAPI : IDisposable
@@ -44,8 +42,19 @@ namespace WiserHeatApiV2
 		private Dictionary<string, object> _openthermData = [];
 
 		/// <summary>
-		/// Main api class to access all entities and attributes of wiser system
+		/// Initializes a new instance of the <see cref="WiserAPI"/> class with connection parameters.
 		/// </summary>
+		/// <param name="host">IP address or hostname of the Wiser hub.</param>
+		/// <param name="secret">Secret key for hub authentication (obtained from the hub's display or app).</param>
+		/// <param name="units">Preferred temperature unit system for all API operations.</param>
+		/// <exception cref="ArgumentNullException">
+		/// Thrown when <paramref name="host"/> or <paramref name="secret"/> is <see langword="null"/>.
+		/// </exception>
+		/// <exception cref="WiserHubConnectionException">Thrown when connection information is missing or empty.</exception>
+		/// <remarks>
+		/// After creating an instance, call <see cref="InitializeAsync"/> to establish communication and read hub data.
+		/// Both <paramref name="host"/> and <paramref name="secret"/> must be non-empty.
+		/// </remarks>
 		public WiserAPI (string? host, string? secret, WiserUnits units = WiserUnits.Metric)
 			{
 			var logger = (log4net.Repository.Hierarchy.Logger)((log4net.Core.LogImpl)_lOGGER).Logger;
@@ -64,7 +73,7 @@ namespace WiserHeatApiV2
 				"WiserHub API v{0} Initialised - Host: {1}, Units: {2}",
 				_vERSION,
 				host,
-				_wiserApiConnection.Units.ToString().TitleCase ()
+				_wiserApiConnection.Units.ToString ().TitleCase ()
 			);
 
 			// Read hub data if hub IP and secret exist
@@ -73,6 +82,19 @@ namespace WiserHeatApiV2
 				: throw new WiserHubConnectionException ("Missing or incomplete connection information");
 			}
 
+		/// <summary>
+		/// Establishes communication with the hub and performs initial data synchronization.
+		/// This method must be called after construction before using any API properties.
+		/// </summary>
+		/// <param name="cancellationToken">Cancellation token to observe.</param>
+		/// <returns>A task that represents the asynchronous initialization operation.</returns>
+		/// <exception cref="WiserHubConnectionException">
+		/// Thrown when initialization fails (underlying errors are caught and wrapped).
+		/// </exception>
+		/// <remarks>
+		/// This method populates all API properties (Rooms, Devices, System, etc.) with current hub data.
+		/// Any underlying exceptions are caught and rethrown as <see cref="WiserHubConnectionException"/>.
+		/// </remarks>
 		public async Task InitializeAsync (CancellationToken cancellationToken = default)
 			{
 			try
@@ -91,8 +113,19 @@ namespace WiserHeatApiV2
 			}
 
 		/// <summary>
-		/// Read all data from hub and populate objects
+		/// Retrieves the latest data from the hub and updates all API entities accordingly.
+		/// Call this method periodically to refresh entity state.
 		/// </summary>
+		/// <param name="cancellationToken">Cancellation token to observe.</param>
+		/// <returns>
+		/// A task that represents the asynchronous operation. The task result is <see langword="true"/> if all required hub
+		/// data was retrieved and processed successfully; otherwise, <see langword="false"/>.
+		/// </returns>
+		/// <remarks>
+		/// This method updates existing entity instances rather than replacing them, preserving object references.
+		/// Errors are logged and the method returns <see langword="false"/>; exceptions are not propagated.
+		/// The OpenTherm endpoint is optional; failures are suppressed during retrieval.
+		/// </remarks>
 		public async Task<bool> ReadHubDataAsync (CancellationToken cancellationToken = default)
 			{
 			try
@@ -103,10 +136,10 @@ namespace WiserHeatApiV2
 					return false;
 					}
 				// Read data from hub
-				Dictionary<string, object> newDomainData = await _wiserRestController.GetHubDataAsync(WiserHubDomain.FormatInvariant(_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait(false);
-				Dictionary<string, object> newNetworkData = await _wiserRestController.GetHubDataAsync(WiserHubNetwork.FormatInvariant(_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait(false);
-				Dictionary<string, object> newScheduleData = await _wiserRestController.GetHubDataAsync(WiserHubSchedules.FormatInvariant(_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait(false);
-				Dictionary<string, object> newOpenthermData = await _wiserRestController.GetHubDataAsync(WiserHubOpentherm.FormatInvariant(_wiserApiConnection.Host), raiseForEndpointError: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+				Dictionary<string, object> newDomainData = await _wiserRestController.GetHubDataAsync (WiserHubDomain.FormatInvariant (_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				Dictionary<string, object> newNetworkData = await _wiserRestController.GetHubDataAsync (WiserHubNetwork.FormatInvariant (_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				Dictionary<string, object> newScheduleData = await _wiserRestController.GetHubDataAsync (WiserHubSchedules.FormatInvariant (_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
+				Dictionary<string, object> newOpenthermData = await _wiserRestController.GetHubDataAsync (WiserHubOpentherm.FormatInvariant (_wiserApiConnection.Host), raiseForEndpointError: false, cancellationToken: cancellationToken).ConfigureAwait (false);
 
 				// Update internal data
 				_domainData = newDomainData;
@@ -160,8 +193,8 @@ namespace WiserHeatApiV2
 						Dictionary<string, object> firstHotWaterData = hotWaterData[0];
 						// If ScheduleId is not present, default to 0
 						// Check if ScheduleId exists in the first hot water data item
-						scheduleId = firstHotWaterData.TryGetValue("ScheduleId", out var scheduleIdObj)
-							? ConvertInvariant.ToInt32(scheduleIdObj)
+						scheduleId = firstHotWaterData.TryGetValue ("ScheduleId", out var scheduleIdObj)
+							? ConvertInvariant.ToInt32 (scheduleIdObj)
 							: 0;
 						WiserSchedule? schedule = Schedules.GetById (WiserScheduleType.OnOff, scheduleId);
 						if (schedule == null)
@@ -196,50 +229,69 @@ namespace WiserHeatApiV2
 
 			_lOGGER.DebugFormatInvariant (
 				 "No update: _domainData: {0}, _networkData: {1}, _scheduleData: {2}",
-				 _domainData.Count.ToStringInvariant(), _networkData.Count.ToStringInvariant(), _scheduleData.Count.ToStringInvariant()
+				 _domainData.Count.ToStringInvariant (), _networkData.Count.ToStringInvariant (), _scheduleData.Count.ToStringInvariant ()
 			);
 			return false;
 			}
 
 		// API properties
 		/// <summary>
-		/// List of device entities attached to the Wiser Hub
+		/// Gets the collection of devices (sensors, actuators, smart plugs, etc.) connected to the Wiser hub.
 		/// </summary>
+		/// <value>A <see cref="WiserDevices"/> instance providing access to all hub devices, or <see langword="null"/> if not yet initialized.</value>
+		/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
 		public WiserDevices? Devices { get; private set; }
 
 		/// <summary>
-		/// List of heating channel entities on the Wiser Hub
+		/// Gets the collection of heating channels configured on the Wiser hub.
 		/// </summary>
+		/// <value>A <see cref="WiserHeatingChannels"/> instance providing access to heating channel state, or <see langword="null"/> if not yet initialized.</value>
+		/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
 		public WiserHeatingChannels? HeatingChannels { get; private set; }
 
 		/// <summary>
-		/// List of hot water entities on the Wiser Hub
+		/// Gets the hot water controller entity, if configured on the hub.
 		/// </summary>
+		/// <value>A <see cref="WiserHotwater"/> instance for hot water control, or <see langword="null"/> if no hot water is configured or not yet initialized.</value>
+		/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
 		public WiserHotwater? Hotwater { get; private set; }
 
 		/// <summary>
-		/// List of moment entities on the Wiser Hub
+		/// Gets the collection of Moment entities (energy monitoring) available on the hub.
 		/// </summary>
+		/// <value>A <see cref="WiserMoments"/> instance providing access to energy data, or <see langword="null"/> if not yet initialized.</value>
+		/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
 		public WiserMoments? Moments { get; private set; }
 
 		/// <summary>
-		/// List of room entities configured on the Wiser Hub
+		/// Gets the collection of rooms configured on the Wiser hub.
 		/// </summary>
+		/// <value>A <see cref="WiserRooms"/> instance providing access to all rooms and their controls, or <see langword="null"/> if not yet initialized.</value>
+		/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
 		public WiserRooms? Rooms { get; private set; }
 
 		/// <summary>
-		/// List of schedules
+		/// Gets the collection of schedules configured on the Wiser hub.
 		/// </summary>
+		/// <value>A <see cref="WiserSchedules"/> instance providing access to heating, on/off, and level schedules, or <see langword="null"/> if not yet initialized.</value>
+		/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
 		public WiserSchedules? Schedules { get; private set; }
 
 		/// <summary>
-		/// Entity of the Wiser Hub
+		/// Gets the hub system information, including firmware, network status, and global settings.
 		/// </summary>
+		/// <value>A <see cref="WiserSystem"/> instance with hub metadata and system-level controls, or <see langword="null"/> if not yet initialized.</value>
+		/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
 		public WiserSystem? System { get; private set; }
 
 		/// <summary>
-		/// Get or set units for temperature
+		/// Gets or sets the preferred temperature unit system for all API operations.
 		/// </summary>
+		/// <value>The unit system used for temperature values throughout the API.</value>
+		/// <remarks>
+		/// Changing this property affects temperature values returned by all entities.
+		/// Existing temperature values are converted automatically.
+		/// </remarks>
 		public WiserUnits Units
 			{
 			get => _wiserApiConnection.Units;
@@ -247,13 +299,22 @@ namespace WiserHeatApiV2
 			}
 
 		/// <summary>
-		/// API Version
+		/// Gets the API version string.
 		/// </summary>
+		/// <value>A string representing the current API version.</value>
 		public static string Version => _vERSION;
 
 		/// <summary>
-		/// Raw hub data
+		/// Gets the raw hub payload data organized by category, useful for debugging or advanced scenarios.
 		/// </summary>
+		/// <value>
+		/// A dictionary containing the latest raw JSON responses from the hub, keyed by category:
+		/// "Domain", "Network", "Schedule", "OpenTherm".
+		/// </value>
+		/// <remarks>
+		/// This data reflects the last successful call to <see cref="ReadHubDataAsync"/>.
+		/// The returned dictionaries are snapshots of the last refresh; modifying them does not affect hub state.
+		/// </remarks>
 		public Dictionary<string, object> RawHubData => new ()
 			{
 			["Domain"] = _domainData,
@@ -263,22 +324,40 @@ namespace WiserHeatApiV2
 			};
 
 		private static readonly Dictionary<string, string> _dataClassToEndpoint = new (StringComparer.OrdinalIgnoreCase)
-{
-	 { "domain",    RestConstants.WiserHubDomain },
-	 { "network",   RestConstants.WiserHubNetwork },
-	 { "schedules", RestConstants.WiserHubSchedules },
-	 { "opentherm", RestConstants.WiserHubOpentherm }
-};
+			{
+				 { "domain",    RestConstants.WiserHubDomain },
+				 { "network",   RestConstants.WiserHubNetwork },
+				 { "schedules", RestConstants.WiserHubSchedules },
+				 { "opentherm", RestConstants.WiserHubOpentherm }
+			};
 
 		/// <summary>
-		/// Output raw hub data to json file
+		/// Exports raw hub data for a specific category to a JSON file for debugging or backup purposes.
 		/// </summary>
+		/// <param name="dataClass">The data category to export. Valid values: "domain", "network", "schedules", "opentherm".</param>
+		/// <param name="filename">The output filename (e.g., "data.json").</param>
+		/// <param name="filePath">The directory path where the file should be written.</param>
+		/// <param name="cancellationToken">Cancellation token to observe.</param>
+		/// <returns>
+		/// A task that represents the asynchronous operation. The task result is <see langword="true"/> if data was retrieved
+		/// and written successfully; otherwise, <see langword="false"/>.
+		/// </returns>
+		/// <exception cref="WiserHubAuthenticationException">Thrown when authentication with the hub fails.</exception>
+		/// <exception cref="WiserHubConnectionException">Thrown when a connection or timeout error occurs.</exception>
+		/// <exception cref="WiserHubRESTException">Thrown when the hub returns an error response.</exception>
+		/// <exception cref="DirectoryNotFoundException">Thrown when the specified directory path does not exist.</exception>
+		/// <exception cref="UnauthorizedAccessException">Thrown when write access to the file path is denied.</exception>
+		/// <remarks>
+		/// The exported JSON file contains the exact payload structure returned by the hub for the specified data category.
+		/// Returns <see langword="false"/> when the <paramref name="dataClass"/> is invalid, the hub returns no data,
+		/// or writing the file fails.
+		/// </remarks>
 		public async Task<bool> OutputRawHubDataAsync (string dataClass, string filename, string filePath, CancellationToken cancellationToken = default)
 			{
 			// Get correct endpoint
-			var endpoint = _dataClassToEndpoint.TryGetValue(dataClass, out var endpointFormat)
-    ? endpointFormat.FormatInvariant(_wiserApiConnection.Host)
-    : null;
+			var endpoint = _dataClassToEndpoint.TryGetValue (dataClass, out var endpointFormat)
+		? endpointFormat.FormatInvariant (_wiserApiConnection.Host)
+		: null;
 
 			if (endpoint == null)
 				{
@@ -328,6 +407,13 @@ namespace WiserHeatApiV2
 				}
 			}
 
+		/// <summary>
+		/// Releases all resources used by the <see cref="WiserAPI"/> instance, including HTTP connections.
+		/// </summary>
+		/// <remarks>
+		/// Call this method when finished with the API instance to ensure proper cleanup of network resources.
+		/// After disposal, the instance should not be used.
+		/// </remarks>
 		public void Dispose ()
 			{
 			// Dispose of managed resources
@@ -344,21 +430,39 @@ namespace WiserHeatApiV2
 			}
 		}
 
-	// Constants
+	/// <summary>
+	/// Legacy constants maintained for backward compatibility with earlier API versions.
+	/// </summary>
+	/// <remarks>
+	/// For new code, prefer using the <see cref="Constants"/> class which provides more comprehensive and up-to-date values.
+	/// </remarks>
 	public static class WiserConstants
 		{
+		/// <summary>Default away mode temperature in degrees Celsius.</summary>
 		public const double DEFAULTAWAYMODETEMP = 16.0;
+		/// <summary>Default degraded mode temperature in degrees Celsius.</summary>
 		public const double DEFAULTDEGRADEDTEMP = 18.0;
+		/// <summary>Maximum allowed Boost delta in degrees Celsius.</summary>
 		public const int MAXBOOSTINCREASE = 5;
+		/// <summary>Hub temperature error sentinel.</summary>
 		public const double TEMPERROR = -1;
+		/// <summary>Hot water ON sentinel temperature.</summary>
 		public const double TEMPHWON = -20;
+		/// <summary>Hot water OFF sentinel temperature.</summary>
 		public const double TEMPHWOFF = -20.5;
+		/// <summary>Minimum allowed setpoint temperature in degrees Celsius.</summary>
 		public const double TEMPMINIMUM = 5;
+		/// <summary>Maximum allowed setpoint temperature in degrees Celsius.</summary>
 		public const double TEMPMAXIMUM = 30;
+		/// <summary>Heating OFF sentinel temperature.</summary>
 		public const double TEMPOFF = -20;
+		/// <summary>Endpoint key for domain data.</summary>
 		public const string WISERHUBDOMAIN = "domain";
+		/// <summary>Endpoint key for network data.</summary>
 		public const string WISERHUBNETWORK = "network";
+		/// <summary>Endpoint key for schedules data.</summary>
 		public const string WISERHUBSCHEDULES = "schedules";
+		/// <summary>Endpoint key for OpenTherm data.</summary>
 		public const string WISERHUBOPENTHERM = "opentherm";
 		}
 	}

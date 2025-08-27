@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace WiserHeatApiV2
 	{
+	/// <summary>
+	/// Represents a Wiser smart plug with schedule, mode and on/off control.
+	/// </summary>
 	public class WiserSmartPlug : WiserDevice
 		{
 		private string _awayAction;
@@ -14,6 +17,13 @@ namespace WiserHeatApiV2
 		private string _outputState;
 		//private string _name;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="WiserSmartPlug"/> class from hub-provided data.
+		/// </summary>
+		/// <param name="wiserRestController">REST controller used to send commands to the hub.</param>
+		/// <param name="data">Raw device data for the underlying device.</param>
+		/// <param name="deviceTypeData">Smart plug specific data (mode, state, schedule id).</param>
+		/// <param name="schedule">The schedule assigned to this plug (may be null).</param>
 		public WiserSmartPlug (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData, WiserSchedule schedule)
 			 : base (wiserRestController, data, deviceTypeData)
 			{
@@ -42,15 +52,33 @@ namespace WiserHeatApiV2
 		private static bool ValidateAwayAction (string action) =>
 			AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 
+		/// <summary>
+		/// Gets the supported operating modes for a smart plug.
+		/// </summary>
+		/// <remarks>Values are derived from <see cref="WiserSmartPlugMode"/> (e.g., Auto, Manual).</remarks>
 		public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserSmartPlugMode))
 			 .Cast<WiserSmartPlugMode> ()
 			 .Select (m => m.ToString ())];
 
+		/// <summary>
+		/// Gets the supported Away mode actions for smart plugs.
+		/// </summary>
+		/// <remarks>Permitted values are <see cref="WiserAwayAction.Off"/> and <see cref="WiserAwayAction.NoChange"/>.</remarks>
 		public static List<string> AvailableAwayModeActions => [.. Enum.GetValues (typeof (WiserAwayAction))
 			 .Cast<WiserAwayAction> ()
 			 .Where (a => a is WiserAwayAction.Off or WiserAwayAction.NoChange)
 			 .Select (a => a.ToString ())];
 
+		/// <summary>
+		/// Asynchronously sets the plug operating mode.
+		/// </summary>
+		/// <param name="value">Target mode. Must be one of <see cref="AvailableModes"/>.</param>
+		/// <param name="cancellationToken">Cancellation token to observe.</param>
+		/// <returns>True if the hub accepted the change or if the mode was unchanged; otherwise false.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is not a valid mode.</exception>
+		/// <exception cref="WiserHubAuthenticationException">Authentication failed at the hub.</exception>
+		/// <exception cref="WiserHubConnectionException">A connection or timeout error occurred.</exception>
+		/// <exception cref="WiserHubRESTException">The hub returned a non-success status.</exception>
 		public async Task<bool> SetModeAsync (string value, CancellationToken cancellationToken = default)
 			{
 			if (_mode == value)
@@ -88,6 +116,16 @@ namespace WiserHeatApiV2
 			}
 		*/
 
+		/// <summary>
+		/// Asynchronously sets the Away mode action.
+		/// </summary>
+		/// <param name="value">Desired action. Must be one of <see cref="AvailableAwayModeActions"/>.</param>
+		/// <param name="cancellationToken">Cancellation token to observe.</param>
+		/// <returns>True if the hub accepted the change; otherwise false.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is not a permitted action.</exception>
+		/// <exception cref="WiserHubAuthenticationException">Authentication failed at the hub.</exception>
+		/// <exception cref="WiserHubConnectionException">A connection or timeout error occurred.</exception>
+		/// <exception cref="WiserHubRESTException">The hub returned a non-success status.</exception>
 		public async Task<bool> SetAwayModeActionAsync (string value, CancellationToken cancellationToken = default)
 			{
 			if (!ValidateAwayAction (value))
@@ -100,6 +138,12 @@ namespace WiserHeatApiV2
 
 			return false;
 			}
+
+		/// <summary>
+		/// Gets or sets the Away mode action.
+		/// </summary>
+		/// <value>One of <see cref="AvailableAwayModeActions"/>.</value>
+		/// <exception cref="ArgumentException">Setter throws if the value is invalid for the hub.</exception>
 		public string AwayModeAction
 			{
 			get => _awayAction;
@@ -111,14 +155,33 @@ namespace WiserHeatApiV2
 				}
 			}
 
+		/// <summary>
+		/// Gets the control source description reported by the hub (e.g., Auto, Manual, Schedule).
+		/// </summary>
 		public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TextUnknown;
 
+		/// <summary>
+		/// Gets the cumulative delivered energy value, if the device reports it.
+		/// </summary>
+		/// <value>Delivered power in the hub’s reported unit; -1 if unsupported.</value>
 		public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? ConvertInvariant.ToInt32 (power) : -1;
 
+		/// <summary>
+		/// Gets the instantaneous power value, if the device reports it.
+		/// </summary>
+		/// <value>Instantaneous demand in the hub’s reported unit; -1 if unsupported.</value>
 		public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? ConvertInvariant.ToInt32 (power) : -1;
 
+		/// <summary>
+		/// Gets the manual state string when the plug is under manual control.
+		/// </summary>
 		public string ManualState => DeviceTypeData.TryGetValue ("ManualState", out var state) ? state.ToString () : Constants.TextUnknown;
 
+		/// <summary>
+		/// Gets or sets the plug operating mode.
+		/// </summary>
+		/// <value>One of <see cref="AvailableModes"/>.</value>
+		/// <exception cref="ArgumentException">Setter throws if the value is invalid.</exception>
 		public string Mode
 			{
 			get => _mode;
@@ -149,14 +212,34 @@ namespace WiserHeatApiV2
 			}
 		*/
 
+		/// <summary>
+		/// Gets whether the plug output is currently on.
+		/// </summary>
 		public bool IsOn => _outputState == Constants.TextOn;
 
+		/// <summary>
+		/// Gets the schedule assigned to this plug, if any.
+		/// </summary>
 		public WiserSchedule? Schedule { get; }
 
+		/// <summary>
+		/// Gets the schedule identifier associated with this plug, if any.
+		/// </summary>
 		public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
+		/// <summary>
+		/// Gets the current scheduled state reported by the hub.
+		/// </summary>
 		public string ScheduledState => DeviceTypeData.TryGetValue ("ScheduledState", out var state) ? state.ToString () : Constants.TextUnknown;
 
+		/// <summary>
+		/// Turns the plug on.
+		/// </summary>
+		/// <param name="cancellationToken">Cancellation token to observe.</param>
+		/// <returns>True if the hub accepted the request or it was already on; otherwise false.</returns>
+		/// <exception cref="WiserHubAuthenticationException">Authentication failed at the hub.</exception>
+		/// <exception cref="WiserHubConnectionException">A connection or timeout error occurred.</exception>
+		/// <exception cref="WiserHubRESTException">The hub returned a non-success status.</exception>
 		public async Task<bool> TurnOnAsync (CancellationToken cancellationToken = default)
 			{
 			if (_outputState == Constants.TextOn)
@@ -173,6 +256,14 @@ namespace WiserHeatApiV2
 			return result;
 			}
 
+		/// <summary>
+		/// Turns the plug off.
+		/// </summary>
+		/// <param name="cancellationToken">Cancellation token to observe.</param>
+		/// <returns>True if the hub accepted the request or it was already off; otherwise false.</returns>
+		/// <exception cref="WiserHubAuthenticationException">Authentication failed at the hub.</exception>
+		/// <exception cref="WiserHubConnectionException">A connection or timeout error occurred.</exception>
+		/// <exception cref="WiserHubRESTException">The hub returned a non-success status.</exception>
 		public async Task<bool> TurnOffAsync (CancellationToken cancellationToken = default)
 			{
 			if (_outputState == Constants.TextOff)
@@ -190,16 +281,28 @@ namespace WiserHeatApiV2
 			}
 		}
 
+	/// <summary>
+	/// Collection helper for smart plugs, providing lookup and counts.
+	/// </summary>
 	public class WiserSmartPlugs
 		{
+		/// <summary>Gets all smart plugs.</summary>
 		public List<WiserSmartPlug> All { get; } = [];
 
+		/// <summary>Gets supported smart plug modes.</summary>
+		/// <remarks>Values are derived from <see cref="WiserSmartPlugMode"/>.</remarks>
 		public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserSmartPlugMode))
 			 .Cast<WiserSmartPlugMode> ()
 			 .Select (m => m.ToString ())];
 
+		/// <summary>Gets the number of smart plugs.</summary>
 		public int Count => All.Count;
 
+		/// <summary>
+		/// Finds a smart plug by its device identifier.
+		/// </summary>
+		/// <param name="id">Device id to search for.</param>
+		/// <returns>The matching <see cref="WiserSmartPlug"/>, or null if none found.</returns>
 		public WiserSmartPlug GetById (int id) => All.FirstOrDefault (plug => plug.Id == id);
 		}
 	}
