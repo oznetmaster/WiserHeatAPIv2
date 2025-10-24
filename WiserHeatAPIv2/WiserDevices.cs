@@ -1,9 +1,6 @@
-//-----------------------------------------------------------------------
-// <copyright file="WiserDevices.cs" company="">
-//     Author:  
-//     Copyright (c) . All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
+// Copyright © 2025 Nivloc Enterprises Ltd.
+// Adapted from the Python implementation Copyright © 2021 Mark Parker
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
