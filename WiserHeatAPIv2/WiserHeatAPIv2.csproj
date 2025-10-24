@@ -9,7 +9,7 @@
 	  <Nullable>enable</Nullable>
 	  <AnalysisLevel>latest-recommended</AnalysisLevel>
 	  <EnableNETAnalyzers>true</EnableNETAnalyzers>
-	  <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+	  <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 	  <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
 	  <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 	  <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
