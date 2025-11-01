@@ -54,8 +54,8 @@ public class WiserLight : WiserElectricalLevelDevice
 		AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>Validates a light away-mode action value.</summary>
-	protected static bool ValidateAwayAction (string action) =>
-		AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
+	protected static bool ValidateAwayAction (string? action) =>
+		action is not null && AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>Gets the list of allowed modes.</summary>
 	public static List<string> AvailableModes => [.. GetValues<WiserLightMode> ()
@@ -67,7 +67,7 @@ public class WiserLight : WiserElectricalLevelDevice
 		 .Select (a => a.ToString ())];
 
 	/// <summary>Gets or sets the away-mode action for the light.</summary>
-	public string AwayModeAction
+	public string? AwayModeAction
 		{
 		get => AwayAction;
 		set
@@ -178,7 +178,7 @@ public class WiserLight : WiserElectricalLevelDevice
 		}
 
 	/// <summary>Gets or sets the away action backing value.</summary>
-	protected string AwayAction
+	protected string? AwayAction
 		{
 		get; set;
 		}
@@ -302,10 +302,10 @@ public class WiserLights
 		public List<WiserLight> OnOffLights => [.. All.Where (light => !light.IsDimmable)];
 
 		/// <summary>Finds a light by its device id.</summary>
-		public WiserLight GetById (int id) => All.FirstOrDefault (light => light.Id == id);
+		public WiserLight? GetById (int id) => All.FirstOrDefault (light => light.Id == id);
 
 		/// <summary>Finds a light by its light id.</summary>
-		public WiserLight GetByLightId (int lightId) => All.FirstOrDefault (light => light.LightId == lightId);
+		public WiserLight? GetByLightId (int lightId) => All.FirstOrDefault (light => light.LightId == lightId);
 
 		/// <summary>Gets all lights assigned to a room id.</summary>
 		public List<WiserLight> GetByRoomId (int roomId) => [.. All.Where (light => light.RoomId == roomId)];
