@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+ <OutputType>WinExe</OutputType>
+ <TargetFramework>net9.0-windows</TargetFramework>
+ <UseWPF>true</UseWPF>
+ <ImplicitUsings>enable</ImplicitUsings>
+ <Nullable>enable</Nullable>
+ <LangVersion>latest</LangVersion>
+ <ApplicationManifest>app.manifest</ApplicationManifest>
+ </PropertyGroup>
+ <ItemGroup>
+   <None Remove="Assets\FireIcon-Active Cropped.png" />
+   <None Remove="Assets\FireIcon-Active.png" />
+   <None Remove="Assets\FireIcon-Inactive Cropped.png" />
+   <None Remove="Assets\FireIcon-Inactive.png" />
+ </ItemGroup>
+ <ItemGroup>
+ <ProjectReference Include="..\WiserHeatAPIv2\WiserHeatAPIv2.csproj" />
+ <ProjectReference Include="..\mDNS Discovery\WiserHubDiscovery.csproj" />
+ </ItemGroup>
+ <ItemGroup>
+   <Resource Include="Assets\FireIcon-Active Cropped.png" />
+   <Resource Include="Assets\FireIcon-Active.png" />
+   <Resource Include="Assets\FireIcon-Inactive Cropped.png" />
+   <Resource Include="Assets\FireIcon-Inactive.png" />
+ </ItemGroup>
+ <ItemGroup>
+   <None Update="wiserkeys.params">
+     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+   </None>
+ </ItemGroup>
+</Project>

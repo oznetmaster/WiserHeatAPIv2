@@ -4,6 +4,8 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using static WiserHeatApiV2.EnumValues;
+using static WiserHeatApiV2.Constants;
 
 namespace WiserHeatApiV2;
 
@@ -28,10 +30,10 @@ public class WiserSmartPlug : WiserDevice
 		 : base (wiserRestController, data, deviceTypeData)
 		{
 		Schedule = schedule;
-		_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
-		_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+		_awayAction = deviceTypeData.GetStringOr ("AwayAction");
+		_mode = deviceTypeData.GetStringOr ("Mode");
 		//_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
-		_outputState = deviceTypeData.TryGetValue ("OutputState", out var state) ? state.ToString () : Constants.TEXT_OFF;
+		_outputState = deviceTypeData.GetStringOr ("OutputState", TEXT_OFF);
 
 		// Add device id to schedule
 		if (Schedule != null)
@@ -56,18 +58,16 @@ public class WiserSmartPlug : WiserDevice
 	/// Gets the supported operating modes for a smart plug.
 	/// </summary>
 	/// <remarks>Values are derived from <see cref="WiserSmartPlugMode"/> (e.g., Auto, Manual).</remarks>
-	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserSmartPlugMode))
-		 .Cast<WiserSmartPlugMode> ()
+	public static List<string> AvailableModes => [.. GetValues<WiserSmartPlugMode> ()
 		 .Select (m => m.ToString ())];
 
 	/// <summary>
 	/// Gets the supported Away mode actions for smart plugs.
 	/// </summary>
 	/// <remarks>Permitted values are <see cref="WiserAwayAction.Off"/> and <see cref="WiserAwayAction.NoChange"/>.</remarks>
-	public static List<string> AvailableAwayModeActions => [.. Enum.GetValues (typeof (WiserAwayAction))
-		 .Cast<WiserAwayAction> ()
-		 .Where (a => a is WiserAwayAction.Off or WiserAwayAction.NoChange)
-		 .Select (a => a.ToString ())];
+	public static List<string> AvailableAwayModeActions => [.. GetValues<WiserAwayAction> ()
+ 		 .Where (a => a is WiserAwayAction.Off or WiserAwayAction.NoChange)
+ 		 .Select (a => a.ToString ())];
 
 	/// <summary>
 	/// Asynchronously sets the plug operating mode.
@@ -85,7 +85,10 @@ public class WiserSmartPlug : WiserDevice
 			return true; // No change needed
 		if (!ValidateMode (value))
 			throw new ArgumentException ($"{value} is not a valid Smart Plug mode. Valid modes are {string.Join (", ", AvailableModes)}");
-		if (await SendCommandAsync (new { Mode = value }, cancellationToken: cancellationToken).ConfigureAwait (false))
+		if (await SendCommandAsync (new
+			{
+			Mode = value
+			}, cancellationToken: cancellationToken).ConfigureAwait (false))
 			{
 			_mode = value;
 			return true;
@@ -130,7 +133,10 @@ public class WiserSmartPlug : WiserDevice
 		{
 		if (!ValidateAwayAction (value))
 			throw new ArgumentException ($"{value} is not a valid Smart Plug away mode action. Valid modes are {string.Join (", ", AvailableAwayModeActions)}");
-		if (await SendCommandAsync (new { AwayAction = value }, cancellationToken: cancellationToken).ConfigureAwait (false))
+		if (await SendCommandAsync (new
+			{
+			AwayAction = value
+			}, cancellationToken: cancellationToken).ConfigureAwait (false))
 			{
 			_awayAction = value;
 			return true;
@@ -158,7 +164,7 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets the control source description reported by the hub (e.g., Auto, Manual, Schedule).
 	/// </summary>
-	public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
+	public string ControlSource => DeviceTypeData.GetStringOr ("ControlSource");
 
 	/// <summary>
 	/// Gets the cumulative delivered energy value, if the device reports it.
@@ -175,7 +181,7 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets the manual state string when the plug is under manual control.
 	/// </summary>
-	public string ManualState => DeviceTypeData.TryGetValue ("ManualState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
+	public string ManualState => DeviceTypeData.GetStringOr ("ManualState");
 
 	/// <summary>
 	/// Gets or sets the plug operating mode.
@@ -220,7 +226,10 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets the schedule assigned to this plug, if any.
 	/// </summary>
-	public WiserSchedule? Schedule { get; }
+	public WiserSchedule? Schedule
+		{
+		get;
+		}
 
 	/// <summary>
 	/// Gets the schedule identifier associated with this plug, if any.
@@ -230,7 +239,7 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets the current scheduled state reported by the hub.
 	/// </summary>
-	public string ScheduledState => DeviceTypeData.TryGetValue ("ScheduledState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
+	public string ScheduledState => DeviceTypeData.GetStringOr ("ScheduledState");
 
 	/// <summary>
 	/// Turns the plug on.
@@ -286,23 +295,21 @@ public class WiserSmartPlug : WiserDevice
 /// </summary>
 public class WiserSmartPlugs
 	{
-	/// <summary>Gets all smart plugs.</summary>
-	public List<WiserSmartPlug> All { get; } = [];
+		/// <summary>Gets all smart plugs.</summary>
+		public List<WiserSmartPlug> All { get; } = [];
 
-	/// <summary>Gets supported smart plug modes.</summary>
-	/// <remarks>Values are derived from <see cref="WiserSmartPlugMode"/>.</remarks>
-	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserSmartPlugMode))
-		 .Cast<WiserSmartPlugMode> ()
-		 .Select (m => m.ToString ())];
+		/// <summary>Gets supported smart plug modes.</summary>
+		/// <remarks>Values are derived from <see cref="WiserSmartPlugMode"/>.</remarks>
+		public static List<string> AvailableModes => [.. GetValues<WiserSmartPlugMode> ()
+			 .Select (m => m.ToString ())];
 
-	/// <summary>Gets the number of smart plugs.</summary>
-	public int Count => All.Count;
+		/// <summary>Gets the number of smart plugs.</summary>
+		public int Count => All.Count;
 
-	/// <summary>
-	/// Finds a smart plug by its device identifier.
-	/// </summary>
-	/// <param name="id">Device id to search for.</param>
-	/// <returns>The matching <see cref="WiserSmartPlug"/>, or null if none found.</returns>
-	public WiserSmartPlug GetById (int id) => All.FirstOrDefault (plug => plug.Id == id);
+		/// <summary>
+		/// Finds a smart plug by its device identifier.
+		/// </summary>
+		/// <param name="id">Device id to search for.</param>
+		/// <returns>The matching <see cref="WiserSmartPlug"/>, or null if none found.</returns>
+		public WiserSmartPlug? GetById (int id) => All.FirstOrDefault (plug => plug.Id == id);
 	}
-

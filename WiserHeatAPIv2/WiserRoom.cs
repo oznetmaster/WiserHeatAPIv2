@@ -8,8 +8,9 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
-using static WiserHeatApiV2.RestConstants;
 using static WiserHeatApiV2.Constants;
+using static WiserHeatApiV2.RestConstants;
+using static WiserHeatApiV2.EnumValues;
 
 namespace WiserHeatApiV2;
 
@@ -38,7 +39,7 @@ public class WiserRoom
 	/// <remarks>
 	/// The <paramref name="devices"/> list is used as the backing list for <see cref="Devices"/> and is updated over time.
 	/// </remarks>
-	public WiserRoom (WiserRestController wiserRestController, IDictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
+	public WiserRoom (WiserRestController wiserRestController, IDictionary<string, object> room, WiserSchedule? schedule, List<WiserDevice> devices)
 		{
 		_wiserRestController = wiserRestController;
 		_data = new ConcurrentDictionary<string, object> (room);
@@ -47,17 +48,21 @@ public class WiserRoom
 		// Initialize properties from the room data
 		Id = _data.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 		_mode = EffectiveHeatingMode (
-			 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : string.Empty,
+			 _data.GetStringOr ("Mode", string.Empty),
 			 CurrentTargetTemperature
 		);
-		_name = room.TryGetValue ("Name", out var name) ? name.ToString () : string.Empty;
+		_name = room.GetStringOr ("Name", string.Empty);
 		_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && ConvertInvariant.ToBoolean (detection);
 
 		// Add device id to schedule
 		Schedule?.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
 		}
 
+#if NET9_0_OR_GREATER
+	private readonly System.Threading.Lock _updateLock = new();
+#else
 	private readonly object _lockUpdate = new ();
+#endif
 
 	/// <summary>
 	/// Updates the room with latest data, schedule and devices, maintaining assignments.
@@ -70,9 +75,13 @@ public class WiserRoom
 	/// Devices removed from or added to the room are reconciled. If the room id or name changes, schedule
 	/// assignments are updated to reflect the new values.
 	/// </remarks>
-	public void Update (IDictionary<string, object> room, WiserSchedule schedule, List<WiserDevice> devices)
+	public void Update (IDictionary<string, object> room, WiserSchedule? schedule, List<WiserDevice> devices)
 		{
+#if NET9_0_OR_GREATER
+		using (_updateLock.EnterScope())
+#else
 		lock (_lockUpdate)
+#endif			
 			{
 			var oldId = Id;
 			var oldName = Name;
@@ -107,12 +116,12 @@ public class WiserRoom
 				}
 
 			_mode = EffectiveHeatingMode (
-				 _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : string.Empty,
+				 _data.GetStringOr ("Mode", string.Empty),
 				 CurrentTargetTemperature
 				);
 
 			Id = room.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
-			_name = room.TryGetValue ("Name", out var name) ? name.ToString () : string.Empty;
+			_name = room.GetStringOr ("Name", string.Empty);
 			_windowDetectionActive = room.TryGetValue ("WindowDetectionActive", out var detection) && ConvertInvariant.ToBoolean (detection);
 
 			// Add device id to schedule
@@ -159,8 +168,7 @@ public class WiserRoom
 	/// Gets the list of supported heating modes for room temperature control.
 	/// </summary>
 	/// <value>A list containing "Off", "Auto", and "Manual" mode strings.</value>
-	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserHeatingMode))
-		 .Cast<WiserHeatingMode> ()
+	public static List<string> AvailableModes => [.. GetValues<WiserHeatingMode> ()
 		 .Select (m => m.ToString ())];
 
 	/// <summary>
@@ -201,7 +209,7 @@ public class WiserRoom
 	/// Gets the current control direction for the heating system as reported by the hub.
 	/// </summary>
 	/// <value>A string indicating the control direction (e.g., "Heating", "NoChange").</value>
-	public string ControlDirection => _data.TryGetValue ("ControlDirection", out var direction) ? direction.ToString () : TEXT_UNKNOWN;
+	public string ControlDirection => _data.GetStringOr ("ControlDirection");
 
 	/// <summary>
 	/// Gets the current target (setpoint) temperature for this room in user units.
@@ -241,7 +249,7 @@ public class WiserRoom
 	/// Gets the demand type category for this room as reported by the hub.
 	/// </summary>
 	/// <value>A string indicating the demand type (typically "Heating").</value>
-	public string DemandType => _data.TryGetValue ("DemandType", out var type) ? type.ToString () : TEXT_UNKNOWN;
+	public string DemandType => _data.GetStringOr ("DemandType");
 
 	/// <summary>
 	/// Gets the collection of devices currently associated with this room.
@@ -250,7 +258,10 @@ public class WiserRoom
 	/// <remarks>
 	/// This collection is not thread-safe for external writes. Prefer treating it as read-only.
 	/// </remarks>
-	public List<WiserDevice> Devices { get; }
+	public List<WiserDevice> Devices
+		{
+		get;
+		}
 
 	/// <summary>
 	/// Gets the setpoint temperature currently displayed by the hub in user units.
@@ -272,13 +283,13 @@ public class WiserRoom
 	/// Gets the heating rate category for this room as reported by the hub.
 	/// </summary>
 	/// <value>A string indicating the heating rate (e.g., "VeryQuick", "Quick", "Medium", "Slow").</value>
-	public string HeatingRate => _data.TryGetValue ("HeatingRate", out var rate) ? rate.ToString () : TEXT_UNKNOWN;
+	public string HeatingRate => _data.GetStringOr ("HeatingRate");
 
 	/// <summary>
 	/// Gets the heating system type for this room as reported by the hub.
 	/// </summary>
 	/// <value>A string indicating the heating type (e.g., "Radiator", "Underfloor").</value>
-	public string HeatingType => _data.TryGetValue ("HeatingType", out var type) ? type.ToString () : TEXT_UNKNOWN;
+	public string HeatingType => _data.GetStringOr ("HeatingType");
 
 	/// <summary>
 	/// Gets the unique identifier for this room.
@@ -290,15 +301,15 @@ public class WiserRoom
 	/// Gets a value indicating whether this room is currently controlled by Away mode.
 	/// </summary>
 	/// <value><see langword="true"/> if the hub indicates an Away-origin setpoint; otherwise, <see langword="false"/>.</value>
-	public bool IsAwayMode => (_data.TryGetValue ("SetpointOrigin", out var origin) && origin.ToString ().Contains ("Away")) ||
-								 (_data.TryGetValue ("SetPointOrigin", out var origin2) && origin2.ToString ().Contains ("Away"));
+	public bool IsAwayMode => (_data.GetNullableStringOr ("SetpointOrigin")?.Contains ("Away") == true) ||
+				 (_data.GetNullableStringOr ("SetPointOrigin")?.Contains ("Away") == true);
 
 	/// <summary>
 	/// Gets a value indicating whether a Boost override is currently active for this room.
 	/// </summary>
 	/// <value><see langword="true"/> if the hub indicates a Boost-origin setpoint; otherwise, <see langword="false"/>.</value>
-	public bool IsBoost => (_data.TryGetValue ("SetpointOrigin", out var origin) && origin.ToString ().Contains ("Boost")) ||
-							 (_data.TryGetValue ("SetPointOrigin", out var origin2) && origin2.ToString ().Contains ("Boost"));
+	public bool IsBoost => (_data.GetNullableStringOr ("SetpointOrigin")?.Contains ("Boost") == true) ||
+				 (_data.GetNullableStringOr ("SetPointOrigin")?.Contains ("Boost") == true);
 
 	/// <summary>
 	/// Gets a value indicating whether any manual override is currently active for this room.
@@ -321,9 +332,9 @@ public class WiserRoom
 		 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM);
 
 	/// <summary>
-	/// Gets or sets the room heating mode.
+	/// Gets 
 	/// </summary>
-	/// <value>One of <see cref="AvailableModes"/>.</value>
+	/// <value></value>
 	/// <remarks>
 	/// Setter is synchronous and delegates to <see cref="SetModeAsync(string, CancellationToken)"/>.
 	/// Setting the mode may cancel active overrides and can change the target temperature (e.g., setting Off applies a special off setpoint).
@@ -363,7 +374,7 @@ public class WiserRoom
 		{
 		try
 			{
-			var mode = (WiserHeatingMode)Enum.Parse (typeof (WiserHeatingMode), value, true);
+			WiserHeatingMode mode = ParseOrThrow<WiserHeatingMode> (value, ignoreCase: true);
 
 			// Cancel any overrides on mode change
 			if (IsOverride)
@@ -377,7 +388,10 @@ public class WiserRoom
 				}
 			else if (mode == WiserHeatingMode.Manual)
 				{
-				if (await SendCommandAsync (new { Mode = WiserHeatingMode.Manual.ToString () }, cancellationToken: cancellationToken).ConfigureAwait (false))
+				if (await SendCommandAsync (new
+					{
+					Mode = WiserHeatingMode.Manual.ToString ()
+					}, cancellationToken: cancellationToken).ConfigureAwait (false))
 					{
 					if (CurrentTargetTemperature == TEMP_OFF)
 						{
@@ -387,7 +401,10 @@ public class WiserRoom
 				}
 			else if (mode == WiserHeatingMode.Auto)
 				{
-				_ = await SendCommandAsync (new { Mode = WiserHeatingMode.Auto.ToString () }, cancellationToken: cancellationToken).ConfigureAwait (false);
+				_ = await SendCommandAsync (new
+					{
+					Mode = WiserHeatingMode.Auto.ToString ()
+					}, cancellationToken: cancellationToken).ConfigureAwait (false);
 				}
 
 			_mode = mode.ToString ();
@@ -432,7 +449,10 @@ public class WiserRoom
 	/// <exception cref="WiserHubRESTException">The hub returned a non-success status.</exception>
 	public async Task<bool> SetNameAsync (string value, CancellationToken cancellationToken = default)
 		{
-		if (await SendCommandAsync (new { Name = value.TitleCase () }, cancellationToken: cancellationToken).ConfigureAwait (false))
+		if (await SendCommandAsync (new
+			{
+			Name = value.TitleCase ()
+			}, cancellationToken: cancellationToken).ConfigureAwait (false))
 			{
 			_name = value.TitleCase ();
 			return true;
@@ -459,7 +479,7 @@ public class WiserRoom
 	/// Gets the type of override currently applied to this room.
 	/// </summary>
 	/// <value>A string indicating the override type (e.g., "Manual", "Boost"), or "None" if no override is active.</value>
-	public string OverrideType => _data.TryGetValue ("OverrideType", out var type) ? type.ToString () : TEXT_NONE;
+	public string OverrideType => _data.GetStringOr ("OverrideType", TEXT_NONE);
 
 	/// <summary>
 	/// Gets the current heating demand percentage for this room.
@@ -477,7 +497,10 @@ public class WiserRoom
 	/// Gets the heating schedule assigned to this room.
 	/// </summary>
 	/// <value>The associated <see cref="WiserSchedule"/> instance, or <c>null</c> if no schedule is assigned.</value>
-	public WiserSchedule? Schedule { get; }
+	public WiserSchedule? Schedule
+		{
+		get;
+		}
 
 	/// <summary>
 	/// Gets the schedule identifier associated with this room.
@@ -504,32 +527,15 @@ public class WiserRoom
 	/// Gets the origin/source of the current target temperature setting.
 	/// </summary>
 	/// <value>A string describing the source (e.g., "FromSchedule", "FromManualOverride", "FromBoost", "FromAwayMode").</value>
-	public string TargetTemperatureOrigin => _data.TryGetValue ("SetpointOrigin", out var origin)
-		 ? origin.ToString ()
-		 : _data.TryGetValue ("SetPointOrigin", out var origin2)
-			  ? origin2.ToString ()
-			  : TEXT_UNKNOWN;
-
-	/// <summary>
-	/// Gets the underfloor heating controller identifier for this room.
-	/// </summary>
-	/// <value>The UFH controller device ID, or <c>null</c> if no UFH controller is assigned.</value>
-	public int? UnderfloorHeatingId => _data.TryGetValue ("UnderFloorHeatingId", out var id) ? (int?)ConvertInvariant.ToInt32 (id) : null;
-
-	/// <summary>
-	/// Gets the list of underfloor heating relay identifiers associated with this room.
-	/// </summary>
-	/// <value>A sorted list of UFH relay device IDs.</value>
-	public List<int> UnderfloorHeatingRelayIds => _data.TryGetValue ("UfhRelayIds", out var ids) && ids is List<object> idsList
-		 ? [.. idsList.Select (ConvertInvariant.ToInt32).OrderBy (id => id)]
-		 : new List<int> ();
+	public string TargetTemperatureOrigin => _data.GetNullableStringOr ("SetpointOrigin")
+		 ?? _data.GetNullableStringOr ("SetPointOrigin")
+		 ?? TEXT_UNKNOWN;
 
 	/// <summary>
 	/// Gets the last reported window state for this room (if window detection is enabled).
 	/// </summary>
 	/// <value>A string indicating the window state ("Open", "Closed", or "Unknown").</value>
-	public string WindowState => _data.TryGetValue ("WindowState", out var state) ? state.ToString () : TEXT_UNKNOWN;
-
+	public string WindowState => _data.GetStringOr ("WindowState");
 	/// <summary>
 	/// Permanently removes this room from the hub configuration.
 	/// </summary>
@@ -744,7 +750,10 @@ public class WiserRoom
 	/// <returns>True if the hub accepted the change.</returns>
 	public async Task<bool> SetWindowDetectionActiveAsync (bool value, CancellationToken cancellationToken = default)
 		{
-		if (await SendCommandAsync (new { WindowDetectionActive = value }, cancellationToken: cancellationToken).ConfigureAwait (false))
+		if (await SendCommandAsync (new
+			{
+			WindowDetectionActive = value
+			}, cancellationToken: cancellationToken).ConfigureAwait (false))
 			{
 			_windowDetectionActive = value;
 			return true;
@@ -776,7 +785,7 @@ public class WiserRooms
 		// Add room objects
 		foreach (Dictionary<string, object> room in roomData)
 			{
-			WiserSchedule schedule = schedules.GetByType (WiserScheduleType.Heating)
+			WiserSchedule? schedule = schedules.GetByType (WiserScheduleType.Heating)
 				  .FirstOrDefault (s => s.Id == (room.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0));
 			List<WiserDevice> roomDevices = devices.GetByRoomId (room.TryGetValue ("id", out var roomId) ? ConvertInvariant.ToInt32 (roomId) : 0);
 			All.Add (new WiserRoom (
@@ -812,7 +821,7 @@ public class WiserRooms
 		// Update existing rooms or add new ones
 		foreach (Dictionary<string, object> room in roomData)
 			{
-			WiserSchedule schedule = schedules.GetByType (WiserScheduleType.Heating)
+			WiserSchedule? schedule = schedules.GetByType (WiserScheduleType.Heating)
 				.FirstOrDefault (s => s.Id == (room.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0));
 			var idroom = room.TryGetValue ("id", out var roomId) ? ConvertInvariant.ToInt32 (roomId) : 0;
 			List<WiserDevice> roomDevices = devices.GetByRoomId (idroom);
@@ -860,23 +869,23 @@ public class WiserRooms
 	/// </remarks>
 	public Task<bool> AddAsync (string name, CancellationToken cancellationToken = default) =>
 		_wiserRestController.SendCommandAsync (RestConstants.WISER_REST_ROOM, new
-		{
-		name
-		}, WiserRestAction.POST, cancellationToken);
+			{
+			name
+			}, WiserRestAction.POST, cancellationToken);
 
 	/// <summary>
 	/// Finds a room by its unique identifier.
 	/// </summary>
 	/// <param name="id">The room identifier to search for.</param>
 	/// <returns>The matching <see cref="WiserRoom"/> instance, or <c>null</c> if no room with the specified ID exists.</returns>
-	public WiserRoom GetById (int id) => All.FirstOrDefault (room => room.Id == id);
+	public WiserRoom? GetById (int id) => All.FirstOrDefault (room => room.Id == id);
 
 	/// <summary>
 	/// Finds a room by its name using case-insensitive comparison.
 	/// </summary>
 	/// <param name="name">The room name to search for.</param>
 	/// <returns>The matching <see cref="WiserRoom"/> instance, or <c>null</c> if no room with the specified name exists.</returns>
-	public WiserRoom GetByName (string name) => All.FirstOrDefault (room => room.Name.Equals (name, StringComparison.OrdinalIgnoreCase));
+	public WiserRoom? GetByName (string name) => All.FirstOrDefault (room => room.Name.Equals (name, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>
 	/// Finds the first room that uses the specified heating schedule.
@@ -886,7 +895,7 @@ public class WiserRooms
 	/// <remarks>
 	/// If multiple rooms use the same schedule, only the first match is returned.
 	/// </remarks>
-	public WiserRoom GetByScheduleId (int scheduleId) => All.FirstOrDefault (room => room.ScheduleId == scheduleId);
+	public WiserRoom? GetByScheduleId (int scheduleId) => All.FirstOrDefault (room => room.ScheduleId == scheduleId);
 
 	/// <summary>
 	/// Finds the room that contains a device with the specified identifier.
@@ -910,4 +919,3 @@ public class WiserRooms
 		return null;
 		}
 	}
-

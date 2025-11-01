@@ -110,7 +110,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// </remarks>
 	/// <param name="scheduleData">The schedule data to process. Keys in the internal _removeSet will be excluded.</param>
 	/// <returns>A dictionary containing the cleaned schedule data.</returns>
-	protected static IDictionary<string, object> RemoveScheduleElements (IDictionary<string, object>? scheduleData)
+	protected static IDictionary<string, object> RemoveScheduleElements (IDictionary<string, object> scheduleData)
 		{
 		var result = new Dictionary<string, object> (scheduleData); // pre-sized clone
 		foreach (var k in _removeSet)
@@ -245,7 +245,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 							  ScheduleData1.TryGetValue ("CurrentLevel", out var level) ? level : Constants.TEXT_UNKNOWN,
 
 					 _ => null
-				 };
+					 };
 
 	/// <summary>
 	/// Gets the unique identifier for this schedule.
@@ -297,7 +297,13 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 		{
 		get
 			{
-			IDictionary<string, object> s = RemoveScheduleElements (ConvertFromWiserSchedule (ScheduleData, genericSetpoint: true));
+			IDictionary<string, object>? converted = ConvertFromWiserSchedule (ScheduleData, genericSetpoint: true);
+			if (converted == null)
+				{
+				return new Dictionary<string, object> ();
+				}
+
+			IDictionary<string, object> s = RemoveScheduleElements (converted);
 			return new Dictionary<string, object>
 					{
 						  { "Id", Id },
@@ -495,7 +501,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <param name="scheduleData">The schedule data to set.</param>
 	/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
 	/// <returns><see langword="true"/> if the set operation was successful; otherwise, <see langword="false"/>.</returns>
-	public async Task<bool> SetScheduleAsync (IDictionary<string, object>? scheduleData, CancellationToken cancellationToken = default)
+	public async Task<bool> SetScheduleAsync (IDictionary<string, object> scheduleData, CancellationToken cancellationToken = default)
 		{
 		try
 			{
@@ -567,6 +573,12 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 			if (ValidateScheduleType (scheduleData))
 				{
 				IDictionary<string, object>? schedule = ConvertToWiserSchedule (scheduleData);
+				if (schedule == null)
+					{
+					Logger.Error ("The converted schedule data is null or invalid.");
+					return false;
+					}
+
 				_ = await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
 				return true;
 				}
@@ -605,12 +617,22 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 						{
 						if (entry is IDictionary<string, object> entryDict)
 							{
-							scheduleJson[entryDict["day"].ToString ()] = entryDict["slots"];
+							var day = entryDict["day"].ToString ();
+							if (!string.IsNullOrEmpty (day))
+								{
+								scheduleJson[day] = entryDict["slots"];
+								}
 							}
 						}
 					}
 
 				IDictionary<string, object>? schedule = ConvertToWiserSchedule (scheduleJson);
+				if (schedule == null)
+					{
+					Logger.Error ("The converted schedule data is null or invalid.");
+					return false;
+					}
+
 				_ = await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
 				return true;
 				}
@@ -757,15 +779,15 @@ public class WiserHeatingSchedule (WiserRestController wiserRestController, stri
 
 		foreach (IDictionary<string, object> item in daySchedule)
 			{
-			if (item.TryGetValue (TEXT_TIME, out var timeValue))
+			if (item.TryGetValue (TEXT_TIME, out var timeValue) && timeValue is not null)
 				{
-				var time = timeValue.ToString ().Replace (":", "");
+				var time = timeValue.ToString ()!.Replace (":", "");
 				times.Add (time);
 				}
 
-			if (item.TryGetValue (TEXT_TEMP, out var tempValue) || item.TryGetValue (TEXT_SETPOINT, out tempValue))
+			if ((item.TryGetValue (TEXT_TEMP, out var tempValue) || item.TryGetValue (TEXT_SETPOINT, out tempValue)) && tempValue is not null)
 				{
-				var temp = tempValue.ToString ().Equals (TEXT_OFF, StringComparison.OrdinalIgnoreCase)
+				var temp = tempValue.ToString ()!.Equals (TEXT_OFF, StringComparison.OrdinalIgnoreCase)
 					? TEMP_OFF
 					: ConvertInvariant.ToDouble (tempValue);
 
@@ -1011,14 +1033,14 @@ public class WiserOnOffSchedule (WiserRestController wiserRestController, string
 				{
 				var time = 0;
 
-				if (entry.TryGetValue ("Time", out var timeValue) && IsValidTime (timeValue.ToString ()))
+				if (entry.TryGetValue ("Time", out var timeValue) && timeValue is not null && IsValidTime (timeValue.ToString ()!))
 					{
-					time = timeValue.ToString ().Replace (":", "").ParseIntInvariant ();
+					time = timeValue.ToString ()!.Replace (":", "").ParseIntInvariant ();
 					time = time != 0 ? time : 2400;
 					}
 
-				if ((entry.TryGetValue ("State", out var stateValue) || entry.TryGetValue (TEXT_SETPOINT, out stateValue)) &&
-					 stateValue.ToString ().TitleCase () == TEXT_OFF)
+				if ((entry.TryGetValue ("State", out var stateValue) || entry.TryGetValue (TEXT_SETPOINT, out stateValue)) && stateValue is not null &&
+					 stateValue.ToString ()!.TitleCase () == TEXT_OFF)
 					{
 					time = time != 0 ? -Math.Abs (time) : -2400;
 					}
@@ -1141,7 +1163,7 @@ public class WiserLevelSchedule (WiserRestController wiserRestController, string
 	/// Gets the type of the level (e.g., Shutters, Lights).
 	/// </summary>
 	/// <value>The level type as a string.</value>
-	public string LevelType => ScheduleData1.TryGetValue ("Type", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+	public string LevelType => ScheduleData1.GetStringOr ("Type");
 
 	/// <summary>
 	/// Gets the ID associated with the level type.
@@ -1311,7 +1333,7 @@ public class WiserLevelSchedule (WiserRestController wiserRestController, string
 				var titleKey = kvp.Key.TitleCase ();
 				if (titleKey == TEXT_TIME)
 					{
-					var yamlTime = kvp.Value.ToString ();
+					var yamlTime = kvp.Value.ToString ()!;
 					var specialTime = yamlTime.TitleCase ();
 					var time = Constants.SpecialTimes.TryGetValue (specialTime, out var value)
 						? value : IsValidTime (yamlTime) ? yamlTime.Replace (":", "").ParseIntInvariant () : 0;
@@ -1750,4 +1772,3 @@ public class WiserSchedules
 		return SendScheduleCommandAsync ("CREATE", scheduleData, cancellationToken: cancellationToken);
 		}
 	}
-

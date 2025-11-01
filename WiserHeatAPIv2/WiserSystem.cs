@@ -49,7 +49,7 @@ public class WiserSystem
 		// Sub classes for system setting values
 		Capabilities = new WiserHubCapabilitiesInfo (_data.TryGetValue ("DeviceCapabilityMatrix", out var matrix) && matrix is Dictionary<string, object> matrixDict
 			 ? matrixDict : []);
-		Cloud = new WiserCloud (_systemData.TryGetValue ("CloudConnectionStatus", out var status) ? status.ToString () : "",
+		Cloud = new WiserCloud (_systemData.GetStringOr ("CloudConnectionStatus", ""),
 			 _data.TryGetValue ("Cloud", out var cloud) && cloud is Dictionary<string, object> cloudDict
 			 ? cloudDict : []);
 		_deviceData = GetSystemDevice (/*deviceData.TryGetValue ("Device", out var devices) && devices is List<object> deviceList
@@ -59,7 +59,7 @@ public class WiserSystem
 			 ? stationDict : []);
 #if OPENTHERM
 		Opentherm = new WiserOpentherm (openthermData,
-			 _systemData.TryGetValue ("OpenThermConnectionStatus", out var otStatus) ? otStatus.ToString () : Constants.TEXT_UNKNOWN);
+			 _systemData.GetStringOr ("OpenThermConnectionStatus"));
 #endif
 		Signal = new WiserSignalStrength (_deviceData);
 		_upgradeData = new WiserFirmwareUpgradeInfo (_data.TryGetValue ("UpgradeInfo", out var upgrade) && upgrade is List<object> upgradeList
@@ -114,7 +114,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets the active system version string.</summary>
-	public string ActiveSystemVersion => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("ActiveSystemVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
+	public string? ActiveSystemVersion => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("ActiveSystemVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets or sets whether automatic daylight saving is enabled.</summary>
 	public bool AutomaticDaylightSavingEnabled
@@ -185,7 +185,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets the boiler fuel type string.</summary>
-	public string BoilerFuelType => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("BoilerSettings", out var settings) && settings is Dictionary<string, object> settingsDict
+	public string? BoilerFuelType => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("BoilerSettings", out var settings) && settings is Dictionary<string, object> settingsDict
 		 ? settingsDict.TryGetValue ("FuelType", out var fuelType) ? fuelType.ToString () : Constants.TEXT_UNKNOWN
 		 : Constants.TEXT_UNKNOWN;
 
@@ -193,10 +193,16 @@ public class WiserSystem
 	public string? BrandName => _systemData == null ? null : _systemData.TryGetValue ("BrandName", out var brand) ? brand.ToString () : null;
 
 	/// <summary>Gets reported controller capability flags.</summary>
-	public WiserHubCapabilitiesInfo? Capabilities { get; private set; }
+	public WiserHubCapabilitiesInfo? Capabilities
+		{
+		get; private set;
+		}
 
 	/// <summary>Gets cloud connectivity state/details.</summary>
-	public WiserCloud? Cloud { get; private set; }
+	public WiserCloud? Cloud
+		{
+		get; private set;
+		}
 
 	/// <summary>Gets or sets Wiser Comfort Mode.</summary>
 	public bool ComfortModeEnabled
@@ -267,7 +273,10 @@ public class WiserSystem
 	public bool HotwaterButtonOverrideState => _systemData!.TryGetValue ("HotWaterButtonOverrideState", out var state) && state.ToString () == Constants.TEXT_ON;
 
 	/// <summary>Gets the hub time reported by the controller.</summary>
-	public DateTime HubTime { get; private set; }
+	public DateTime HubTime
+		{
+		get; private set;
+		}
 
 	/// <summary>Gets the controller device id.</summary>
 	public int Id => _deviceData!.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
@@ -276,33 +285,42 @@ public class WiserSystem
 	public bool IsAwayModeEnabled => _overrideType == "Away";
 
 	/// <summary>Gets the model identifier for the controller.</summary>
-	public string Model => _deviceData!.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+	public string? Model => _deviceData!.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets the host name of the controller.</summary>
 	public string Name => Network?.Hostname ?? "No Name";
 
 	/// <summary>Gets the network information for the controller.</summary>
-	public WiserNetwork? Network { get; private set; }
+	public WiserNetwork? Network
+		{
+		get; private set;
+		}
 
 	/// <summary>Gets the controller Zigbee node id.</summary>
 	public int NodeId => _deviceData!.TryGetValue ("NodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
 
 #if OPENTHERM
 	/// <summary>Gets OpenTherm telemetry and status, if supported.</summary>
-	public WiserOpentherm? Opentherm { get; private set; }
+	public WiserOpentherm? Opentherm
+		{
+		get; private set;
+		}
 #endif
 
 	/// <summary>Gets the pairing status string.</summary>
-	public string PairingStatus => _systemData!.TryGetValue ("PairingStatus", out var status) ? status.ToString () : Constants.TEXT_UNKNOWN;
+	public string? PairingStatus => _systemData!.TryGetValue ("PairingStatus", out var status) ? status.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets the parent Zigbee node id.</summary>
 	public int ParentNodeId => _deviceData!.TryGetValue ("ParentNodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
 
 	/// <summary>Gets the product type string.</summary>
-	public string ProductType => _deviceData!.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+	public string? ProductType => _deviceData!.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets Zigbee signal metrics for the controller.</summary>
-	public WiserSignalStrength? Signal { get; private set; }
+	public WiserSignalStrength? Signal
+		{
+		get; private set;
+		}
 
 	/// <summary>Gets formatted sunrise times for the week.</summary>
 	public Dictionary<string, string> SunriseTimes => _systemData!.TryGetValue ("SunriseTimes", out var times) && times is List<object> timesList
@@ -315,7 +333,7 @@ public class WiserSystem
 			 : [];
 
 	/// <summary>Gets the system mode string.</summary>
-	public string SystemMode => _systemData!.TryGetValue ("SystemMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+	public string? SystemMode => _systemData!.TryGetValue ("SystemMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets or sets the time zone offset in minutes.</summary>
 	public int TimezoneOffset
@@ -353,7 +371,10 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets Zigbee radio info for the hub.</summary>
-	public WiserZigbee? Zigbee { get; private set; }
+	public WiserZigbee? Zigbee
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Temporarily allows joining new devices for a specified duration.
@@ -428,4 +449,3 @@ public class WiserSystem
 		return _wiserRestController.SendCommandAsync ($"{WISER_HUB_NETWORK.FormatInvariant (host)}/Station", cmdData, cancellationToken: cancellationToken);
 		}
 	}
-

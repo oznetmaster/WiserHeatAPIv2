@@ -1,9 +1,11 @@
-﻿// Copyright © 2025 Nivloc Enterprises Ltd.
-// Adapted from the Python implementation Copyright © 2021 Mark Parker
+﻿// Copyright ©2025 Nivloc Enterprises Ltd.
+// Adapted from the Python implementation Copyright ©2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Threading;
 using System.Threading.Tasks;
+using static WiserHeatApiV2.EnumValues;
+using static WiserHeatApiV2.Constants;
 
 namespace WiserHeatApiV2;
 
@@ -26,11 +28,19 @@ public class WiserShutter : WiserElectricalLevelDevice
 
 		/// <summary>Sets the open movement time in milliseconds.</summary>
 		public async Task SetOpenTimeAsync (int time, CancellationToken cancellationToken = default) =>
-			_ = await shutterInstance.SendCommandAsync (new { LiftOpenTime = time, LiftCloseTime = CloseTime }, cancellationToken: cancellationToken).ConfigureAwait (false);
+			_ = await shutterInstance.SendCommandAsync (new
+				{
+				LiftOpenTime = time,
+				LiftCloseTime = CloseTime
+				}, cancellationToken: cancellationToken).ConfigureAwait (false);
 
 		/// <summary>Sets the close movement time in milliseconds.</summary>
 		public async Task SetCloseTimeAsync (int time, CancellationToken cancellationToken = default) =>
-			_ = await shutterInstance.SendCommandAsync (new { LiftOpenTime = OpenTime, LiftCloseTime = time }, cancellationToken: cancellationToken).ConfigureAwait (false);
+			_ = await shutterInstance.SendCommandAsync (new
+				{
+				LiftOpenTime = OpenTime,
+				LiftCloseTime = time
+				}, cancellationToken: cancellationToken).ConfigureAwait (false);
 		}
 
 	private string _awayAction;
@@ -44,8 +54,8 @@ public class WiserShutter : WiserElectricalLevelDevice
 		 : base (wiserRestController, data, deviceTypeData)
 		{
 		Schedule = schedule;
-		_awayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
-		_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+		_awayAction = deviceTypeData.GetStringOr ("AwayAction");
+		_mode = deviceTypeData.GetStringOr ("Mode");
 		//_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
 		// Add device id to schedule
@@ -69,13 +79,11 @@ public class WiserShutter : WiserElectricalLevelDevice
 		AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>Gets the list of allowed shutter modes.</summary>
-	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserShutterMode))
-		 .Cast<WiserShutterMode> ()
+	public static List<string> AvailableModes => [.. GetValues<WiserShutterMode> ()
 		 .Select (m => m.ToString ())];
 
 	/// <summary>Gets the list of allowed away-mode actions for shutters.</summary>
-	public static List<string> AvailableAwayModeActions => [.. Enum.GetValues (typeof (WiserAwayAction))
-		 .Cast<WiserAwayAction> ()
+	public static List<string> AvailableAwayModeActions => [.. GetValues<WiserAwayAction> ()
 		 .Where (a => a is WiserAwayAction.Close or WiserAwayAction.NoChange)
 		 .Select (a => a.ToString ())];
 
@@ -89,7 +97,10 @@ public class WiserShutter : WiserElectricalLevelDevice
 				return; // No change needed
 			if (ValidateAwayAction (value))
 				{
-				if (SendCommandAsync (new { AwayAction = value }).Result)
+				if (SendCommandAsync (new
+					{
+					AwayAction = value
+					}).Result)
 					{
 					_awayAction = value;
 					}
@@ -102,15 +113,22 @@ public class WiserShutter : WiserElectricalLevelDevice
 		}
 
 	/// <summary>Gets the lift control source reported by the hub.</summary>
-	public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
+	public string ControlSource => DeviceTypeData.GetStringOr ("ControlSource");
 
 	/// <summary>Gets the current lift position in percent (0..100).</summary>
 	public int CurrentLift => DeviceTypeData.TryGetValue ("CurrentLift", out var lift) ? ConvertInvariant.ToInt32 (lift) : 0;
 
 	/// <summary>Requests a new lift target position (0..100 percent).</summary>
-	public async Task SetCurrentLiftAsync (int percentage, CancellationToken cancellationToken = default) => 
+	public async Task SetCurrentLiftAsync (int percentage, CancellationToken cancellationToken = default) =>
 		_ = percentage is >= 0 and <= 100
-			? await SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = percentage } }, cancellationToken: cancellationToken).ConfigureAwait (false)
+			? await SendCommandAsync (new
+				{
+				RequestAction = new
+					{
+					Action = "LiftTo",
+					Percentage = percentage
+					}
+				}, cancellationToken: cancellationToken).ConfigureAwait (false)
 			: throw new ArgumentException ("Shutter percentage must be between 0 and 100");
 
 	/// <summary>Gets the drive configuration (movement times) for the shutter.</summary>
@@ -138,7 +156,7 @@ public class WiserShutter : WiserElectricalLevelDevice
 	public bool IsMoving => !IsStopped;
 
 	/// <summary>Gets the textual description of the current lift movement state.</summary>
-	public string LiftMovement => DeviceTypeData.TryGetValue ("LiftMovement", out var movement) ? movement.ToString () : Constants.TEXT_UNKNOWN;
+	public string LiftMovement => DeviceTypeData.GetStringOr ("LiftMovement");
 
 	/// <summary>Gets the last manual lift position in percent.</summary>
 	public int ManualLift => DeviceTypeData.TryGetValue ("ManualLift", out var lift) ? ConvertInvariant.ToInt32 (lift) : 0;
@@ -151,7 +169,10 @@ public class WiserShutter : WiserElectricalLevelDevice
 			{
 			if (ValidateMode (value))
 				{
-				if (SendCommandAsync (new { Mode = value }).Result)
+				if (SendCommandAsync (new
+					{
+					Mode = value
+					}).Result)
 					{
 					_mode = value;
 					}
@@ -190,13 +211,16 @@ public class WiserShutter : WiserElectricalLevelDevice
 	*/
 
 	/// <summary>Gets the assigned schedule for the shutter, if any.</summary>
-	public WiserSchedule? Schedule { get; }
+	public WiserSchedule? Schedule
+		{
+		get;
+		}
 
 	/// <summary>Gets the schedule identifier assigned to the shutter.</summary>
 	public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 	/// <summary>Gets the scheduled lift text reported by the hub.</summary>
-	public string ScheduledLift => DeviceTypeData.TryGetValue ("ScheduledLift", out var lift) ? lift.ToString () : Constants.TEXT_UNKNOWN;
+	public string ScheduledLift => DeviceTypeData.GetStringOr ("ScheduledLift");
 
 	/// <summary>Gets the shutter device type identifier.</summary>
 	public int ShutterId => DeviceTypeData.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
@@ -206,15 +230,35 @@ public class WiserShutter : WiserElectricalLevelDevice
 
 	/// <summary>Opens the shutter to 100%.</summary>
 	public Task OpenAsync (CancellationToken cancellationToken = default) =>
-		SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 100 } }, cancellationToken: cancellationToken);
+		SendCommandAsync (new
+			{
+			RequestAction = new
+				{
+				Action = "LiftTo",
+				Percentage = 100
+				}
+			}, cancellationToken: cancellationToken);
 
 	/// <summary>Closes the shutter to 0%.</summary>
 	public Task CloseAsync (CancellationToken cancellationToken = default) =>
-		SendCommandAsync (new { RequestAction = new { Action = "LiftTo", Percentage = 0 } }, cancellationToken: cancellationToken);
+		SendCommandAsync (new
+			{
+			RequestAction = new
+				{
+				Action = "LiftTo",
+				Percentage = 0
+				}
+			}, cancellationToken: cancellationToken);
 
 	/// <summary>Stops the shutter movement.</summary>
 	public Task StopAsync (CancellationToken cancellationToken = default) =>
-		SendCommandAsync (new { RequestAction = new { Action = "Stop" } }, cancellationToken: cancellationToken);
+		SendCommandAsync (new
+			{
+			RequestAction = new
+				{
+				Action = "Stop"
+				}
+			}, cancellationToken: cancellationToken);
 	}
 
 /// <summary>
@@ -222,25 +266,23 @@ public class WiserShutter : WiserElectricalLevelDevice
 /// </summary>
 public class WiserShutters
 	{
-	/// <summary>Gets all shutter devices.</summary>
-	public List<WiserShutter> All { get; } = [];
+		/// <summary>Gets all shutter devices.</summary>
+		public List<WiserShutter> All { get; } = [];
 
-	/// <summary>Gets the list of allowed shutter modes.</summary>
-	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserShutterMode))
-		 .Cast<WiserShutterMode> ()
-		 .Select (m => m.ToString ())];
+		/// <summary>Gets the list of allowed shutter modes.</summary>
+		public static List<string> AvailableModes => [.. GetValues<WiserShutterMode> ()
+			 .Select (m => m.ToString ())];
 
-	/// <summary>Gets the number of shutters in the collection.</summary>
-	public int Count => All.Count;
+		/// <summary>Gets the number of shutters in the collection.</summary>
+		public int Count => All.Count;
 
-	/// <summary>Finds a shutter by its device id.</summary>
-	public WiserShutter GetById (int id) => All.FirstOrDefault (shutter => shutter.Id == id);
+		/// <summary>Finds a shutter by its device id.</summary>
+		public WiserShutter? GetById (int id) => All.FirstOrDefault (shutter => shutter.Id == id);
 
-	/// <summary>Finds a shutter by its shutter id.</summary>
-	public WiserShutter GetByShutterId (int shutterId) => All.FirstOrDefault (shutter => shutter.ShutterId == shutterId);
+		/// <summary>Finds a shutter by its shutter id.</summary>
+		public WiserShutter? GetByShutterId (int shutterId) => All.FirstOrDefault (shutter => shutter.ShutterId == shutterId);
 
-	/// <summary>Gets all shutters that belong to the specified room.</summary>
-	public List<WiserShutter> GetByRoomId (int roomId) => [.. All.Where (shutter => shutter.RoomId == roomId)];
+		/// <summary>Gets all shutters that belong to the specified room.</summary>
+		public List<WiserShutter> GetByRoomId (int roomId) => [.. All.Where (shutter => shutter.RoomId == roomId)];
 	}
 #endif
-

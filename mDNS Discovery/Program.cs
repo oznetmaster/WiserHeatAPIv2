@@ -30,11 +30,26 @@ public class NetworkInfo
 	private static readonly byte[] _zeroBitCountTable =
 		[.. Enumerable.Range (0, 256).Select (b => (byte)(8 - Convert.ToString (b, 2).Count (c => c == '1')))];
 
-	public IPAddress NetworkBase { get; }
-	public IPAddress NetworkAddress { get; }
-	public IPAddress SubnetMask { get; }
-	public IPAddress BroadcastAddress { get; }
-	public int HostCount { get; }
+	public IPAddress NetworkBase
+		{
+		get;
+		}
+	public IPAddress NetworkAddress
+		{
+		get;
+		}
+	public IPAddress SubnetMask
+		{
+		get;
+		}
+	public IPAddress BroadcastAddress
+		{
+		get;
+		}
+	public int HostCount
+		{
+		get;
+		}
 
 	public NetworkInfo (IPAddress networkAddress, IPAddress subnetMask)
 		{

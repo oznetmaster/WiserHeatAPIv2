@@ -1,0 +1,101 @@
+<Page x:Class="WiserHeatApp.Wpf.Views.RoomsPage"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Rooms"
+ Background="{StaticResource Brush.Background}">
+ <Grid>
+ <Grid.RowDefinitions>
+ <RowDefinition Height="Auto"/>
+ <RowDefinition Height="*"/>
+ </Grid.RowDefinitions>
+
+ <!-- Large title header -->
+ <Grid Grid.Row="0" Style="{StaticResource NavBarStyle}">
+ <StackPanel Margin="16,32,16,8">
+ <TextBlock Text="Rooms" Style="{StaticResource TitleLargeTextStyle}" />
+ <TextBlock Text="Home" Style="{StaticResource CaptionTextStyle}" />
+ </StackPanel>
+ </Grid>
+
+ <!-- Content -->
+ <ScrollViewer Grid.Row="1" Margin="0,8,0,0">
+ <ItemsControl ItemsSource="{Binding Rooms}">
+ <ItemsControl.ItemTemplate>
+ <DataTemplate>
+ <Border Style="{StaticResource CardContainerStyle}">
+ <StackPanel>
+ <Grid>
+ <Grid.ColumnDefinitions>
+ <ColumnDefinition Width="Auto"/>
+ <ColumnDefinition Width="*"/>
+ <ColumnDefinition Width="Auto"/>
+ </Grid.ColumnDefinitions>
+
+ <!-- Heating indicator (fire icons) -->
+ <Grid Width="{Binding ElementName=RoomNameText, Path=ActualHeight}"
+ Height="{Binding ElementName=RoomNameText, Path=ActualHeight}"
+ VerticalAlignment="Center" Margin="0,0,12,0">
+ <Image Source="pack://application:,,,/Assets/FireIcon-Active%20Cropped.png" Stretch="Uniform">
+ <Image.Style>
+ <Style TargetType="Image">
+ <Setter Property="Visibility" Value="Collapsed" />
+ <Style.Triggers>
+ <DataTrigger Binding="{Binding IsHeating}" Value="True">
+ <Setter Property="Visibility" Value="Visible" />
+ </DataTrigger>
+ </Style.Triggers>
+ </Style>
+ </Image.Style>
+ </Image>
+ <Image Source="pack://application:,,,/Assets/FireIcon-Inactive%20Cropped.png" Stretch="Uniform">
+ <Image.Style>
+ <Style TargetType="Image">
+ <Setter Property="Visibility" Value="Collapsed" />
+ <Style.Triggers>
+ <DataTrigger Binding="{Binding IsHeating}" Value="False">
+ <Setter Property="Visibility" Value="Visible" />
+ </DataTrigger>
+ </Style.Triggers>
+ </Style>
+ </Image.Style>
+ </Image>
+ </Grid>
+
+ <!-- Name and details -->
+ <StackPanel Grid.Column="1">
+ <TextBlock x:Name="RoomNameText" Text="{Binding Name}" Style="{StaticResource TitleTextStyle}" />
+ <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+ <TextBlock Text="Current " Style="{StaticResource CaptionTextStyle}" />
+ <TextBlock Text="{Binding CurrentTemp, StringFormat='{}{0:0.#}&#176;'}" Style="{StaticResource CaptionTextStyle}" />
+ <TextBlock Text=" | Target " Margin="8,0,0,0" Style="{StaticResource CaptionTextStyle}" />
+ <TextBlock Text="{Binding TargetTemp, StringFormat='{}{0:0.#}&#176;'}" Style="{StaticResource CaptionTextStyle}" />
+ </StackPanel>
+ </StackPanel>
+
+ <!-- Actions -->
+ <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+ <Button Content="-" Width="36" Height="32" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}" Click="DecTemp"/>
+ <Button Content="+" Width="36" Height="32" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}" Click="IncTemp"/>
+ </StackPanel>
+ </Grid>
+
+ <Border Style="{StaticResource SeparatorLineStyle}" Margin="0,12,0,0" />
+
+ <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+ <CheckBox Content="Use schedule" IsChecked="{Binding UseSchedule}" Click="ToggleUseSchedule"/>
+ <StackPanel Orientation="Horizontal" Margin="16,0,0,0">
+ <Button Content="Boost" Click="Boost" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0"/>
+ <Button Content="Cancel Override" Click="CancelOverride" Style="{StaticResource PrimaryButtonStyle}"
+ Visibility="{Binding HasOverride, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,8,0"/>
+ <Button Content="Cancel Boost" Click="CancelBoost" Style="{StaticResource PrimaryButtonStyle}"
+ Visibility="{Binding HasBoost, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+ </StackPanel>
+ </StackPanel>
+ </StackPanel>
+ </Border>
+ </DataTemplate>
+ </ItemsControl.ItemTemplate>
+ </ItemsControl>
+ </ScrollViewer>
+ </Grid>
+</Page>

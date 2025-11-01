@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFrameworks>net472;net9.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>WiserHeatApiV2</RootNamespace>
 	 <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
@@ -11,16 +11,14 @@
 	  <EnableNETAnalyzers>true</EnableNETAnalyzers>
 	  <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 	  <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
-	  <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-	  <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+	  <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 
     <!-- Migrated from AssemblyInfo.cs -->
     <AssemblyTitle>WiserHeatAPIv2</AssemblyTitle>
     <Description></Description>
     <Company>Nivloc Enterprises Ltd</Company>
     <Product>WiserHeatAPIv2</Product>
-    <Copyright>Copyright © 2025 Nivloc Enterprises Ltd</Copyright>
+    <Copyright>Copyright ©2025 Nivloc Enterprises Ltd</Copyright>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     <ComVisible>false</ComVisible>
@@ -30,6 +28,13 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\WiserHeatAPIv2.xml</DocumentationFile>
   </PropertyGroup>
+
+  <!-- Framework-specific build props -->
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
 	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
 		<DebugType>portable</DebugType>
 		<DebugSymbols>true</DebugSymbols>
@@ -39,32 +44,52 @@
 		<DebugSymbols>false</DebugSymbols>
 	</PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DefineConstants>TRACE;DEBUG;LIGHTING SHUTTER LIGHT HEATACTUATOR OPENTHERM</DefineConstants>
+    <!-- Use semicolon-delimited symbols matching the code's #if checks -->
+    <DefineConstants>TRACE;DEBUG;SHUTTER;LIGHT;HEATACTUATOR;OPENTHERM</DefineConstants>
     <NoWarn>CRR0029,CRRSP08</NoWarn>
   </PropertyGroup>
-  <ItemGroup>
+
+ <!-- References only needed for .NET Framework -->
+ <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
     <Reference Include="System.Runtime" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
+
+  <!-- Packages common to both TFMs -->
   <ItemGroup>
-    <PackageReference Include="Hafner.Compatibility.MetaPackage" Version="1.9.0" />
+    <PackageReference Include="log4net" Version="3.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+
+  <!-- Polyfills only for pre-.NET5 targets -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
     <PackageReference Include="IsExternalInit" Version="1.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="log4net" Version="3.2.0" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.10" />
-    <PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.10" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="RequiredMemberAttribute" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
-    <PackageReference Include="System.Threading.Channels" Version="9.0.10" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
-    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
+
+ <!-- net472-specific packages -->
+ <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <PackageReference Include="Hafner.Compatibility.MetaPackage" Version="1.9.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.10" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
+  </ItemGroup>
+
+ <!-- Include CompilerServices shim only for net472: remove for other TFMs -->
+ <ItemGroup Condition=" '$(TargetFramework)' != 'net472' ">
+ <Compile Remove="CompilerServicesShim.cs" />
+ </ItemGroup>
+ <ItemGroup>
+   <Folder Include="Annotations\" />
+ </ItemGroup>
 </Project>

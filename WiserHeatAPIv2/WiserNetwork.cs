@@ -60,7 +60,7 @@ public class WiserNetwork
 	/// <value>
 	/// A string such as "Client" (DHCP) or "Static". Returns <see cref="Constants.TEXT_UNKNOWN"/> if not provided.
 	/// </value>
-	public string DhcpMode => _networkInterface.TryGetValue ("DhcpMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+	public string? DhcpMode => _networkInterface.TryGetValue ("DhcpMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>
 	/// Gets the hostname reported by the hub.
@@ -68,7 +68,7 @@ public class WiserNetwork
 	/// <value>
 	/// The hub hostname, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.
 	/// </value>
-	public string Hostname => _networkInterface.TryGetValue ("HostName", out var hostname) ? hostname.ToString () : Constants.TEXT_UNKNOWN;
+	public string Hostname => _networkInterface.GetStringOr ("HostName");
 
 	/// <summary>
 	/// Gets the IPv4 address.
@@ -77,20 +77,7 @@ public class WiserNetwork
 	/// The IPv4 address string. When <see cref="DhcpMode"/> is "Client", the value is read from DHCP status;
 	/// otherwise, it is read from the static interface configuration. Returns <see cref="Constants.TEXT_UNKNOWN"/> if unavailable.
 	/// </value>
-	public string IpAddress
-		{
-		get
-			{
-			if (DhcpMode == "Client")
-				{
-				return _dhcpStatus.TryGetValue ("IPv4Address", out var address) ? address.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			else
-				{
-				return _networkInterface.TryGetValue ("IPv4HostAddress", out var address) ? address.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			}
-		}
+	public string IpAddress => DhcpMode == "Client" ? _dhcpStatus.GetStringOr ("IPv4Address") : _networkInterface.GetStringOr ("IPv4HostAddress");
 
 	/// <summary>
 	/// Gets the IPv4 subnet mask.
@@ -99,20 +86,7 @@ public class WiserNetwork
 	/// The subnet mask string. When <see cref="DhcpMode"/> is "Client", the value is read from DHCP status;
 	/// otherwise, it is read from the static interface configuration. Returns <see cref="Constants.TEXT_UNKNOWN"/> if unavailable.
 	/// </value>
-	public string IpSubnetMask
-		{
-		get
-			{
-			if (DhcpMode == "Client")
-				{
-				return _dhcpStatus.TryGetValue ("IPv4SubnetMask", out var mask) ? mask.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			else
-				{
-				return _networkInterface.TryGetValue ("IPv4SubnetMask", out var mask) ? mask.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			}
-		}
+	public string IpSubnetMask => DhcpMode == "Client" ? _dhcpStatus.GetStringOr ("IPv4SubnetMask") : _networkInterface.GetStringOr ("IPv4SubnetMask");
 
 	/// <summary>
 	/// Gets the IPv4 default gateway.
@@ -121,20 +95,7 @@ public class WiserNetwork
 	/// The default gateway string. When <see cref="DhcpMode"/> is "Client", the value is read from DHCP status;
 	/// otherwise, it is read from the static interface configuration. Returns <see cref="Constants.TEXT_UNKNOWN"/> if unavailable.
 	/// </value>
-	public string IpGateway
-		{
-		get
-			{
-			if (DhcpMode == "Client")
-				{
-				return _dhcpStatus.TryGetValue ("IPv4DefaultGateway", out var gateway) ? gateway.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			else
-				{
-				return _networkInterface.TryGetValue ("IPv4DefaultGateway", out var gateway) ? gateway.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			}
-		}
+	public string IpGateway => DhcpMode == "Client" ? _dhcpStatus.GetStringOr ("IPv4DefaultGateway") : _networkInterface.GetStringOr ("IPv4DefaultGateway");
 
 	/// <summary>
 	/// Gets the IPv4 primary DNS server.
@@ -143,20 +104,7 @@ public class WiserNetwork
 	/// The primary DNS server string. When <see cref="DhcpMode"/> is "Client", the value is read from DHCP status;
 	/// otherwise, it is read from the static interface configuration. Returns <see cref="Constants.TEXT_UNKNOWN"/> if unavailable.
 	/// </value>
-	public string IpPrimaryDNS
-		{
-		get
-			{
-			if (DhcpMode == "Client")
-				{
-				return _dhcpStatus.TryGetValue ("IPv4PrimaryDNS", out var dns) ? dns.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			else
-				{
-				return _networkInterface.TryGetValue ("IPv4PrimaryDNS", out var dns) ? dns.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			}
-		}
+	public string IpPrimaryDNS => DhcpMode == "Client" ? _dhcpStatus.GetStringOr ("IPv4PrimaryDNS") : _networkInterface.GetStringOr ("IPv4PrimaryDNS");
 
 	/// <summary>
 	/// Gets the IPv4 secondary DNS server.
@@ -165,20 +113,7 @@ public class WiserNetwork
 	/// The secondary DNS server string. When <see cref="DhcpMode"/> is "Client", the value is read from DHCP status;
 	/// otherwise, it is read from the static interface configuration. Returns <see cref="Constants.TEXT_UNKNOWN"/> if unavailable.
 	/// </value>
-	public string IpSecondaryDNS
-		{
-		get
-			{
-			if (DhcpMode == "Client")
-				{
-				return _dhcpStatus.TryGetValue ("IPv4SecondaryDNS", out var dns) ? dns.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			else
-				{
-				return _networkInterface.TryGetValue ("IPv4SecondaryDNS", out var dns) ? dns.ToString () : Constants.TEXT_UNKNOWN;
-				}
-			}
-		}
+	public string IpSecondaryDNS => DhcpMode == "Client" ? _dhcpStatus.GetStringOr ("IPv4SecondaryDNS") : _networkInterface.GetStringOr ("IPv4SecondaryDNS");
 
 	/// <summary>
 	/// Gets the MAC address.
@@ -186,7 +121,7 @@ public class WiserNetwork
 	/// <value>
 	/// The MAC address string reported by the hub, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.
 	/// </value>
-	public string MacAddress => _data.TryGetValue ("MacAddress", out var mac) ? mac.ToString () : Constants.TEXT_UNKNOWN;
+	public string MacAddress => _data.GetStringOr ("MacAddress");
 
 	/// <summary>
 	/// Gets a derived Wi‑Fi signal strength in percent (0–100) from RSSI.
@@ -237,7 +172,7 @@ public class WiserNetwork
 	/// <value>
 	/// The security mode string (for example, "WPA2"), or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.
 	/// </value>
-	public string SecurityMode => _data.TryGetValue ("SecurityMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+	public string SecurityMode => _data.GetStringOr ("SecurityMode");
 
 	/// <summary>
 	/// Gets the SSID of the connected network.
@@ -245,7 +180,7 @@ public class WiserNetwork
 	/// <value>
 	/// The SSID string, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.
 	/// </value>
-	public string SSID => _data.TryGetValue ("SSID", out var ssid) ? ssid.ToString () : Constants.TEXT_UNKNOWN;
+	public string SSID => _data.GetStringOr ("SSID");
 	}
 
 /// <summary>
@@ -291,4 +226,3 @@ public class WiserDetectedNetwork (Dictionary<string, object> data)
 	}
 
 // -----
-

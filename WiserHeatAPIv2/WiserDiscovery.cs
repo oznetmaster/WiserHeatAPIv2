@@ -46,11 +46,20 @@ public class WiserDiscoveryOptions
 	/// <summary>Gets or sets the HTTP probe timeout in milliseconds.</summary>
 	public int HttpTimeout { get; set; } = 1500;
 	/// <summary>Gets or sets whether to display progress output.</summary>
-	public bool ShowProgress { get; set; }
+	public bool ShowProgress
+		{
+		get; set;
+		}
 	/// <summary>Gets or sets whether to display verbose debug output.</summary>
-	public bool ShowDebug { get; set; }
+	public bool ShowDebug
+		{
+		get; set;
+		}
 	/// <summary>Gets or sets the maximum number of hubs to return; 0 for unlimited.</summary>
-	public int MaxResults { get; set; }  // 0 means unlimited
+	public int MaxResults
+		{
+		get; set;
+		}  // 0 means unlimited
 	}
 
 /// <summary>
@@ -63,15 +72,30 @@ public class NetworkInfo
 		;
 
 	/// <summary>Gets the base network IP (x.y.z.0).</summary>
-	public IPAddress NetworkBase { get; }
+	public IPAddress NetworkBase
+		{
+		get;
+		}
 	/// <summary>Gets the calculated network address.</summary>
-	public IPAddress NetworkAddress { get; }
+	public IPAddress NetworkAddress
+		{
+		get;
+		}
 	/// <summary>Gets the subnet mask.</summary>
-	public IPAddress SubnetMask { get; }
+	public IPAddress SubnetMask
+		{
+		get;
+		}
 	/// <summary>Gets the calculated broadcast address.</summary>
-	public IPAddress BroadcastAddress { get; }
+	public IPAddress BroadcastAddress
+		{
+		get;
+		}
 	/// <summary>Gets the number of usable host addresses in the subnet.</summary>
-	public int HostCount { get; }
+	public int HostCount
+		{
+		get;
+		}
 
 	/// <summary>
 	/// Creates a new <see cref="NetworkInfo"/> from a network address and mask.
@@ -121,8 +145,7 @@ public class NetworkInfo
 public class WiserHubDiscovery
 	{
 	private static readonly ILog _log = LogManager.GetLogger (typeof (WiserHubDiscovery));
-
-	private static readonly HttpClient _sharedHttpClient = new () { Timeout = TimeSpan.FromMilliseconds (3000) };
+	private static readonly HttpClient _sharedHttpClient = new () { Timeout = Timeout.InfiniteTimeSpan };
 	private static readonly IPAddress _subnetMask = new ([255, 255, 255, 0]);
 	private static readonly IPAddress[] _fallbackRanges = [new ([192, 168, 1, 0]), new ([192, 168, 0, 0]), new ([192, 168, 8, 0]), new ([10, 0, 0, 0]), new ([172, 16, 0, 0])];
 	private static readonly IPAddress _fallbackMask = new ([255, 255, 255, 0]);
@@ -185,31 +208,35 @@ public class WiserHubDiscovery
 			await semaphore.WaitAsync (cancellationToken).ConfigureAwait (false);
 			Task<WiserDiscoveredHub?> task = Task.Run (async () =>
 				{
-				try
-					{
-					if (options.ShowDebug)
-						_log.Debug ($"    HTTP test: {aliveIP}");
-
-					using var cts = new CancellationTokenSource (options.HttpTimeout);
-					if (await IsWiserHubAsync (aliveIP).ConfigureAwait (false))
+					try
 						{
-						var hub = new WiserDiscoveredHub (aliveIP);
-						if (options.ShowProgress)
-							_log.Info ($"    ✅ Found Wiser Hub: {hub.Url}");
-						return hub;
-						}
-					}
-				catch (Exception ex)
-					{
-					if (options.ShowDebug)
-						_log.Debug ($"    ❌ HTTP test failed for {aliveIP}: {ex.Message}");
-					}
-				finally
-					{
-						_ = semaphore.Release ();
-					}
+						if (options.ShowDebug)
+							_log.Debug ($"    HTTP test: {aliveIP}");
 
-				return null;
+						if (await IsWiserHubAsync (aliveIP).ConfigureAwait (false))
+							{
+							var hub = new WiserDiscoveredHub (aliveIP);
+							if (options.ShowProgress)
+								_log.Info ($"    ✅ Found Wiser Hub: {hub.Url}");
+							return hub;
+							}
+						}
+					catch (TaskCanceledException)
+						{
+						if (options.ShowDebug)
+							_log.Debug ($" ⏱️ HTTP timeout for {aliveIP}");
+						}
+					catch (Exception ex)
+						{
+						if (options.ShowDebug)
+							_log.Debug ($"    ❌ HTTP test failed for {aliveIP}: {ex.Message}");
+						}
+					finally
+						{
+						_ = semaphore.Release ();
+						}
+
+					return null;
 				}, cancellationToken);
 			httpTasks.Add (task);
 			}
@@ -257,10 +284,10 @@ public class WiserHubDiscovery
 
 		if (options.ShowDebug)
 			{
-			_log.Debug ($"    Network: {networkInfo.NetworkAddress}");
-			_log.Debug ($"    Subnet Mask: {networkInfo.SubnetMask}");
-			_log.Debug ($"    Broadcast: {networkInfo.BroadcastAddress}");
-			_log.Debug ($"    Host Count: {networkInfo.HostCount}");
+			_log.Debug ($" Network: {networkInfo.NetworkAddress}");
+			_log.Debug ($" Subnet Mask: {networkInfo.SubnetMask}");
+			_log.Debug ($" Broadcast: {networkInfo.BroadcastAddress}");
+			_log.Debug ($" Host Count: {networkInfo.HostCount}");
 			}
 
 		var ipsToScan = GetIPsToScan (networkInfo, gatewayIPs, options).ToList ();
@@ -268,6 +295,7 @@ public class WiserHubDiscovery
 			 PingIPSimpleAsync (ip, semaphore, options.PingTimeout, cancellationToken)).ToList ();
 
 		var remainingTasks = new List<Task<IPAddress?>> (pingTasks);
+		var yieldedAny = false;
 		while (remainingTasks.Count > 0)
 			{
 			cancellationToken.ThrowIfCancellationRequested ();
@@ -277,7 +305,22 @@ public class WiserHubDiscovery
 				continue;
 			IPAddress? result = await completedTask.ConfigureAwait (false);
 			if (result != null)
+				{
 				yield return result;
+				yieldedAny = true;
+				}
+			}
+
+		// Fallback: if no ping replies, try HTTP probe without ICMP prefilter
+		if (!yieldedAny)
+			{
+			if (options.ShowDebug)
+				_log.Debug (" No ping replies; falling back to HTTP probe without ICMP prefilter");
+			foreach (IPAddress ip in ipsToScan)
+				{
+				cancellationToken.ThrowIfCancellationRequested ();
+				yield return ip;
+				}
 			}
 		}
 
@@ -516,8 +559,13 @@ public class WiserHubDiscovery
 			using var cts = new CancellationTokenSource (1500); // Use options.HttpTimeout if available
 			HttpResponseMessage response = await _sharedHttpClient.GetAsync (baseUrl + endpoint, cts.Token).ConfigureAwait (false);
 
-			// 401 Unauthorized is the Wiser Hub signature
-			return response.StatusCode == HttpStatusCode.Unauthorized;
+			// Treat common responses as hub signature
+			HttpStatusCode code = response.StatusCode;
+			return code is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound;
+			}
+		catch (TaskCanceledException)
+			{
+			return false;
 			}
 		catch
 			{
@@ -580,4 +628,3 @@ public class WiserHubDiscovery
 		return discoveredHubs;
 		}
 	}
-

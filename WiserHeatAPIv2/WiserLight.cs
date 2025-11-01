@@ -5,6 +5,7 @@
 using System.Threading.Tasks;
 
 using static WiserHeatApiV2.RestConstants;
+using static WiserHeatApiV2.EnumValues;
 
 namespace WiserHeatApiV2;
 
@@ -24,8 +25,8 @@ public class WiserLight : WiserElectricalLevelDevice
 		{
 		Schedule1 = schedule;
 		AwayAction = deviceTypeData.TryGetValue ("AwayAction", out var action) ? action.ToString () : Constants.TEXT_UNKNOWN;
-		_currentState = deviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : Constants.TEXT_OFF;
-		_mode = deviceTypeData.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
+		_currentState = deviceTypeData.GetStringOr ("CurrentState", Constants.TEXT_OFF);
+		_mode = deviceTypeData.GetStringOr ("Mode");
 		//_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TextUnknown;
 
 		// Add device id to schedule
@@ -57,13 +58,11 @@ public class WiserLight : WiserElectricalLevelDevice
 		AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>Gets the list of allowed modes.</summary>
-	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserLightMode))
-		 .Cast<WiserLightMode> ()
+	public static List<string> AvailableModes => [.. GetValues<WiserLightMode> ()
 		 .Select (m => m.ToString ())];
 
 	/// <summary>Gets the list of allowed away-mode actions.</summary>
-	public static List<string> AvailableAwayModeActions => [.. Enum.GetValues (typeof (WiserAwayAction))
-		 .Cast<WiserAwayAction> ()
+	public static List<string> AvailableAwayModeActions => [.. GetValues<WiserAwayAction> ()
 		 .Where (a => a is WiserAwayAction.Off or WiserAwayAction.NoChange)
 		 .Select (a => a.ToString ())];
 
@@ -75,7 +74,10 @@ public class WiserLight : WiserElectricalLevelDevice
 			{
 			if (ValidateAwayAction (value))
 				{
-				if (SendCommandAsync (new { AwayAction = value }).Result)
+				if (SendCommandAsync (new
+					{
+					AwayAction = value
+					}).Result)
 					{
 					AwayAction = value;
 					}
@@ -88,10 +90,10 @@ public class WiserLight : WiserElectricalLevelDevice
 		}
 
 	/// <summary>Gets the light control source.</summary>
-	public string ControlSource => DeviceTypeData.TryGetValue ("ControlSource", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
+	public string? ControlSource => DeviceTypeData.GetStringOr ("ControlSource");
 
 	/// <summary>Gets the current state reported by the hub.</summary>
-	public string CurrentState => DeviceTypeData.TryGetValue ("CurrentState", out var state) ? state.ToString () : "0";
+	public string? CurrentState => DeviceTypeData.GetStringOr ("CurrentState", "0");
 
 	/// <summary>Gets a value indicating whether the light supports dimming.</summary>
 	public bool IsDimmable => DeviceTypeData.TryGetValue ("IsDimmable", out var dimmable) && ConvertInvariant.ToBoolean (dimmable);
@@ -116,7 +118,10 @@ public class WiserLight : WiserElectricalLevelDevice
 
 			if (ValidateMode (value))
 				{
-				if (SendCommandAsync (new { Mode = value }).Result)
+				if (SendCommandAsync (new
+					{
+					Mode = value
+					}).Result)
 					{
 					_mode = value;
 					}
@@ -167,15 +172,27 @@ public class WiserLight : WiserElectricalLevelDevice
 	public int TargetState => DeviceTypeData.TryGetValue ("TargetState", out var state) ? ConvertInvariant.ToInt32 (state) : 0;
 
 	/// <summary>Gets the internal schedule reference.</summary>
-	protected WiserSchedule? Schedule1 { get; }
+	protected WiserSchedule? Schedule1
+		{
+		get;
+		}
 
 	/// <summary>Gets or sets the away action backing value.</summary>
-	protected string AwayAction { get; set; }
+	protected string AwayAction
+		{
+		get; set;
+		}
 
 	/// <summary>Turns the light on.</summary>
 	public async Task<bool> TurnOnAsync ()
 		{
-		var result = await SendCommandAsync (new { RequestOverride = new { State = Constants.TEXT_ON } }).ConfigureAwait (false);
+		var result = await SendCommandAsync (new
+			{
+			RequestOverride = new
+				{
+				State = Constants.TEXT_ON
+				}
+			}).ConfigureAwait (false);
 		if (result)
 			{
 			_currentState = Constants.TEXT_ON;
@@ -187,7 +204,13 @@ public class WiserLight : WiserElectricalLevelDevice
 	/// <summary>Turns the light off.</summary>
 	public async Task<bool> TurnOffAsync ()
 		{
-		var result = await SendCommandAsync (new { RequestOverride = new { State = Constants.TEXT_OFF } }).ConfigureAwait (false);
+		var result = await SendCommandAsync (new
+			{
+			RequestOverride = new
+				{
+				State = Constants.TEXT_OFF
+				}
+			}).ConfigureAwait (false);
 		if (result)
 			{
 			_currentState = Constants.TEXT_OFF;
@@ -200,7 +223,7 @@ public class WiserLight : WiserElectricalLevelDevice
 /// <summary>
 /// Represents a dimmable light with level control.
 /// </summary>
-public class WiserDimmableLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule) : WiserLight(wiserRestController, data, deviceTypeData, schedule)
+public class WiserDimmableLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule) : WiserLight (wiserRestController, data, deviceTypeData, schedule)
 	{
 	/// <summary>Represents output range limits for a dimmable light.</summary>
 	public class WiserOutputRange (Dictionary<string, object>? data)
@@ -223,7 +246,14 @@ public class WiserDimmableLight (WiserRestController wiserRestController, Dictio
 			{
 			if (value is >= 0 and <= 100)
 				{
-				SendCommand (new { RequestOverride = new { State = Constants.TEXT_ON, Percentage = value } });
+				SendCommand (new
+					{
+					RequestOverride = new
+						{
+						State = Constants.TEXT_ON,
+						Percentage = value
+						}
+					});
 				}
 			else
 				{
@@ -255,31 +285,29 @@ public class WiserDimmableLight (WiserRestController wiserRestController, Dictio
 /// </summary>
 public class WiserLights
 	{
-	/// <summary>Gets all light devices.</summary>
-	public List<WiserLight> All { get; } = [];
+		/// <summary>Gets all light devices.</summary>
+		public List<WiserLight> All { get; } = [];
 
-	/// <summary>Gets the list of allowed modes.</summary>
-	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserLightMode))
-		 .Cast<WiserLightMode> ()
-		 .Select (m => m.ToString ())];
+		/// <summary>Gets the list of allowed modes.</summary>
+		public static List<string> AvailableModes => [.. GetValues<WiserLightMode> ()
+			 .Select (m => m.ToString ())];
 
-	/// <summary>Gets the number of lights.</summary>
-	public int Count => All.Count;
+		/// <summary>Gets the number of lights.</summary>
+		public int Count => All.Count;
 
-	/// <summary>Gets all dimmable lights.</summary>
-	public List<WiserDimmableLight> DimmableLights => [.. All.OfType<WiserDimmableLight> ()];
+		/// <summary>Gets all dimmable lights.</summary>
+		public List<WiserDimmableLight> DimmableLights => [.. All.OfType<WiserDimmableLight> ()];
 
-	/// <summary>Gets all on/off-only lights.</summary>
-	public List<WiserLight> OnOffLights => [.. All.Where (light => !light.IsDimmable)];
+		/// <summary>Gets all on/off-only lights.</summary>
+		public List<WiserLight> OnOffLights => [.. All.Where (light => !light.IsDimmable)];
 
-	/// <summary>Finds a light by its device id.</summary>
-	public WiserLight GetById (int id) => All.FirstOrDefault (light => light.Id == id);
+		/// <summary>Finds a light by its device id.</summary>
+		public WiserLight GetById (int id) => All.FirstOrDefault (light => light.Id == id);
 
-	/// <summary>Finds a light by its light id.</summary>
-	public WiserLight GetByLightId (int lightId) => All.FirstOrDefault (light => light.LightId == lightId);
+		/// <summary>Finds a light by its light id.</summary>
+		public WiserLight GetByLightId (int lightId) => All.FirstOrDefault (light => light.LightId == lightId);
 
-	/// <summary>Gets all lights assigned to a room id.</summary>
-	public List<WiserLight> GetByRoomId (int roomId) => [.. All.Where (light => light.RoomId == roomId)];
-		}
+		/// <summary>Gets all lights assigned to a room id.</summary>
+		public List<WiserLight> GetByRoomId (int roomId) => [.. All.Where (light => light.RoomId == roomId)];
+	}
 #endif
-	

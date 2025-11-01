@@ -25,7 +25,7 @@ public class WiserHeatingActuator (WiserRestController wiserRestController, Dict
 	public int InstantaneousPower => DeviceTypeData.TryGetValue ("InstantaneousDemand", out var power) ? ConvertInvariant.ToInt32 (power) : 0;
 
 	/// <summary>Gets the output type of the actuator.</summary>
-	public string OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+	public string? OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
 	}
 
 /// <summary>
@@ -40,7 +40,6 @@ public class WiserHeatingActuators
 	public int Count => All.Count;
 
 	/// <summary>Finds an actuator by its device id.</summary>
-	public WiserHeatingActuator GetById (int id) =>	All.FirstOrDefault (actuator => actuator.Id == id);
+	public WiserHeatingActuator? GetById (int id) => All.FirstOrDefault (actuator => actuator.Id == id);
 	}
 #endif
-

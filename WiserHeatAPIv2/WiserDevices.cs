@@ -41,8 +41,8 @@ public class WiserDevice
 		_deviceLockEnabled = data.TryGetValue ("DeviceLockEnabled", out var lockEnabled) && ConvertInvariant.ToBoolean (lockEnabled);
 		Identify = data.TryGetValue ("IdentifyActive", out var identify) && ConvertInvariant.ToBoolean (identify);
 		DeviceTypeId = deviceTypeData.TryGetValue ("id", out var deviceTypeId) ? ConvertInvariant.ToInt32 (deviceTypeId) : 0;
-		ProductType = data.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
-		_name = deviceTypeData.TryGetValue ("Name", out var name) ? name.ToString () : $"{ProductType}-{Id}";
+		ProductType = data.GetStringOr ("ProductType");
+		_name = deviceTypeData.GetStringOr ("Name", $"{ProductType}-{Id}");
 		}
 
 	/// <summary>
@@ -109,7 +109,10 @@ public class WiserDevice
 		}
 
 	/// <summary>Gets whether the device is currently in identify mode.</summary>
-	public bool Identify { get; private set; }
+	public bool Identify
+		{
+		get; private set;
+		}
 	/// <summary>
 	/// Asynchronously enables or disables identify mode.
 	/// </summary>
@@ -160,7 +163,10 @@ public class WiserDevice
 
 			if (value != _name)
 				{
-				if (SendDeviceCommandAsync (new { Name = value }).Result)
+				if (SendDeviceCommandAsync (new
+					{
+					Name = value
+					}).Result)
 					{
 					_name = value;
 					}
@@ -169,25 +175,34 @@ public class WiserDevice
 		}
 
 	/// <summary>Gets the room id for this device, if any.</summary>
-	public int RoomId { get; }
+	public int RoomId
+		{
+		get;
+		}
 
 	/// <summary>Gets the type id for this device.</summary>
-	public int DeviceTypeId { get; }
+	public int DeviceTypeId
+		{
+		get;
+		}
 
 	/// <summary>
 	/// Gets the active firmware version string.
 	/// </summary>
 	/// <value>The firmware version, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.</value>
-	public string FirmwareVersion => Data.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
+	public string FirmwareVersion => Data.GetStringOr ("ActiveFirmwareVersion");
 
 	/// <summary>Gets the unique device id.</summary>
-	public int Id { get; }
+	public int Id
+		{
+		get;
+		}
 
 	/// <summary>
 	/// Gets the model identifier.
 	/// </summary>
 	/// <value>The model identifier, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.</value>
-	public virtual string Model => Data.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+	public virtual string Model => Data.GetStringOr ("ModelIdentifier");
 
 	/// <summary>Gets the Zigbee node id.</summary>
 	public int NodeId => Data.TryGetValue ("NodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
@@ -196,37 +211,52 @@ public class WiserDevice
 	/// Gets the product identifier.
 	/// </summary>
 	/// <value>The product identifier, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.</value>
-	public string ProductIdentifier => Data.TryGetValue ("ProductIdentifier", out var id) ? id.ToString () : Constants.TEXT_UNKNOWN;
+	public string ProductIdentifier => Data.GetStringOr ("ProductIdentifier");
 
 	/// <summary>
 	/// Gets the product model.
 	/// </summary>
 	/// <value>The product model, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.</value>
-	public string ProductModel => Data.TryGetValue ("ProductModel", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
+	public string ProductModel => Data.GetStringOr ("ProductModel");
 
 	/// <summary>Gets the parent node id (if any).</summary>
 	public int ParentNodeId => Data.TryGetValue ("ParentNodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
 
 	/// <summary>Gets the product type.</summary>
-	public string ProductType { get; }
+	public string ProductType
+		{
+		get;
+		}
 
 	/// <summary>
 	/// Gets the device serial number.
 	/// </summary>
 	/// <value>The serial number, or <see cref="Constants.TEXT_UNKNOWN"/> if not provided.</value>
-	public string SerialNumber => Data.TryGetValue ("SerialNumber", out var serial) ? serial.ToString () : Constants.TEXT_UNKNOWN;
+	public string SerialNumber => Data.GetStringOr ("SerialNumber");
 
 	/// <summary>Gets radio signal metrics for this device.</summary>
-	public WiserSignalStrength Signal { get; }
+	public WiserSignalStrength Signal
+		{
+		get;
+		}
 
 	/// <summary>Gets the REST controller used to communicate with the hub.</summary>
-	protected WiserRestController WiserRestController { get; }
+	protected WiserRestController WiserRestController
+		{
+		get;
+		}
 
 	/// <summary>Gets the raw device data dictionary.</summary>
-	protected IDictionary<string, object> Data { get; }
+	protected IDictionary<string, object> Data
+		{
+		get;
+		}
 
 	/// <summary>Gets the device-type specific data dictionary.</summary>
-	protected IDictionary<string, object> DeviceTypeData { get; }
+	protected IDictionary<string, object> DeviceTypeData
+		{
+		get;
+		}
 	}
 
 /// <summary>
@@ -319,18 +349,22 @@ public class WiserDevices
 
 				if (smartplugInfo != null)
 					{
-					WiserSchedule smartplugSchedule = _schedules.GetByType (WiserScheduleType.OnOff)
+					WiserSchedule? smartplugSchedule = _schedules.GetByType (WiserScheduleType.OnOff)
 						 .FirstOrDefault (s => s.Id == (smartplugInfo.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0));
 
-					//smartplugInfo["RoomId"] = GetTempDeviceRoomId (_domainData, deviceId);
-					Smartplugs.All.Add (
-						 new WiserSmartPlug (
-							  _wiserRestController,
-							  device,
-							  smartplugInfo,
-							  smartplugSchedule
-						 )
-					);
+					//smartplugInfo["RoomId"] = GetTempDeviceRoomId (_domainData, deviceId
+
+					if (smartplugSchedule != null)
+						{
+						Smartplugs.All.Add (
+							 new WiserSmartPlug (
+								 _wiserRestController,
+								 device,
+								 smartplugInfo,
+								 smartplugSchedule
+							 )
+						);
+						}
 					}
 				}
 
@@ -384,17 +418,20 @@ public class WiserDevices
 
 				if (shutterInfo != null)
 					{
-					WiserSchedule shutterSchedule = _schedules.GetByType (WiserScheduleType.Level)
+					WiserSchedule? shutterSchedule = _schedules.GetByType (WiserScheduleType.Level)
 						 .FirstOrDefault (s => s.Id == (shutterInfo.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0));
 
-					Shutters.All.Add (
-						 new WiserShutter (
-							  _wiserRestController,
-							  device,
-							  shutterInfo,
-							  shutterSchedule
-						 )
-					);
+					if (shutterSchedule != null)
+						{
+						Shutters.All.Add (
+							 new WiserShutter (
+								  _wiserRestController,
+								  device,
+								  shutterInfo,
+								  shutterSchedule
+							 )
+						);
+						}
 					}
 				}
 #endif
@@ -409,36 +446,39 @@ public class WiserDevices
 
 				if (lightInfo != null)
 					{
-					WiserSchedule lightSchedule = _schedules.GetByType (WiserScheduleType.Level)
+					WiserSchedule? lightSchedule = _schedules.GetByType (WiserScheduleType.Level)
 						 .FirstOrDefault (s => s.Id == (lightInfo.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0));
 
-					if (productType.ToString () == "DimmableLight")
+					if (lightSchedule != null)
 						{
-						Lights.All.Add (
-							 new WiserDimmableLight (
-								  _wiserRestController,
-								  device,
-								  lightInfo,
-								  lightSchedule
-							 )
-						);
-						}
-					else
-						{
-						Lights.All.Add (
-							 new WiserLight (
-								  _wiserRestController,
-								  device,
-								  lightInfo,
-								  lightSchedule
-							 )
-						);
+						if (productType.ToString () == "DimmableLight")
+							{
+							Lights.All.Add (
+								 new WiserDimmableLight (
+									  _wiserRestController,
+									  device,
+									  lightInfo,
+									  lightSchedule
+								 )
+							);
+							}
+						else
+							{
+							Lights.All.Add (
+								 new WiserLight (
+									  _wiserRestController,
+									  device,
+									  lightInfo,
+									  lightSchedule
+								 )
+							);
+							}
 						}
 					}
 				}
 #endif
+				}
 			}
-		}
 
 	/// <summary>
 	/// Updates the device catalog with the latest hub domain data.
@@ -475,7 +515,7 @@ public class WiserDevices
 				{
 				IEnumerable<Dictionary<string, object>> newDevices = devicesList.Where (d => addedDevicesHash.Contains (ConvertInvariant.ToInt32 (d["id"])));
 				foreach (Dictionary<string, object> newDevice in newDevices)
-					_devicesList[ConvertInvariant.ToInt32 (newDevice["id"]) ] = newDevice;
+					_devicesList[ConvertInvariant.ToInt32 (newDevice["id"])] = newDevice;
 
 				// Rebuild collections with new devices
 				Build (newDevices);
@@ -618,7 +658,7 @@ public class WiserDevices
 	/// </summary>
 	/// <param name="id">Device id to search for.</param>
 	/// <returns>The matching <see cref="WiserDevice"/>, or <see langword="null"/> if not found.</returns>
-	public WiserDevice GetById (int id) => All.FirstOrDefault (device => device.Id == id);
+	public WiserDevice? GetById (int id) => All.FirstOrDefault (device => device.Id == id);
 
 	/// <summary>
 	/// Get all devices located in a specific room.
@@ -647,14 +687,14 @@ public class WiserDevices
 	/// </summary>
 	/// <param name="nodeId">Zigbee node id.</param>
 	/// <returns>The first device with the given node id, or <see langword="null"/>.</returns>
-	public WiserDevice GetByNodeId (int nodeId) => All.FirstOrDefault (device => device.NodeId == nodeId);
+	public WiserDevice? GetByNodeId (int nodeId) => All.FirstOrDefault (device => device.NodeId == nodeId);
 
 	/// <summary>
 	/// Find a device by serial number.
 	/// </summary>
 	/// <param name="serialNumber">Serial number to match.</param>
 	/// <returns>The first device with the given serial number, or <see langword="null"/>.</returns>
-	public WiserDevice GetBySerialNumber (string serialNumber) => All.FirstOrDefault (device => device.SerialNumber == serialNumber);
+	public WiserDevice? GetBySerialNumber (string serialNumber) => All.FirstOrDefault (device => device.SerialNumber == serialNumber);
 
 	/// <summary>
 	/// Get all devices with the specified parent node id.
@@ -663,4 +703,3 @@ public class WiserDevices
 	/// <returns>List of devices having the provided parent node id.</returns>
 	public List<WiserDevice> GetByParentNodeId (int nodeId) => [.. All.Where (device => device.ParentNodeId == nodeId)];
 	}
-

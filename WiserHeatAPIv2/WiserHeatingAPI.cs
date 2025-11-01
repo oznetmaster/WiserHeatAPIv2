@@ -240,49 +240,70 @@ public class WiserAPI : IDisposable
 	/// </summary>
 	/// <value>A <see cref="WiserDevices"/> instance providing access to all hub devices, or <see langword="null"/> if not yet initialized.</value>
 	/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
-	public WiserDevices? Devices { get; private set; }
+	public WiserDevices? Devices
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets the collection of heating channels configured on the Wiser hub.
 	/// </summary>
 	/// <value>A <see cref="WiserHeatingChannels"/> instance providing access to heating channel state, or <see langword="null"/> if not yet initialized.</value>
 	/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
-	public WiserHeatingChannels? HeatingChannels { get; private set; }
+	public WiserHeatingChannels? HeatingChannels
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets the hot water controller entity, if configured on the hub.
 	/// </summary>
 	/// <value>A <see cref="WiserHotwater"/> instance for hot water control, or <see langword="null"/> if no hot water is configured or not yet initialized.</value>
 	/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
-	public WiserHotwater? Hotwater { get; private set; }
+	public WiserHotwater? Hotwater
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets the collection of Moment entities (energy monitoring) available on the hub.
 	/// </summary>
 	/// <value>A <see cref="WiserMoments"/> instance providing access to energy data, or <see langword="null"/> if not yet initialized.</value>
 	/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
-	public WiserMoments? Moments { get; private set; }
+	public WiserMoments? Moments
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets the collection of rooms configured on the Wiser hub.
 	/// </summary>
 	/// <value>A <see cref="WiserRooms"/> instance providing access to all rooms and their controls, or <see langword="null"/> if not yet initialized.</value>
 	/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
-	public WiserRooms? Rooms { get; private set; }
+	public WiserRooms? Rooms
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets the collection of schedules configured on the Wiser hub.
 	/// </summary>
 	/// <value>A <see cref="WiserSchedules"/> instance providing access to heating, on/off, and level schedules, or <see langword="null"/> if not yet initialized.</value>
 	/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
-	public WiserSchedules? Schedules { get; private set; }
+	public WiserSchedules? Schedules
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets the hub system information, including firmware, network status, and global settings.
 	/// </summary>
 	/// <value>A <see cref="WiserSystem"/> instance with hub metadata and system-level controls, or <see langword="null"/> if not yet initialized.</value>
 	/// <remarks>Call <see cref="InitializeAsync"/> to populate this property.</remarks>
-	public WiserSystem? System { get; private set; }
+	public WiserSystem? System
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets or sets the preferred temperature unit system for all API operations.
@@ -463,4 +484,3 @@ public static class WiserConstants
 	/// <summary>Endpoint key for OpenTherm data.</summary>
 	public const string WISERHUBOPENTHERM = "opentherm";
 	}
-

@@ -5,13 +5,12 @@
 // WiserHeatApiV2.cs
 using System.Collections.Concurrent;
 using System.Globalization;
-
 using System.Threading;
 using System.Threading.Tasks;
 
-using static WiserHeatApiV2.Constants;
-
 using log4net;
+
+using static WiserHeatApiV2.Constants;
 
 namespace WiserHeatApiV2;
 
@@ -319,7 +318,7 @@ public class WiserBattery (IDictionary<string, object> data)
 	{
 	/// <summary>Gets the reported battery level as a string, or "No Battery".</summary>
 	/// <value>The hub-reported battery level string; "No Battery" when not applicable.</value>
-	public string Level => data.TryGetValue ("BatteryLevel", out var level) ? level.ToString () : "No Battery";
+	public string? Level => data.TryGetValue ("BatteryLevel", out var level) ? level.ToString () : "No Battery";
 
 	/// <summary>Gets the derived battery percentage for the device type.</summary>
 	/// <value>
@@ -367,7 +366,7 @@ public class WiserBattery (IDictionary<string, object> data)
 public class WiserSignalStrength (IDictionary<string, object> data)
 	{
 	/// <summary>Gets the hub-provided textual signal strength.</summary>
-	public string DisplayedSignalStrength => data.TryGetValue ("DisplayedSignalStrength", out var strength) ? strength.ToString () : TEXT_UNKNOWN;
+	public string DisplayedSignalStrength => data.GetStringOr ("DisplayedSignalStrength");
 
 	/// <summary>Gets the LQI value for controller reception, if available.</summary>
 	public int? ControllerReceptionLqi => data.TryGetValue ("ReceptionOfController", out var reception) && reception is Dictionary<string, object> receptionDict
@@ -433,11 +432,11 @@ public class WiserCloud (string cloudStatus, Dictionary<string, object> data)
 	{
 	/// <summary>Gets the Wiser API host name.</summary>
 	/// <value>The Wiser API hostname reported by the hub; <c>TextUnknown</c> if unavailable.</value>
-	public string ApiHost => data.TryGetValue ("WiserApiHost", out var host) ? host.ToString () : TEXT_UNKNOWN;
+	public string ApiHost => data.GetStringOr ("WiserApiHost");
 
 	/// <summary>Gets the bootstrap API host name.</summary>
 	/// <value>The bootstrap API hostname reported by the hub; <c>TextUnknown</c> if unavailable.</value>
-	public string BootstrapApiHost => data.TryGetValue ("BootStrapApiHost", out var host) ? host.ToString () : TEXT_UNKNOWN;
+	public string BootstrapApiHost => data.GetStringOr ("BootStrapApiHost");
 
 	/// <summary>Gets the current connection status string.</summary>
 	/// <value>The cloud connection status reported by the hub (e.g., "Connected").</value>
@@ -466,7 +465,7 @@ public class WiserFirmwareUpgradeItem (Dictionary<string, object> data)
 	public int Id => data.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 	/// <summary>Gets the firmware filename string.</summary>
-	public string Filename => data.TryGetValue ("FirmwareFilename", out var filename) ? filename.ToString () : TEXT_UNKNOWN;
+	public string Filename => data.GetStringOr ("FirmwareFilename");
 	}
 
 /// <summary>Collection of available firmware upgrade items.</summary>
@@ -491,7 +490,7 @@ public class WiserFirmwareUpgradeInfo
 	/// <summary>Finds an item by its identifier.</summary>
 	/// <param name="id">Firmware item id.</param>
 	/// <returns>The matching item, or <see langword="null"/>.</returns>
-	public WiserFirmwareUpgradeItem GetById (int id) => All.FirstOrDefault (item => item.Id == id);
+	public WiserFirmwareUpgradeItem? GetById (int id) => All.FirstOrDefault (item => item.Id == id);
 	}
 
 /// <summary>
@@ -562,11 +561,11 @@ public class WiserZigbee (Dictionary<string, object> data)
 
 	/// <summary>Gets the Zigbee module firmware version.</summary>
 	/// <value>The module firmware version string; <c>TextUnknown</c> if unavailable.</value>
-	public string ModuleVersion => data.TryGetValue ("ZigbeeModuleVersion", out var value) ? value.ToString () : TEXT_UNKNOWN;
+	public string ModuleVersion => data.GetStringOr ("ZigbeeModuleVersion");
 
 	/// <summary>Gets the EUI of the Zigbee module.</summary>
 	/// <value>The module EUI (extended unique identifier) string; <c>TextUnknown</c> if unavailable.</value>
-	public string EUI => data.TryGetValue ("ZigbeeEUI", out var value) ? value.ToString () : TEXT_UNKNOWN;
+	public string EUI => data.GetStringOr ("ZigbeeEUI");
 	}
 
 /// <summary>Utilities for formatting sunrise/sunset special time values.</summary>
@@ -624,7 +623,7 @@ public class WiserElectricalLevelDevice (WiserRestController wiserRestController
 
 	// Lights and shutters currently have model identifier as Unknown
 	/// <inheritdoc />
-	public override string Model => Data.TryGetValue ("ProductType", out var type) ? type.ToString () : TEXT_UNKNOWN;
+	public override string Model => Data.GetStringOr ("ProductType");
 	}
 
 /// <summary>
@@ -639,7 +638,7 @@ public class WiserElectricalLevelDevice (WiserRestController wiserRestController
 public class WiserScheduleNext (string scheduleType, Dictionary<string, object> data)
 	{
 	/// <summary>Gets the day name for the next scheduled event.</summary>
-	public string Day => data.TryGetValue ("Day", out var day) ? day.ToString () : "";
+	public string Day => data.GetStringOr ("Day", "");
 
 	/// <summary>Gets the time of the next event as a TimeSpan.</summary>
 	public TimeSpan Time
@@ -1065,4 +1064,3 @@ public static class LoggerExtensions
 	}
 
 // -----
-

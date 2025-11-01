@@ -18,7 +18,7 @@ public class WiserMoment (WiserRestController wiserRestController, IDictionary<s
 	public int Id => momentData.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 	/// <summary>Gets the moment name.</summary>
-	public string Name => momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
+	public string? Name => momentData.TryGetValue ("Name", out var name) ? name.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Activates this moment on the hub.</summary>
 	public Task<bool> ActivateAsync (System.Threading.CancellationToken cancellationToken = default) =>
@@ -60,6 +60,5 @@ public class WiserMoments
 	/// <summary>Gets the number of moments.</summary>
 	public int Count => All.Count;
 	/// <summary>Finds a moment by its identifier.</summary>
-	public WiserMoment GetById (int id) => All.FirstOrDefault (moment => moment.Id == id);
+	public WiserMoment? GetById (int id) => All.FirstOrDefault (moment => moment.Id == id);
 	}
-

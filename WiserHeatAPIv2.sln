@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiserHeatAPIv2Test", "Wiser
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiserHubDiscovery", "mDNS Discovery\WiserHubDiscovery.csproj", "{4DA6CE49-1040-40A9-9282-DD5E21251751}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiserHeatApp.Wpf", "WiserHeatApp.Wpf\WiserHeatApp.Wpf.csproj", "{B50ACEFF-086E-9A4B-B4C6-C1570F15F151}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{4DA6CE49-1040-40A9-9282-DD5E21251751}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DA6CE49-1040-40A9-9282-DD5E21251751}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DA6CE49-1040-40A9-9282-DD5E21251751}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B50ACEFF-086E-9A4B-B4C6-C1570F15F151}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B50ACEFF-086E-9A4B-B4C6-C1570F15F151}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B50ACEFF-086E-9A4B-B4C6-C1570F15F151}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B50ACEFF-086E-9A4B-B4C6-C1570F15F151}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

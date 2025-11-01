@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reflection;
 
 using log4net;
 using log4net.Config;
@@ -214,7 +214,7 @@ internal class WiserHeatAPIv2Test
 				}
 
 			var lowBattery = (roomTest.RoomstatId.HasValue && _wapi.Devices.Roomstats.GetById (roomTest.RoomstatId.Value)?.Battery.Level == "Low")
-				|| (roomTest.SmartvalveIds?.Count > 0 && roomTest.SmartvalveIds.Any (svid => _wapi.Devices.Smartvalves.GetById (svid).Battery.Level == "Low"));
+				|| (roomTest.SmartvalveIds?.Count > 0 && roomTest.SmartvalveIds.Any (svid => _wapi.Devices.Smartvalves.GetById (svid)!.Battery.Level == "Low"));
 			if (lowBattery)
 				{
 				Console.WriteLine ($"\tLow battery warning in room: {roomTest.Name}");
@@ -223,7 +223,13 @@ internal class WiserHeatAPIv2Test
 
 			{
 			var roomToTest = 9;
-			WiserRoom room = _wapi.Rooms.GetById (roomToTest);
+			WiserRoom? room = _wapi.Rooms.GetById (roomToTest);
+			if (room == null)
+				{
+				Console.WriteLine ($"No room found with ID {roomToTest}");
+				return;
+				}
+
 			Console.WriteLine ($"Room {room.Name} setpoint is {room.CurrentTargetTemperature}");
 			Console.WriteLine ($"Room {room.Name} IsOverride is {room.IsOverride}, IsBoost is {room.IsBoost}");
 			_ = await room.CancelBoostAsync ();
@@ -250,6 +256,13 @@ internal class WiserHeatAPIv2Test
 			_ = await _wapi.Devices.Smartplugs.All[0].TurnOffAsync ();
 
 		var scheduleRoomTest = 9;
+		WiserRoom? roomForSchedule = _wapi.Rooms.GetById (scheduleRoomTest);
+		if (roomForSchedule == null)
+			{
+			Console.WriteLine ($"No room found with ID {scheduleRoomTest}");
+			return;
+			}
+
 		WiserHeatingSchedule? schedule = _wapi.Schedules!.GetByRoomId (scheduleRoomTest);
 		if (schedule == null)
 			{
@@ -258,7 +271,7 @@ internal class WiserHeatAPIv2Test
 		else
 			{
 			Console.WriteLine ("--------------------------------");
-			Console.WriteLine ($"Schedule for Room {scheduleRoomTest} [{_wapi.Rooms.GetById (scheduleRoomTest).Name}] {schedule.Name} Type = {schedule.ScheduleType}");
+			Console.WriteLine ($"Schedule for Room {scheduleRoomTest} [{roomForSchedule.Name}] {schedule.Name} Type = {schedule.ScheduleType}");
 			Console.WriteLine ("--------------------------------");
 
 			Console.WriteLine ($"Schedule.Next: DateTime {schedule.Next?.DateTime} Day {schedule.Next?.Day} Time {schedule.Next?.Time} Setting {schedule.Next?.Setting}");
@@ -314,4 +327,3 @@ internal class WiserHeatAPIv2Test
 			}
 		}
 	}
-

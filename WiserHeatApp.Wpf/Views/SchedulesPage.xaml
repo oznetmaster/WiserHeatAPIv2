@@ -1,0 +1,17 @@
+<Page x:Class="WiserHeatApp.Wpf.Views.SchedulesPage"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Schedules">
+ <Grid Margin="16">
+ <ListView x:Name="SchedulesList">
+ <ListView.View>
+ <GridView>
+ <GridViewColumn Header="Room" Width="220" DisplayMemberBinding="{Binding RoomName}"/>
+ <GridViewColumn Header="Schedule" Width="220" DisplayMemberBinding="{Binding ScheduleName}"/>
+ <GridViewColumn Header="Type" Width="120" DisplayMemberBinding="{Binding ScheduleType}"/>
+ <GridViewColumn Header="Next" Width="320" DisplayMemberBinding="{Binding NextSummary}"/>
+ </GridView>
+ </ListView.View>
+ </ListView>
+ </Grid>
+</Page>

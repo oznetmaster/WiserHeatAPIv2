@@ -46,7 +46,7 @@ public class WiserUFHController : WiserDevice
 	public int MinFloorTemperature => DeviceTypeData.TryGetValue ("MinHeatFloorTemperature", out var temp) ? ConvertInvariant.ToInt32 (temp) : Constants.TEMP_OFF;
 
 	/// <summary>Gets the UFH output type description.</summary>
-	public string OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
+	public string? OutputType => DeviceTypeData.TryGetValue ("OutputType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets the list of relay channels for this controller.</summary>
 	public List<WiserUFHRelay> Relays { get; } = [];
@@ -64,7 +64,7 @@ public class WiserUFHControllers
 	public int Count => All.Count;
 
 	/// <summary>Finds a UFH controller by device id.</summary>
-	public WiserUFHController GetById (int id) => All.FirstOrDefault (controller => controller.Id == id);
+	public WiserUFHController? GetById (int id) => All.FirstOrDefault (controller => controller.Id == id);
 	}
 
 /// <summary>Represents one UFH relay channel configuration/state.</summary>
@@ -86,4 +86,3 @@ public class WiserUFHRelay (Dictionary<string, object> relayData)
 		get;
 		} = relayData.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 	}
-

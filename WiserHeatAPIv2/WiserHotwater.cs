@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using static WiserHeatApiV2.RestConstants;
+using static WiserHeatApiV2.Constants;
+using static WiserHeatApiV2.EnumValues;
 
 namespace WiserHeatApiV2;
 
@@ -29,7 +31,7 @@ public class WiserHotwater
 		_wiserRestController = wiserRestController;
 		_data = hwData;
 		Schedule = schedule;
-		_mode = _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_AUTO;
+		_mode = _data.GetStringOr ("Mode", TEXT_AUTO);
 
 		// Add device id to schedule
 		Schedule?.Assignments.Add (new Dictionary<string, object> { { "id", Id }, { "name", Name } });
@@ -53,7 +55,7 @@ public class WiserHotwater
 			}
 
 		Schedule = schedule; // Uncomment if you want to update the schedule reference
-		_mode = _data.TryGetValue ("Mode", out var mode) ? mode.ToString () : Constants.TEXT_AUTO;
+		_mode = _data.GetStringOr ("Mode", TEXT_AUTO);
 		if (Schedule != null)
 			{
 			if (oldId != Id || oldName != Name)
@@ -79,9 +81,14 @@ public class WiserHotwater
 	/// Gets the set of allowed Hot Water operating modes.
 	/// </summary>
 	/// <value>A list containing the valid mode strings derived from <see cref="WiserHotWaterMode"/>.</value>
+#if NETFRAMEWORK
 	public static List<string> AvailableModes => [.. Enum.GetValues (typeof (WiserHotWaterMode))
 		 .Cast<WiserHotWaterMode> ()
 		 .Select (m => m.ToString ())];
+#else
+	public static List<string> AvailableModes => [.. GetValues<WiserHotWaterMode> ()
+		 .Select (m => m.ToString ())];
+#endif
 
 	/// <summary>
 	/// Gets a value indicating whether Away mode is currently suppressed for hot water.
@@ -109,13 +116,13 @@ public class WiserHotwater
 	/// Gets a textual description of what is currently controlling the hot water state.
 	/// </summary>
 	/// <value>A string describing the control source (e.g., "FromSchedule", "FromBoost", "FromAwayMode").</value>
-	public string CurrentControlSource => _data.TryGetValue ("HotWaterDescription", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
+	public string? CurrentControlSource => _data.TryGetValue ("HotWaterDescription", out var source) ? source.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>
 	/// Gets the current state of the hot water relay as reported by the hub.
 	/// </summary>
 	/// <value>The relay state, typically "On" or "Off".</value>
-	public string CurrentState => _data.TryGetValue ("HotWaterRelayState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
+	public string? CurrentState => _data.TryGetValue ("HotWaterRelayState", out var state) ? state.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>
 	/// Gets the unique identifier for this hot water controller.
@@ -146,8 +153,8 @@ public class WiserHotwater
 	/// </summary>
 	/// <value><c>true</c> if a manual override is active; otherwise, <c>false</c>.</value>
 	public bool IsOverride => _data.TryGetValue ("OverrideType", out var type) &&
-                                             type.ToString () != Constants.TEXT_UNKNOWN &&
-                                             type.ToString () != Constants.TEXT_NONE;
+															type.ToString () != Constants.TEXT_UNKNOWN &&
+															type.ToString () != Constants.TEXT_NONE;
 
 	/// <summary>
 	/// Gets or sets the hot water operating mode.
@@ -195,7 +202,10 @@ public class WiserHotwater
 	/// Gets the schedule assigned to this hot water controller, if any.
 	/// </summary>
 	/// <value>The associated <see cref="WiserSchedule"/> instance, or <c>null</c> if no schedule is assigned.</value>
-	public WiserSchedule? Schedule { get; private set; }
+	public WiserSchedule? Schedule
+		{
+		get; private set;
+		}
 
 	/// <summary>
 	/// Gets the schedule identifier associated with this hot water controller.
@@ -345,11 +355,23 @@ public class WiserHotwater
 			{
 			if (await CancelBoostAsync (cancellationToken).ConfigureAwait (false))
 				{
-				return await OverrideStateAsync (Schedule.Next.Setting!.ToString (), cancellationToken).ConfigureAwait (false);
+				var settingObj = Schedule.Next.Setting;
+				string? state = settingObj switch
+					{
+						string s when s.Equals (TEXT_ON, StringComparison.OrdinalIgnoreCase) || s.Equals (TEXT_OFF, StringComparison.OrdinalIgnoreCase) => s,
+						int i => i == 0 ? TEXT_OFF : TEXT_ON,
+						long l => l == 0 ? TEXT_OFF : TEXT_ON,
+						bool b => b ? TEXT_ON : TEXT_OFF,
+						_ => settingObj?.ToString ()
+						};
+
+				if (!string.IsNullOrEmpty (state))
+					{
+					return await OverrideStateAsync (state!, cancellationToken).ConfigureAwait (false);
+					}
 				}
 			}
 
 		return false;
 		}
 	}
-

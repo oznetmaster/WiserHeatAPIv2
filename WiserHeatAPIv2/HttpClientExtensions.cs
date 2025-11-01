@@ -30,4 +30,3 @@ public static class HttpClientExtensions
 		return client.SendAsync (request, cancellationToken);
 		}
 	}
-

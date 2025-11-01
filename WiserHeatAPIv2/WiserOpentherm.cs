@@ -120,4 +120,3 @@ public class WiserOpenThermOperationalData (Dictionary<string, object> data)
 #endif
 
 // -----
-

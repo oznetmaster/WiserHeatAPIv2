@@ -1,0 +1,22 @@
+// Copyright ©2025 Nivloc Enterprises Ltd.
+// Adapted from the Python implementation Copyright ©2021 Mark Parker
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using System;
+
+namespace WiserHeatApiV2;
+
+internal static class StringComparisonExtensions
+	{
+#if NETFRAMEWORK
+	/// <summary>
+	/// Polyfill for string.Contains(string, StringComparison) on .NET Framework.
+	/// </summary>
+	/// <param name="source">Source string.</param>
+	/// <param name="value">Substring to find.</param>
+	/// <param name="comparisonType">Comparison rules.</param>
+	/// <returns>True if <paramref name="value"/> occurs within <paramref name="source"/> using the specified comparison; otherwise false.</returns>
+	public static bool Contains (this string? source, string value, StringComparison comparisonType) =>
+		source?.IndexOf (value, comparisonType) >=0;
+#endif
+	}

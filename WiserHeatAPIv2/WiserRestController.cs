@@ -213,9 +213,11 @@ public class WiserRestController : IDisposable
 #endif
 		_wiserConnection = wiserConnection ?? throw new ArgumentNullException (nameof (wiserConnection));
 
+#if NETFRAMEWORK
 		ServicePointManager.Expect100Continue = false;    // even though GET has no body, this avoids edge cases
 		ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;  // harmless for HTTP; needed for HTTPS
 		ServicePointManager.DefaultConnectionLimit = 10;
+#endif
 
 		var handler = new HttpClientHandler
 			{
@@ -226,8 +228,8 @@ public class WiserRestController : IDisposable
 			// leave AllowAutoRedirect = true (default) — redirects still work later
 			// If you’re hitting HTTPS directly and it’s self-signed, TEMP ONLY:
 			// ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-			};       
-		
+			};
+
 		// Configure HttpClient with retry logic (simplified for example)
 		_httpClient = new HttpClient (handler)
 			{
@@ -258,33 +260,41 @@ public class WiserRestController : IDisposable
 		if (data != null && method != HttpMethod.Get)
 			req.Content = data;
 		// v2 firmware quirk: schedules endpoint is more reliable with HTTP/1.0
-		if (url.IndexOf ("/schedules/", StringComparison.OrdinalIgnoreCase) >= 0)
+		if (url.Contains ("/schedules/", StringComparison.OrdinalIgnoreCase))
+			{
 			req.Version = new Version (1, 0);
+#if !NETFRAMEWORK
+			req.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+#endif
+			}
 
 		HttpResponseMessage resp = await _httpClient!.SendAsync (req, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait (false);
 
 		// Follow HTTP->HTTPS redirects (301/302/307/308)
-		// Replace the problematic line with the following, which uses pattern matching for defined values
-		// and an explicit integer check for 308 (Permanent Redirect):
-
+#if NETFRAMEWORK
 		if (resp.StatusCode is HttpStatusCode.MovedPermanently
 				 or HttpStatusCode.Found
 				 or HttpStatusCode.TemporaryRedirect
 				 || (int)resp.StatusCode == 308) // Permanent Redirect (not defined in .NET Framework 4.7.2)
+#else
+		if (resp.StatusCode is HttpStatusCode.MovedPermanently
+				 or HttpStatusCode.Found
+				 or HttpStatusCode.TemporaryRedirect
+				 or HttpStatusCode.PermanentRedirect)
+#endif
 			{
 			resp.Dispose ();
 			var httpsUrl = url.StartsWith ("http://", StringComparison.OrdinalIgnoreCase) ? "https://" + url[7..] : url;
 			using var req2 = new HttpRequestMessage (method, httpsUrl);
 			if (data != null && method != HttpMethod.Get)
 				req2.Content = data;
-			if (httpsUrl.IndexOf ("/schedules/", StringComparison.OrdinalIgnoreCase) >= 0)
+			if (httpsUrl.Contains ("/schedules/", StringComparison.OrdinalIgnoreCase))
 				req2.Version = new Version (1, 0);
 			resp = await _httpClient!.SendAsync (req2, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait (false);
 			}
 
 		return resp;
 		}
-
 	/// <summary>
 	/// Executes an HTTP request with basic retry handling.
 	/// </summary>
@@ -404,6 +414,8 @@ public class WiserRestController : IDisposable
 			}
 		}
 
+	private static readonly Regex _nonAscii = new(@"[^\u0020-\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
 	/// <summary>
 	/// Gets a hub data payload as a dictionary.
 	/// </summary>
@@ -450,11 +462,16 @@ public class WiserRestController : IDisposable
 				}
 			else
 				{
+#if NETFRAMEWORK
 				var content = await response.Content.ReadAsByteArrayAsync ().ConfigureAwait (false);
+#else
+				var content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false); 
+#endif
 				if (content.Length > 0)
 					{
 					// Remove non-ASCII characters (equivalent to the Python regex)
-					var cleanedContent = Regex.Replace (Encoding.UTF8.GetString (content), @"[^\u0020-\u007F]+", string.Empty);
+					var text = Encoding.UTF8.GetString (content);
+					var cleanedContent = _nonAscii.Replace (text, string.Empty);
 					JToken? cleaned = JsonConvert.DeserializeObject<JToken> (cleanedContent);
 					if (cleaned != null)
 						return (Dictionary<string, object>?)ConvertJTokenToObject (cleaned) ?? [];
@@ -633,4 +650,3 @@ public class WiserRestController : IDisposable
 	/// <returns>The host name or IP address used by this controller.</returns>
 	public string GetHost () => _wiserConnection.Host;
 	}
-

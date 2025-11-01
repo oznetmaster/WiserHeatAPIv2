@@ -7,7 +7,7 @@ namespace WiserHeatApiV2;
 /// <summary>
 /// Represents a Wiser room thermostat device with temperature and humidity sensors.
 /// </summary>
-public class WiserRoomStat (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData) : WiserDevice(wiserRestController, data, deviceTypeData)
+public class WiserRoomStat (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData) : WiserDevice (wiserRestController, data, deviceTypeData)
 	{
 	/// <summary>Gets the battery information for this room stat.</summary>
 	public WiserBattery Battery => new (Data);
@@ -36,6 +36,5 @@ public class WiserRoomStats
 	public int Count => All.Count;
 
 	/// <summary>Finds a room stat by device id.</summary>
-	public WiserRoomStat GetById (int id) => All.FirstOrDefault (stat => stat.Id == id);
+	public WiserRoomStat? GetById (int id) => All.FirstOrDefault (stat => stat.Id == id);
 	}
-

@@ -1,5 +1,5 @@
-﻿// Copyright © 2025 Nivloc Enterprises Ltd.
-// Adapted from the Python implementation Copyright © 2021 Mark Parker
+﻿// Copyright ©2025 Nivloc Enterprises Ltd.
+// Adapted from the Python implementation Copyright ©2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 namespace WiserHeatApiV2;
@@ -7,7 +7,7 @@ namespace WiserHeatApiV2;
 /// <summary>
 /// Represents a Wiser smart radiator valve (iTRV) device with temperature and demand information.
 /// </summary>
-public class WiserSmartValve (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData) : WiserDevice(wiserRestController, data, deviceTypeData)
+public class WiserSmartValve (WiserRestController wiserRestController, IDictionary<string, object> data, IDictionary<string, object> deviceTypeData) : WiserDevice (wiserRestController, data, deviceTypeData)
 	{
 	/// <summary>Gets the battery information for this valve.</summary>
 	public WiserBattery Battery => new (Data);
@@ -21,7 +21,7 @@ public class WiserSmartValve (WiserRestController wiserRestController, IDictiona
 		 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
 
 	/// <summary>Gets the mounting orientation if provided by the device.</summary>
-	public string? MountingOrientation => DeviceTypeData.TryGetValue ("MountingOrientation", out var orientation) ? orientation.ToString () : null;
+	public string? MountingOrientation => DeviceTypeData.GetNullableStringOr ("MountingOrientation");
 
 	/// <summary>Gets the current percentage heat demand (0..100).</summary>
 	public int PercentageDemand => DeviceTypeData.TryGetValue ("PercentageDemand", out var demand) ? ConvertInvariant.ToInt32 (demand) : 0;
@@ -42,6 +42,5 @@ public class WiserSmartValves
 	/// <summary>Finds a smart valve by its device id.</summary>
 	/// <param name="id">Device id.</param>
 	/// <returns>The matching valve or null if not found.</returns>
-	public WiserSmartValve GetById (int id) => All.FirstOrDefault (valve => valve.Id == id);
+	public WiserSmartValve? GetById (int id) => All.FirstOrDefault (valve => valve.Id == id);
 	}
-
