@@ -185,7 +185,7 @@ public enum WiserRestAction
 /// for multiple requests. The controller is <see cref="IDisposable"/> and should be disposed when no longer needed
 /// to release underlying HTTP resources.
 /// </remarks>
-public class WiserRestController : IDisposable
+public partial class WiserRestController : IDisposable
 	{
 	private readonly WiserConnection _wiserConnection;
 	private HttpClient? _httpClient;
@@ -414,7 +414,7 @@ public class WiserRestController : IDisposable
 			}
 		}
 
-	private static readonly Regex _nonAscii = new(@"[^\u0020-\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+	private static readonly Regex _nonAscii = ValidAsciiRegex ();
 
 	/// <summary>
 	/// Gets a hub data payload as a dictionary.
@@ -635,11 +635,8 @@ public class WiserRestController : IDisposable
 	/// </remarks>
 	public void Dispose ()
 		{
-		if (_httpClient != null)
-			{
-			_httpClient.Dispose ();
-			_httpClient = null;
-			}
+		_httpClient?.Dispose ();
+		_httpClient = null;
 
 		GC.SuppressFinalize (this);
 		}
@@ -649,4 +646,13 @@ public class WiserRestController : IDisposable
 	/// </summary>
 	/// <returns>The host name or IP address used by this controller.</returns>
 	public string GetHost () => _wiserConnection.Host;
+
+#if NETFRAMEWORK
+	// .NET Framework 4.7.2 does not support GeneratedRegexAttribute; provide a normal method.
+	private static Regex ValidAsciiRegex () =>
+		new(@"[^\u0020-\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+#else
+	[GeneratedRegex (@"[^\u0020-\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+	private static partial Regex ValidAsciiRegex ();
+#endif
 	}

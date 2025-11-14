@@ -436,11 +436,8 @@ public class WiserAPI : IDisposable
 	public void Dispose ()
 		{
 		// Dispose of managed resources
-		if (_wiserRestController != null)
-			{
-			_wiserRestController.Dispose ();
-			_wiserRestController = null;
-			}
+		_wiserRestController?.Dispose ();
+		_wiserRestController = null;
 
 		// Dispose of unmanaged resources if any
 		// (e.g., close any open connections, files, etc.)

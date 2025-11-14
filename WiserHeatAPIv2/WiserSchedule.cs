@@ -222,8 +222,9 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the list of assignment names for this schedule. The names are extracted from the assignment dictionaries and are used for display and identification purposes. The list may be empty if no assignments exist.
 	/// </remarks>
-	public List<string> AssignmentNames => [.. Assignments1.Select (a => a["name"].ToString ())];
-
+	public List<string> AssignmentNames =>
+		 [.. Assignments1.Select(a =>
+		  (a.TryGetValue("name", out var n) ? n?.ToString() : null) ?? TEXT_UNKNOWN)];
 	/// <summary>
 	/// Gets the current setting for the schedule, which may be temperature, state, or level depending on the schedule type.
 	/// </summary>
