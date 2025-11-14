@@ -11,30 +11,23 @@ namespace WiserHeatApp.Wpf.ViewModels;
 
 public class SettingsViewModel : ObservableObject
 	{
-	private string _hubIp = string.Empty;
 	public string HubIp
 		{
-		get => _hubIp; set => SetProperty (ref _hubIp, value);
-		}
-
-	private string _secret = string.Empty;
+		get; set => SetProperty (ref field, value);
+		} = string.Empty;
 	public string Secret
 		{
-		get => _secret; set => SetProperty (ref _secret, value);
-		}
-
-	private bool _isBusy;
+		get; set => SetProperty (ref field, value);
+		} = string.Empty;
 	public bool IsBusy
 		{
-		get => _isBusy; set => SetProperty (ref _isBusy, value);
+		get; set => SetProperty (ref field, value);
 		}
 
 	public ObservableCollection<WiserDiscoveredHub> Discovered { get; } = [];
-
-	private WiserAPI? _api;
 	public WiserAPI? Api
 		{
-		get => _api; private set => SetProperty (ref _api, value);
+		get; private set => SetProperty (ref field, value);
 		}
 
 	public async Task DiscoverAsync (CancellationToken ct = default)

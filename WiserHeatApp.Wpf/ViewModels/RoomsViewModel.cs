@@ -17,40 +17,33 @@ public class RoomItemViewModel (int id) : ObservableObject
 		{
 		get;
 		} = id;
-	private string _name = string.Empty;
 	public string Name
 		{
-		get => _name; set => SetProperty (ref _name, value);
-		}
-	private double _currentTemp;
+		get; set => SetProperty (ref field, value);
+		} = string.Empty;
 	public double CurrentTemp
 		{
-		get => _currentTemp; set => SetProperty (ref _currentTemp, value);
+		get; set => SetProperty (ref field, value);
 		}
-	private double _targetTemp;
 	public double TargetTemp
 		{
-		get => _targetTemp; set => SetProperty (ref _targetTemp, value);
+		get; set => SetProperty (ref field, value);
 		}
-	private bool _isHeating;
 	public bool IsHeating
 		{
-		get => _isHeating; set => SetProperty (ref _isHeating, value);
+		get; set => SetProperty (ref field, value);
 		}
-	private bool _hasBoost;
 	public bool HasBoost
 		{
-		get => _hasBoost; set => SetProperty (ref _hasBoost, value);
+		get; set => SetProperty (ref field, value);
 		}
-	private bool _hasOverride;
 	public bool HasOverride
 		{
-		get => _hasOverride; set => SetProperty (ref _hasOverride, value);
+		get; set => SetProperty (ref field, value);
 		}
-	private bool _useSchedule;
 	public bool UseSchedule
 		{
-		get => _useSchedule; set => SetProperty (ref _useSchedule, value);
+		get; set => SetProperty (ref field, value);
 		}
 
 	// Defaults for quick actions
@@ -157,9 +150,9 @@ public class RoomItemViewModel (int id) : ObservableObject
 public class RoomsViewModel : ObservableObject
 	{
 	public ObservableCollection<RoomItemViewModel> Rooms { get; } = [];
-	private bool _isBusy; public bool IsBusy
+	public bool IsBusy
 		{
-		get => _isBusy; set => SetProperty (ref _isBusy, value);
+		get; set => SetProperty (ref field, value);
 		}
 
 	public async Task LoadAsync (CancellationToken ct = default)
