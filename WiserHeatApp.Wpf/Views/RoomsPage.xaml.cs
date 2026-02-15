@@ -3,6 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
+
+using WiserHeatApp.Wpf.Services;
 
 using WiserHeatApp.Wpf.ViewModels;
 
@@ -11,21 +14,52 @@ namespace WiserHeatApp.Wpf.Views;
 public partial class RoomsPage : Page
 	{
 	private readonly RoomsViewModel _vm = new ();
+	private readonly DispatcherTimer _refreshTimer;
+	private bool _isLoaded;
 	public RoomsPage ()
 		{
 		InitializeComponent ();
 		DataContext = _vm;
-		Loaded += async (_, __) =>
+
+		_refreshTimer = new DispatcherTimer
+			{
+			Interval = AppState.Current.RefreshInterval
+			};
+		_refreshTimer.Tick += async (_, __) => await RefreshNowAsync ();
+		Loaded += async (_, __) => await RefreshNowAsync ();
+		Loaded += (_, __) => AppState.Current.RefreshIntervalChanged += OnRefreshIntervalChanged;
+		Unloaded += (_, __) =>
+			{
+			AppState.Current.RefreshIntervalChanged -= OnRefreshIntervalChanged;
+			_refreshTimer.Stop ();
+			};
+		}
+
+	private void OnRefreshIntervalChanged (object? sender, EventArgs e)
 		{
-			try
+		_refreshTimer.Interval = AppState.Current.RefreshInterval;
+		}
+
+	private async Task RefreshNowAsync ()
+		{
+		try
+			{
+			if (!_isLoaded)
 				{
 				await _vm.LoadAsync (CancellationToken.None);
+				_isLoaded = true;
 				}
-			catch (Exception ex)
+
+			await _vm.RefreshAsync (CancellationToken.None);
+			if (!_refreshTimer.IsEnabled)
 				{
-				_ = MessageBox.Show (ex.Message);
+				_refreshTimer.Start ();
 				}
-		};
+			}
+		catch (Exception ex)
+			{
+			_ = MessageBox.Show (ex.Message);
+			}
 		}
 
 	private async void IncTemp (object sender, RoutedEventArgs e)
@@ -69,5 +103,10 @@ public partial class RoomsPage : Page
 			{
 			await r.SetUseScheduleAsync (r.UseSchedule).ConfigureAwait (false);
 			}
+		}
+
+	private async void RefreshNow (object sender, RoutedEventArgs e)
+		{
+		await RefreshNowAsync ();
 		}
 	}

@@ -11,20 +11,39 @@
 
  <!-- Large title header -->
  <Grid Grid.Row="0" Style="{StaticResource NavBarStyle}">
+ <Grid.ColumnDefinitions>
+ <ColumnDefinition Width="*"/>
+ <ColumnDefinition Width="Auto"/>
+ </Grid.ColumnDefinitions>
  <StackPanel Margin="16,32,16,8">
  <TextBlock Text="Rooms" Style="{StaticResource TitleLargeTextStyle}" />
- <TextBlock Text="Home" Style="{StaticResource CaptionTextStyle}" />
  </StackPanel>
+ <Button Grid.Column="1" Width="32" Height="32" Margin="0,32,16,8" VerticalAlignment="Top" HorizontalAlignment="Right" Click="RefreshNow" ToolTip="Refresh">
+ <Button.Style>
+ <Style TargetType="Button">
+ <Style.Triggers>
+ <DataTrigger Binding="{Binding IsBusy}" Value="True">
+ <Setter Property="IsEnabled" Value="False" />
+ </DataTrigger>
+ </Style.Triggers>
+ </Style>
+ </Button.Style>
+ <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+ </Button>
  </Grid>
 
  <!-- Content -->
- <ScrollViewer Grid.Row="1" Margin="0,8,0,0">
+ <ScrollViewer Grid.Row="1" Margin="0,4,0,0">
  <ItemsControl ItemsSource="{Binding Rooms}">
  <ItemsControl.ItemTemplate>
  <DataTemplate>
- <Border Style="{StaticResource CardContainerStyle}">
+ <Border Style="{StaticResource CardContainerStyle}" Padding="12" Margin="8,6">
  <StackPanel>
  <Grid>
+ <Grid.RowDefinitions>
+ <RowDefinition Height="Auto"/>
+ <RowDefinition Height="Auto"/>
+ </Grid.RowDefinitions>
  <Grid.ColumnDefinitions>
  <ColumnDefinition Width="Auto"/>
  <ColumnDefinition Width="*"/>
@@ -62,35 +81,31 @@
  </Grid>
 
  <!-- Name and details -->
- <StackPanel Grid.Column="1">
- <TextBlock x:Name="RoomNameText" Text="{Binding Name}" Style="{StaticResource TitleTextStyle}" />
- <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
- <TextBlock Text="Current " Style="{StaticResource CaptionTextStyle}" />
- <TextBlock Text="{Binding CurrentTemp, StringFormat='{}{0:0.#}&#176;'}" Style="{StaticResource CaptionTextStyle}" />
- <TextBlock Text=" | Target " Margin="8,0,0,0" Style="{StaticResource CaptionTextStyle}" />
- <TextBlock Text="{Binding TargetTemp, StringFormat='{}{0:0.#}&#176;'}" Style="{StaticResource CaptionTextStyle}" />
- </StackPanel>
+ <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+ <TextBlock x:Name="RoomNameText" Text="{Binding Name}" Style="{StaticResource TitleTextStyle}" Margin="0,0,8,0" />
+ <TextBlock Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center">
+ <Run Text="Current " />
+ <Run Text="{Binding CurrentTemp, StringFormat='{}{0:0.#}&#176;'}" />
+ <Run Text=" | Target " />
+ <Run Text="{Binding TargetTemp, StringFormat='{}{0:0.#}&#176;'}" />
+ </TextBlock>
  </StackPanel>
 
  <!-- Actions -->
  <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
- <Button Content="-" Width="36" Height="32" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}" Click="DecTemp"/>
- <Button Content="+" Width="36" Height="32" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}" Click="IncTemp"/>
+ <Button Content="-" Width="32" Height="28" Margin="0,0,6,0" Style="{StaticResource PrimaryButtonStyle}" Click="DecTemp"/>
+ <Button Content="+" Width="32" Height="28" Style="{StaticResource PrimaryButtonStyle}" Click="IncTemp"/>
  </StackPanel>
  </Grid>
 
- <Border Style="{StaticResource SeparatorLineStyle}" Margin="0,12,0,0" />
-
- <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
- <CheckBox Content="Use schedule" IsChecked="{Binding UseSchedule}" Click="ToggleUseSchedule"/>
- <StackPanel Orientation="Horizontal" Margin="16,0,0,0">
+ <WrapPanel Grid.Row="1" Margin="0,6,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+ <CheckBox Content="Use schedule" IsChecked="{Binding UseSchedule}" Click="ToggleUseSchedule" Margin="0,0,12,0"/>
  <Button Content="Boost" Click="Boost" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0"/>
  <Button Content="Cancel Override" Click="CancelOverride" Style="{StaticResource PrimaryButtonStyle}"
  Visibility="{Binding HasOverride, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,8,0"/>
  <Button Content="Cancel Boost" Click="CancelBoost" Style="{StaticResource PrimaryButtonStyle}"
  Visibility="{Binding HasBoost, Converter={StaticResource BooleanToVisibilityConverter}}"/>
- </StackPanel>
- </StackPanel>
+ </WrapPanel>
  </StackPanel>
  </Border>
  </DataTemplate>

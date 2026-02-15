@@ -20,8 +20,11 @@ public partial class ShellWindow : Window
 		SettingsBtn.Click += (_, __) => MainFrame.Navigate (new SettingsPage ());
 
 		// If already connected (prefill), go to Rooms by default
-		Loaded += (_, __) =>
-			_ = AppState.Current.IsConnected ? MainFrame.Navigate (new RoomsPage ()) : MainFrame.Navigate (new SettingsPage ());
+		Loaded += async (_, __) =>
+			{
+			var connected = AppState.Current.IsConnected || await AppState.Current.TryAutoConnectAsync ();
+			_ = connected ? MainFrame.Navigate (new RoomsPage ()) : MainFrame.Navigate (new SettingsPage ());
+			};
 
 		// Save bounds when closing
 		Closing += (_, __) => WindowPlacement.Save(this);

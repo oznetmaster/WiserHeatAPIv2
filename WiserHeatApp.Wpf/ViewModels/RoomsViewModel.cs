@@ -150,6 +150,7 @@ public class RoomItemViewModel (int id) : ObservableObject
 public class RoomsViewModel : ObservableObject
 	{
 	public ObservableCollection<RoomItemViewModel> Rooms { get; } = [];
+	private readonly SemaphoreSlim _refreshLock = new (1, 1);
 	public bool IsBusy
 		{
 		get; set => SetProperty (ref field, value);
@@ -178,6 +179,34 @@ public class RoomsViewModel : ObservableObject
 		finally
 			{
 			IsBusy = false;
+			}
+		}
+
+	public async Task RefreshAsync (CancellationToken ct = default)
+		{
+		WiserAPI? api = AppState.Current.Api;
+		if (api?.Rooms == null)
+			{
+			Rooms.Clear ();
+			return;
+			}
+
+		if (!await _refreshLock.WaitAsync (0, ct))
+			return;
+
+		IsBusy = true;
+		try
+			{
+			await api.ReadHubDataAsync (ct);
+			foreach (RoomItemViewModel room in Rooms)
+				{
+				await room.RefreshAsync ();
+				}
+			}
+		finally
+			{
+			IsBusy = false;
+			_ = _refreshLock.Release ();
 			}
 		}
 	}

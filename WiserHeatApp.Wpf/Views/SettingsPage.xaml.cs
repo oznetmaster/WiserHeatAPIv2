@@ -1,9 +1,11 @@
 using System;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 using WiserHeatApp.Wpf.Services;
 using WiserHeatApp.Wpf.ViewModels;
@@ -17,6 +19,16 @@ public partial class SettingsPage : Page
 		{
 		InitializeComponent ();
 		DataContext = _vm;
+		RefreshIntervalBox.Text = AppState.Current.RefreshInterval.TotalSeconds.ToString ("0.#", CultureInfo.InvariantCulture);
+		RefreshIntervalBox.LostFocus += (_, __) => UpdateRefreshInterval ();
+		RefreshIntervalBox.KeyDown += (_, e) =>
+			{
+			if (e.Key == Key.Enter)
+				{
+				UpdateRefreshInterval ();
+				e.Handled = true;
+				}
+			};
 
 		// Prefill from wiserkeys.params if present in output directory
 		TryPrefillFromParams ();
@@ -63,6 +75,19 @@ public partial class SettingsPage : Page
 				_ = MessageBox.Show ($"Error: {ex.Message}");
 				}
 		};
+		}
+
+	private void UpdateRefreshInterval ()
+		{
+		if (double.TryParse (RefreshIntervalBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds) && seconds > 0)
+			{
+			AppState.Current.RefreshInterval = TimeSpan.FromSeconds (seconds);
+			RefreshIntervalBox.Text = seconds.ToString ("0.#", CultureInfo.InvariantCulture);
+			}
+		else
+			{
+			RefreshIntervalBox.Text = AppState.Current.RefreshInterval.TotalSeconds.ToString ("0.#", CultureInfo.InvariantCulture);
+			}
 		}
 
 	private void TryPrefillFromParams ()
