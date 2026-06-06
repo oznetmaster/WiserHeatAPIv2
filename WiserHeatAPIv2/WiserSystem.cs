@@ -1,5 +1,5 @@
-// Copyright © 2025 Nivloc Enterprises Ltd.
-// Adapted from the Python implementation Copyright © 2021 Mark Parker
+// Copyright Â© 2026 Neil Colvin.
+// Adapted from the Python implementation Copyright Â© 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Threading;
@@ -63,7 +63,7 @@ public class WiserSystem
 #endif
 		Signal = new WiserSignalStrength (_deviceData);
 		_upgradeData = new WiserFirmwareUpgradeInfo (_data.TryGetValue ("UpgradeInfo", out var upgrade) && upgrade is List<object> upgradeList
-			 ? upgradeList.Cast<Dictionary<string, object>> ().ToList () : []);
+			 ? [.. upgradeList.Cast<Dictionary<string, object>> ()] : []);
 		Zigbee = new WiserZigbee (_data.TryGetValue ("Zigbee", out var zigbee) && zigbee is Dictionary<string, object> zigbeeDict
 			 ? zigbeeDict : []);
 

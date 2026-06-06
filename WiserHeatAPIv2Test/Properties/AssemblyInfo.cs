@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle ("WiserHeatAPIv2Test")]
 [assembly: AssemblyDescription ("")]
 [assembly: AssemblyConfiguration ("")]
-[assembly: AssemblyCompany ("Nivloc Enterprises Ltd")]
+[assembly: AssemblyCompany ("Neil Colvin")]
 [assembly: AssemblyProduct ("WiserHeatAPIv2Test")]
-[assembly: AssemblyCopyright ("Copyright ©  2025 Nivloc Enterprises Ltd")]
+[assembly: AssemblyCopyright ("Copyright © 2026 Neil Colvin")]
 [assembly: AssemblyTrademark ("")]
 [assembly: AssemblyCulture ("")]
 

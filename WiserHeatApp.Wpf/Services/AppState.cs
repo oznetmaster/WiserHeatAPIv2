@@ -13,7 +13,7 @@ namespace WiserHeatApp.Wpf.Services;
 public class AppState
 	{
 	public static AppState Current { get; } = new ();
-	private const string SettingsFileName = "settings.json";
+	private const string SETTINGS_FILE_NAME = "settings.json";
 
 	private AppState ()
 		{
@@ -48,7 +48,7 @@ public class AppState
 			if (!File.Exists (path))
 				return;
 			var json = File.ReadAllText (path);
-			var settings = JsonSerializer.Deserialize<AppSettings> (json);
+			AppSettings? settings = JsonSerializer.Deserialize<AppSettings> (json);
 			if (settings?.RefreshIntervalSeconds > 0)
 				{
 				_refreshInterval = TimeSpan.FromSeconds (settings.RefreshIntervalSeconds);
@@ -80,7 +80,7 @@ public class AppState
 	private static string GetSettingsPath ()
 		{
 		var folder = Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData), "WiserHeatApp");
-		return Path.Combine (folder, SettingsFileName);
+		return Path.Combine (folder, SETTINGS_FILE_NAME);
 		}
 
 	private sealed class AppSettings
@@ -114,6 +114,7 @@ public class AppState
 				}
 			}
 		catch { }
+
 		return false;
 		}
 
@@ -179,8 +180,6 @@ public class AppState
 			return false;
 			}
 
-		if (string.IsNullOrWhiteSpace (host) || string.IsNullOrWhiteSpace (secret))
-			return false;
-		return !host.Equals ("discover", StringComparison.OrdinalIgnoreCase);
+		return !string.IsNullOrWhiteSpace (host) && !string.IsNullOrWhiteSpace (secret) && !host.Equals ("discover", StringComparison.OrdinalIgnoreCase);
 		}
 	}

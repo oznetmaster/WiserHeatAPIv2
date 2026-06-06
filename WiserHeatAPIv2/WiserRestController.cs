@@ -1,5 +1,5 @@
-// Copyright © 2025 Nivloc Enterprises Ltd.
-// Adapted from the Python implementation Copyright © 2021 Mark Parker
+// Copyright Â© 2026 Neil Colvin.
+// Adapted from the Python implementation Copyright Â© 2021 Mark Parker
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Net;
@@ -225,8 +225,8 @@ public partial class WiserRestController : IDisposable
 			UseProxy = false,
 			Proxy = null,
 			AllowAutoRedirect = false
-			// leave AllowAutoRedirect = true (default) — redirects still work later
-			// If you’re hitting HTTPS directly and it’s self-signed, TEMP ONLY:
+			// leave AllowAutoRedirect = true (default) ï¿½ redirects still work later
+			// If youï¿½re hitting HTTPS directly and itï¿½s self-signed, TEMP ONLY:
 			// ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
 			};
 

@@ -277,7 +277,7 @@ public class WiserRoom
 	/// <value>A sorted list of heating actuator device IDs.</value>
 	public List<int> HeatingActuatorIds => _data.TryGetValue ("HeatingActuatorIds", out var ids) && ids is List<object> idsList
 		 ? [.. idsList.Select (ConvertInvariant.ToInt32).OrderBy (id => id)]
-		 : new List<int> ();
+		 : [];
 #endif
 	/// <summary>
 	/// Gets the heating rate category for this room as reported by the hub.
@@ -521,7 +521,7 @@ public class WiserRoom
 	/// <value>A sorted list of smart valve device IDs.</value>
 	public List<int> SmartvalveIds => _data.TryGetValue ("SmartValveIds", out var ids) && ids is List<object> idsList
 		 ? [.. idsList.Select (ConvertInvariant.ToInt32).OrderBy (id => id)]
-		 : new List<int> ();
+		 : [];
 
 	/// <summary>
 	/// Gets the origin/source of the current target temperature setting.
