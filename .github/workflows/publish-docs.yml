@@ -20,6 +20,7 @@ jobs:
     runs-on: windows-latest
     env:
       DOCFX_CONFIG: docfx_project/docfx.json
+      DOCFX_OUTPUT: docfx-site
 
     steps:
       - name: Check out repository
@@ -43,7 +44,7 @@ jobs:
         run: docfx metadata ${{ env.DOCFX_CONFIG }} --property TargetFramework=net472 --property Configuration=Release
 
       - name: Build DocFX site
-        run: docfx build ${{ env.DOCFX_CONFIG }} --output .\docfx-site
+        run: docfx build ${{ env.DOCFX_CONFIG }} --force --output .\${{ env.DOCFX_OUTPUT }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -51,7 +52,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .\docfx-site
+          path: .\${{ env.DOCFX_OUTPUT }}
 
   deploy-docs:
     environment:
