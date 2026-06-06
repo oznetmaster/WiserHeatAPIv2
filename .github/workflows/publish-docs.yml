@@ -21,6 +21,7 @@ jobs:
     env:
       DOCFX_CONFIG: docfx_project/docfx.json
       DOCFX_OUTPUT: docfx-site
+      DOCFX_TOOL_PATH: .\.tools
 
     steps:
       - name: Check out repository
@@ -38,13 +39,13 @@ jobs:
         run: dotnet build WiserHeatAPIv2/WiserHeatAPIv2.csproj --configuration Release -p:ContinuousIntegrationBuild=true
 
       - name: Install DocFX
-        run: dotnet tool install --global docfx
+        run: dotnet tool install --tool-path ${{ env.DOCFX_TOOL_PATH }} docfx
 
       - name: Generate DocFX metadata
-        run: docfx metadata ${{ env.DOCFX_CONFIG }} --property TargetFramework=net472 --property Configuration=Release
+        run: .\${{ env.DOCFX_TOOL_PATH }}\docfx metadata ${{ env.DOCFX_CONFIG }} --property TargetFramework=net472 --property Configuration=Release
 
       - name: Build DocFX site
-        run: docfx build ${{ env.DOCFX_CONFIG }} --force --output .\${{ env.DOCFX_OUTPUT }}
+        run: .\${{ env.DOCFX_TOOL_PATH }}\docfx build ${{ env.DOCFX_CONFIG }} --force --output .\${{ env.DOCFX_OUTPUT }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
