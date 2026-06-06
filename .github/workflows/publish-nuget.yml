@@ -2,92 +2,92 @@ name: Publish NuGet package
 
 on:
   push:
-	tags:
-	  - 'v*'
+    tags:
+      - 'v*'
   workflow_dispatch:
-	inputs:
-	  version:
-		description: Version or tag to publish, for example 1.2.3 or v1.2.3
-		required: true
-		type: string
+    inputs:
+      version:
+        description: Version or tag to publish, for example 1.2.3 or v1.2.3
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   publish:
-	runs-on: windows-latest
-	env:
-	  PROJECT_PATH: WiserHeatAPIv2/WiserHeatAPIv2.csproj
-	  ARTIFACT_DIR: ${{ github.workspace }}/artifacts
+    runs-on: windows-latest
+    env:
+      PROJECT_PATH: WiserHeatAPIv2/WiserHeatAPIv2.csproj
+      ARTIFACT_DIR: ${{ github.workspace }}/artifacts
 
-	steps:
-	  - name: Check out repository
-		uses: actions/checkout@v4
-		with:
-		  fetch-depth: 0
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-	  - name: Set up .NET SDK
-		uses: actions/setup-dotnet@v4
-		with:
-		  dotnet-version: |
-			10.0.x
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
 
-	  - name: Determine package version
-		id: version
-		shell: pwsh
-		run: |
-		  $rawVersion = switch ('${{ github.event_name }}') {
-			  'workflow_dispatch' { '${{ inputs.version }}'; break }
-			  'push' { '${{ github.ref_name }}'; break }
-			  default { '' }
-		  }
-		  if ([string]::IsNullOrWhiteSpace($rawVersion)) {
-			  throw 'No release tag or manual version was provided.'
-		  }
+      - name: Determine package version
+        id: version
+        shell: pwsh
+        run: |
+          $rawVersion = switch ('${{ github.event_name }}') {
+              'workflow_dispatch' { '${{ inputs.version }}'; break }
+              'push' { '${{ github.ref_name }}'; break }
+              default { '' }
+          }
+          if ([string]::IsNullOrWhiteSpace($rawVersion)) {
+              throw 'No release tag or manual version was provided.'
+          }
 
-		  $packageVersion = $rawVersion.Trim()
-		  if ($packageVersion.StartsWith('v', [System.StringComparison]::OrdinalIgnoreCase)) {
-			  $packageVersion = $packageVersion.Substring(1)
-		  }
+          $packageVersion = $rawVersion.Trim()
+          if ($packageVersion.StartsWith('v', [System.StringComparison]::OrdinalIgnoreCase)) {
+              $packageVersion = $packageVersion.Substring(1)
+          }
 
-		  if ($packageVersion -notmatch '^\d+\.\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z\.-]+)?$') {
-			  throw "Version '$packageVersion' is not a supported NuGet semantic version."
-		  }
+          if ($packageVersion -notmatch '^\d+\.\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z\.-]+)?$') {
+              throw "Version '$packageVersion' is not a supported NuGet semantic version."
+          }
 
-		  "raw_version=$rawVersion" >> $env:GITHUB_OUTPUT
-		  "package_version=$packageVersion" >> $env:GITHUB_OUTPUT
+          "raw_version=$rawVersion" >> $env:GITHUB_OUTPUT
+          "package_version=$packageVersion" >> $env:GITHUB_OUTPUT
 
-	  - name: Restore
-		run: dotnet restore ${{ env.PROJECT_PATH }}
+      - name: Restore
+        run: dotnet restore ${{ env.PROJECT_PATH }}
 
-	  - name: Build
-		run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+      - name: Build
+        run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
 
-	  - name: Pack
-		shell: pwsh
-		run: |
-		  New-Item -ItemType Directory -Path "${{ env.ARTIFACT_DIR }}" -Force | Out-Null
-		  dotnet pack ${{ env.PROJECT_PATH }} --configuration Release --no-build -p:ContinuousIntegrationBuild=true -p:Version=${{ steps.version.outputs.package_version }} -p:PackageVersion=${{ steps.version.outputs.package_version }} -o "${{ env.ARTIFACT_DIR }}"
+      - name: Pack
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "${{ env.ARTIFACT_DIR }}" -Force | Out-Null
+          dotnet pack ${{ env.PROJECT_PATH }} --configuration Release --no-build -p:ContinuousIntegrationBuild=true -p:Version=${{ steps.version.outputs.package_version }} -p:PackageVersion=${{ steps.version.outputs.package_version }} -o "${{ env.ARTIFACT_DIR }}"
 
-	  - name: Publish to NuGet
-		shell: pwsh
-		run: |
-		  $packages = Get-ChildItem -Path "${{ env.ARTIFACT_DIR }}" -Filter '*.nupkg' | Where-Object { $_.Name -notlike '*.symbols.nupkg' }
-		  if (-not $packages) {
-			  throw 'No NuGet package was produced.'
-		  }
+      - name: Publish to NuGet
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem -Path "${{ env.ARTIFACT_DIR }}" -Filter '*.nupkg' | Where-Object { $_.Name -notlike '*.symbols.nupkg' }
+          if (-not $packages) {
+              throw 'No NuGet package was produced.'
+          }
 
-		  foreach ($package in $packages) {
-			  dotnet nuget push $package.FullName --api-key "${{ secrets.NUGET_API_KEY }}" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
-		  }
+          foreach ($package in $packages) {
+              dotnet nuget push $package.FullName --api-key "${{ secrets.NUGET_API_KEY }}" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          }
 
-	  - name: Create GitHub release from tag
-		if: github.event_name == 'push'
-		uses: softprops/action-gh-release@v2
-		with:
-		  tag_name: ${{ steps.version.outputs.raw_version }}
-		  name: ${{ steps.version.outputs.raw_version }}
-		  generate_release_notes: true
-		  prerelease: ${{ contains(steps.version.outputs.package_version, '-') }}
-		  files: ${{ env.ARTIFACT_DIR }}/*.nupkg
+      - name: Create GitHub release from tag
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.raw_version }}
+          name: ${{ steps.version.outputs.raw_version }}
+          generate_release_notes: true
+          prerelease: ${{ contains(steps.version.outputs.package_version, '-') }}
+          files: ${{ env.ARTIFACT_DIR }}/*.nupkg
