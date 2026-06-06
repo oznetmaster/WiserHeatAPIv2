@@ -3,17 +3,14 @@
     {
       "src": [
         {
-          "src": "..",
           "files": [
-            "WiserHeatAPIv2/**/*.cs"
+            "WiserHeatAPIv2/WiserHeatAPIv2.csproj"
           ],
-          "exclude": [
-            "**/bin/**",
-            "**/obj/**"
-          ]
+          "src": ".."
         }
       ],
-      "dest": "api"
+      "dest": "api",
+      "disableGitFeatures": false
     }
   ],
   "build": {
@@ -22,7 +19,29 @@
         "files": [
           "api/**.yml"
         ]
+      },
+      {
+        "files": [
+          "articles/**.md"
+        ]
+      },
+      {
+        "files": [
+          "index.md"
+        ]
+      },
+      {
+        "files": [
+          "toc.yml"
+        ]
       }
+    ],
+    "globalMetadata": {
+      "_appTitle": "WiserHeatAPIv2 API"
+    },
+    "template": [
+      "default",
+      "modern"
     ],
     "dest": "_site"
   },

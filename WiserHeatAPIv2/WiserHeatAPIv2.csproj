@@ -15,12 +15,24 @@
 
     <!-- Migrated from AssemblyInfo.cs -->
     <AssemblyTitle>WiserHeatAPIv2</AssemblyTitle>
-    <Description></Description>
+    <Description>A .NET client library for the Drayton Wiser Heating REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities. This project is an adaptation of the original Python wiserHeatAPIv2 project for .NET applications targeting both .NET Framework 4.7.2 and .NET 10.</Description>
     <Company>Neil Colvin</Company>
     <Product>WiserHeatAPIv2</Product>
     <Copyright>Copyright © 2026 Neil Colvin</Copyright>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
+    <PackageId>WiserHeatAPIv2</PackageId>
+    <Version>1.0.0.0</Version>
+    <Authors>Neil Colvin</Authors>
+    <PackageTags>wiser;drayton;heating;smart-home;iot;rest;api;nuget</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/oznetmaster/WiserHeatAPIv2</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/oznetmaster/WiserHeatAPIv2</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
     <ComVisible>false</ComVisible>
     <ImplicitUsings>disable</ImplicitUsings>
 
@@ -92,4 +104,7 @@
  <ItemGroup>
    <Folder Include="Annotations\" />
  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 </Project>
