@@ -100,7 +100,7 @@ The solution includes `WiserHeatAPIv2Test`, a console application that exercises
 
 ## Documentation
 
-Repository documentation is included in `docfx_project` and can be published to GitHub Pages.
+Full API documentation is published at **[oznetmaster.github.io/WiserHeatAPIv2](https://oznetmaster.github.io/WiserHeatAPIv2/)**.
 
 ---
 
