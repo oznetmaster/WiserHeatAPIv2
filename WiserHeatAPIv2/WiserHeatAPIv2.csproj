@@ -19,10 +19,10 @@
     <Company>Neil Colvin</Company>
     <Product>WiserHeatAPIv2</Product>
     <Copyright>Copyright © 2026 Neil Colvin</Copyright>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
     <PackageId>WiserHeatAPIv2</PackageId>
-    <Version>1.0.0.0</Version>
+    <Version>1.1.0.0</Version>
     <Authors>Neil Colvin</Authors>
     <PackageTags>wiser;drayton;heating;smart-home;iot;rest;api;nuget</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -55,6 +55,10 @@
 		<DebugType>none</DebugType>
 		<DebugSymbols>false</DebugSymbols>
 	</PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DefineConstants>TRACE;SHUTTER;LIGHT;HEATACTUATOR;OPENTHERM</DefineConstants>
+    <NoWarn>CRR0029,CRRSP08</NoWarn>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <!-- Use semicolon-delimited symbols matching the code's #if checks -->
     <DefineConstants>TRACE;DEBUG;SHUTTER;LIGHT;HEATACTUATOR;OPENTHERM</DefineConstants>

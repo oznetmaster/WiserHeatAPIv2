@@ -37,6 +37,21 @@ This .NET library is an adaptation of the original Python project **[wiserHeatAP
 dotnet add package WiserHeatAPIv2
 ```
 
+The official NuGet package is built with all optional feature areas enabled.
+
+---
+
+## Conditional Features
+
+The source project contains several feature areas controlled by compilation symbols:
+
+- `SHUTTER` — shutter-related types and functionality
+- `LIGHT` — lighting-related types and functionality
+- `HEATACTUATOR` — heating actuator support
+- `OPENTHERM` — OpenTherm-related support
+
+The published NuGet package includes all of these optional capabilities.
+
 ---
 
 ## Quick Start
@@ -101,6 +116,14 @@ The solution includes `WiserHeatAPIv2Test`, a console application that exercises
 ## Documentation
 
 Full API documentation is published at **[oznetmaster.github.io/WiserHeatAPIv2](https://oznetmaster.github.io/WiserHeatAPIv2/)**.
+
+---
+
+## Repository Contents
+
+- `WiserHeatAPIv2` — the main library project published to NuGet
+- `WiserHeatApp.Wpf` — a WPF desktop application for interacting with and monitoring a Wiser system
+- `WiserHeatAPIv2Test` — a console-based test utility for exercising the API against a real hub
 
 ---
 
