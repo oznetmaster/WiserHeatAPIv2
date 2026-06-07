@@ -20,8 +20,6 @@ jobs:
     runs-on: windows-latest
     env:
       DOCFX_CONFIG: docfx_project/docfx.json
-      DOCFX_OUTPUT: docfx-site
-      DOCFX_TOOL_PATH: .\.tools
 
     steps:
       - name: Check out repository
@@ -38,14 +36,14 @@ jobs:
       - name: Build Release
         run: dotnet build WiserHeatAPIv2/WiserHeatAPIv2.csproj --configuration Release -p:ContinuousIntegrationBuild=true
 
-      - name: Install DocFX
-        run: dotnet tool install --tool-path ${{ env.DOCFX_TOOL_PATH }} docfx
+      - name: Restore local tools
+        run: dotnet tool restore
 
       - name: Generate DocFX metadata
-        run: .\${{ env.DOCFX_TOOL_PATH }}\docfx metadata ${{ env.DOCFX_CONFIG }} --property TargetFramework=net472 --property Configuration=Release
+        run: dotnet tool run docfx metadata "${{ env.DOCFX_CONFIG }}" --property "TargetFramework=net472;Configuration=Release"
 
       - name: Build DocFX site
-        run: .\${{ env.DOCFX_TOOL_PATH }}\docfx build ${{ env.DOCFX_CONFIG }} --force --output .\${{ env.DOCFX_OUTPUT }}
+        run: dotnet tool run docfx build "${{ env.DOCFX_CONFIG }}" --output .\docfx-site
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -53,7 +51,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .\${{ env.DOCFX_OUTPUT }}
+          path: .\docfx-site
 
   deploy-docs:
     environment:
