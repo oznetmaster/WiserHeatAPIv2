@@ -58,6 +58,19 @@ Some direct dependencies currently resolve to prerelease package versions. These
 
 ## Quick Start
 
+### Obtaining the Wiser secret
+
+The Wiser hub secret is required to authenticate with the local API.
+
+To obtain it:
+
+1. Press the setup button on the HeatHub so that the light starts flashing.
+2. Open a browser and navigate to `http://192.168.8.1/secret`.
+3. The hub will return a string containing your system secret. Copy it and store it somewhere safe.
+4. Press the setup button on the HeatHub again to return it to normal operation.
+
+If you already know the hub IP address, you can connect directly. Otherwise, use the discovery helper shown below to find the hub first.
+
 ### Connect to a hub
 
 ```csharp
