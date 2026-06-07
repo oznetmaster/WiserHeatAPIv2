@@ -62,12 +62,17 @@ Some direct dependencies currently resolve to prerelease package versions. These
 
 The Wiser hub secret is required to authenticate with the local API.
 
+Reference: https://it.knightnet.org.uk/kb/nr-qa/drayton-wiser-heating-control/#controlling-the-system
+
 To obtain it:
 
 1. Press the setup button on the HeatHub so that the light starts flashing.
-2. Open a browser and navigate to `http://192.168.8.1/secret`.
-3. The hub will return a string containing your system secret. Copy it and store it somewhere safe.
-4. Press the setup button on the HeatHub again to return it to normal operation.
+2. Look for the Wi-Fi network (SSID) called `WiserHeatXXXXXX`, where `XXXXXX` is the last 6 digits of the MAC address.
+3. Connect to that network from a Windows, Linux, macOS, Android, or iPhone device.
+4. Open a browser and navigate to `http://192.168.8.1/secret`.
+5. The hub will return a string containing your system secret. Store this somewhere safe. If you are using the console test utility, place this value together with the hub IP address in `wiserkeys.params`.
+6. Press the setup button on the HeatHub again to return it to normal operation.
+7. Copy the secret and save it somewhere safe.
 
 If you already know the hub IP address, you can connect directly. Otherwise, use the discovery helper shown below to find the hub first.
 
