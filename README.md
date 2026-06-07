@@ -52,6 +52,8 @@ The source project contains several feature areas controlled by compilation symb
 
 The published NuGet package includes all of these optional capabilities.
 
+Some direct dependencies currently resolve to prerelease package versions. These were introduced through vulnerability remediation recommended by Visual Studio and have been retained to avoid reintroducing the original security or compatibility issues without further validation.
+
 ---
 
 ## Quick Start
