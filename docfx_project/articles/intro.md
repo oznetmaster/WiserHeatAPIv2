@@ -1,5 +1,7 @@
 # Getting started
 
+Drayton, Wiser, and Schneider Electric are trademarks of Schneider Electric SE, its subsidiaries, or affiliated companies. This project is an independent, unofficial .NET library and is not affiliated with or endorsed by Schneider Electric.
+
 ## Installation
 
 ```bash

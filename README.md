@@ -2,6 +2,8 @@
 
 A .NET client library for the **Drayton Wiser Heating** local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities.
 
+Drayton, Wiser, and Schneider Electric are trademarks of Schneider Electric SE, its subsidiaries, or affiliated companies. This project is an independent, unofficial .NET library and is not affiliated with or endorsed by Schneider Electric.
+
 [![NuGet](https://img.shields.io/nuget/v/WiserHeatAPIv2.svg)](https://www.nuget.org/packages/WiserHeatAPIv2)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](WiserHeatAPIv2/LICENSE)
 

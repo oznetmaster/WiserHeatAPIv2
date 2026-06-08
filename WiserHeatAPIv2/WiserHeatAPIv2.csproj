@@ -15,14 +15,14 @@
 
     <!-- Migrated from AssemblyInfo.cs -->
     <AssemblyTitle>WiserHeatAPIv2</AssemblyTitle>
-    <Description>A .NET client library for the Drayton Wiser Heating REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities. This project is an adaptation of the original Python wiserHeatAPIv2 project for .NET applications targeting both .NET Framework 4.7.2 and .NET 10.</Description>
+    <Description>An independent, unofficial .NET client library for the Drayton Wiser Heating local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities. Drayton, Wiser, and Schneider Electric are trademarks of Schneider Electric SE, its subsidiaries, or affiliated companies. This project is not affiliated with or endorsed by Schneider Electric, and is adapted from the original Python wiserHeatAPIv2 project for .NET applications targeting both .NET Framework 4.7.2 and .NET 10.</Description>
     <Company>Neil Colvin</Company>
     <Product>WiserHeatAPIv2</Product>
     <Copyright>Copyright © 2026 Neil Colvin</Copyright>
-    <AssemblyVersion>1.1.0.1</AssemblyVersion>
-    <FileVersion>1.1.0.1</FileVersion>
+    <AssemblyVersion>1.1.0.2</AssemblyVersion>
+    <FileVersion>1.1.0.2</FileVersion>
     <PackageId>WiserHeatAPIv2</PackageId>
-    <Version>1.1.0.1</Version>
+    <Version>1.1.0.2</Version>
     <Authors>Neil Colvin</Authors>
     <PackageTags>wiser;drayton;heating;smart-home;iot;rest;api;nuget</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
