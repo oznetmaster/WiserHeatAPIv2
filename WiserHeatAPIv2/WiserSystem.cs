@@ -135,20 +135,37 @@ public class WiserSystem
 	/// <summary>Gets or sets whether Away mode is enabled.</summary>
 	public bool AwayModeEnabled
 		{
-		get => _overrideType == "Away";
+		get => IsAwayModeEnabled;
 		set
 			{
-			if (SendCommandAsync (new
-				{
-				RequestOverride = new
-					{
-					Type = value ? 2 : 0
-					}
-				}).Result)
-				{
-				_overrideType = value ? "Away" : "";
-				}
+			_ = SetAwayModeEnabledAsync (value).GetAwaiter ().GetResult ();
 			}
+		}
+
+	/// <summary>
+	/// Asynchronously enables or disables Away mode for the system.
+	/// </summary>
+	/// <param name="enabled"><see langword="true"/> to enable Away mode; <see langword="false"/> to clear it.</param>
+	/// <param name="cancellationToken">Cancellation token to observe.</param>
+	/// <returns><see langword="true"/> if the hub accepted the change; otherwise, <see langword="false"/>.</returns>
+	/// <exception cref="WiserHubAuthenticationException">Authentication failed at the hub.</exception>
+	/// <exception cref="WiserHubConnectionException">A connection or timeout error occurred.</exception>
+	/// <exception cref="WiserHubRESTException">The hub returned a non-success status.</exception>
+	public async Task<bool> SetAwayModeEnabledAsync (bool enabled, CancellationToken cancellationToken = default)
+		{
+		if (await SendCommandAsync (new
+			{
+			RequestOverride = new
+				{
+				Type = enabled ? 2 : 0
+				}
+			}, cancellationToken: cancellationToken).ConfigureAwait (false))
+			{
+			_overrideType = enabled ? "Away" : string.Empty;
+			return true;
+			}
+
+		return false;
 		}
 
 	/// <summary>Gets or sets whether Away mode affects hot water.</summary>

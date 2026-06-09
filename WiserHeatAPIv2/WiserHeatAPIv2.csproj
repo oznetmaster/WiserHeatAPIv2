@@ -19,10 +19,11 @@
     <Company>Neil Colvin</Company>
     <Product>WiserHeatAPIv2</Product>
     <Copyright>Copyright © 2026 Neil Colvin</Copyright>
-    <AssemblyVersion>1.1.0.2</AssemblyVersion>
-    <FileVersion>1.1.0.2</FileVersion>
+    <AssemblyVersion>1.1.0.3</AssemblyVersion>
+    <FileVersion>1.1.0.3</FileVersion>
     <PackageId>WiserHeatAPIv2</PackageId>
-    <Version>1.1.0.2</Version>
+    <Version>1.1.0.3</Version>
+    <PackageReleaseNotes>Added an explicit async system Away mode setter, improved trademark attribution wording, and clarified Wiser secret retrieval steps in the documentation.</PackageReleaseNotes>
     <Authors>Neil Colvin</Authors>
     <PackageTags>wiser;drayton;heating;smart-home;iot;rest;api;nuget</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
