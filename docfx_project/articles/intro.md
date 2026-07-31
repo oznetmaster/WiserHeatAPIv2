@@ -39,4 +39,4 @@ await api.ReadHubDataAsync();
 
 - The library communicates with a local Wiser hub, not a cloud API.
 - A valid Wiser hub IP address or discovered hub endpoint and hub secret are required.
-- The .NET implementation is adapted from the Python `wiserHeatAPIv2` project.
+- The .NET implementation is independent; behavioral and compatibility reference work draws on the upstream Python `wiserHeatAPIv2` project and its public documentation.

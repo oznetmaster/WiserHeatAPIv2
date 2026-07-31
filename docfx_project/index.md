@@ -14,7 +14,7 @@ Drayton, Wiser, and Schneider Electric are trademarks of Schneider Electric SE, 
 
 ## Origins
 
-This project is adapted from the Python project [wiserHeatAPIv2](https://pypi.org/project/wiserHeatAPIv2/) by Mark Parker.
+This is an independent .NET implementation, written from scratch. Behavioral and compatibility reference work in this project draws on the upstream Python [wiserHeatAPIv2](https://pypi.org/project/wiserHeatAPIv2/) project and its public documentation.
 
 ## Documentation sections
 

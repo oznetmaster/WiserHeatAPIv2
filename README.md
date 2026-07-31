@@ -151,7 +151,7 @@ Full API documentation is published at **[oznetmaster.github.io/WiserHeatAPIv2](
 
 ## Acknowledgements
 
-Adapted from the Python project [wiserHeatAPIv2](https://pypi.org/project/wiserHeatAPIv2/) by Mark Parker.
+This is an independent .NET implementation, written from scratch. Behavioral and compatibility reference work in this project draws on the upstream Python [wiserHeatAPIv2](https://pypi.org/project/wiserHeatAPIv2/) project and its public documentation.
 
 ---
 
