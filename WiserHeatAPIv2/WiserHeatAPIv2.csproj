@@ -19,11 +19,11 @@
     <Company>Neil Colvin</Company>
     <Product>WiserHeatAPIv2</Product>
     <Copyright>Copyright © 2026 Neil Colvin</Copyright>
-    <AssemblyVersion>1.1.0.4</AssemblyVersion>
-    <FileVersion>1.1.0.4</FileVersion>
+    <AssemblyVersion>1.1.0.5</AssemblyVersion>
+    <FileVersion>1.1.0.5</FileVersion>
     <PackageId>WiserHeatAPIv2</PackageId>
-    <Version>1.1.0.4</Version>
-    <PackageReleaseNotes>Removed source file headers implying shared copyright with the upstream Python project; replaced with acknowledgment-only attribution wording in the README and documentation, since this library is an independent .NET implementation using the Python project only as a behavioral reference.</PackageReleaseNotes>
+    <Version>1.1.0.5</Version>
+    <PackageReleaseNotes>Fix HTTP retry content disposal, preserve authentication and endpoint errors, distinguish caller cancellation from transport timeouts, apply updated secrets to subsequent requests, preserve Unicode response names, and retain HTTP/1.0 for redirected schedule requests. Add 112 offline NUnit tests for net472 and net10.0. See CHANGELOG.md for details.</PackageReleaseNotes>
     <Authors>Neil Colvin</Authors>
     <PackageTags>wiser;drayton;heating;smart-home;iot;rest;api;nuget</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -111,5 +111,6 @@
  </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\CHANGELOG.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

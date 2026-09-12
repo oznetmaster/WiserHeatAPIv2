@@ -1,4 +1,4 @@
-# WiserHeatAPIv2
+﻿# WiserHeatAPIv2
 
 A .NET client library for the **Drayton Wiser Heating** local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities.
 
@@ -6,6 +6,12 @@ Drayton, Wiser, and Schneider Electric are trademarks of Schneider Electric SE, 
 
 [![NuGet](https://img.shields.io/nuget/v/WiserHeatAPIv2.svg)](https://www.nuget.org/packages/WiserHeatAPIv2)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](WiserHeatAPIv2/LICENSE)
+
+---
+
+## Release History
+
+See the [changelog](https://github.com/oznetmaster/WiserHeatAPIv2/blob/master/CHANGELOG.md) for version history and fixes, and [GitHub releases](https://github.com/oznetmaster/WiserHeatAPIv2/releases) for release notes and packages.
 
 ---
 
@@ -129,6 +135,22 @@ await api.ReadHubDataAsync();
 
 ---
 
+## Automated Tests
+
+`WiserHeatAPIv2.Tests` is an offline NUnit 4 suite included in the main Visual Studio solution. It targets **.NET Framework 4.7.2 and .NET 10**, uses `LangVersion=latest`, and runs through Visual Studio Test Explorer with the NUnit adapter.
+
+On Windows, with the .NET 10 SDK and .NET Framework 4.7.2 targeting pack installed:
+
+```powershell
+dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj --configuration Release
+```
+
+To run only one target, add `--framework net472` or `--framework net10.0`. In Visual Studio, build the solution, open **Test > Test Explorer**, and run `WiserHeatAPIv2.Tests`.
+
+The suite covers HTTP verbs, authentication, redirects, retry limits and response disposal, cancellation versus timeouts, JSON response handling, temperature and telemetry models, room and device commands, heating schedule export and assignment, initialization, refresh, and disposal. Synthetic hub responses are supplied through an in-memory HTTP handler; no hub, network access, secret, or local settings file is required. The tests do not operate physical devices.
+
+GitHub CI runs both framework targets and uploads test results before packing the library. The test project is not packable and is not published to NuGet. This suite verifies client behavior against simulated responses; it does not validate discovery, real firmware behavior, or every device family.
+
 ## Test Console
 
 The solution includes `WiserHeatAPIv2Test`, a console application that exercises hub discovery, initialization, device listing, room inspection, and general API validation against a real Wiser installation.
@@ -145,6 +167,7 @@ Full API documentation is published at **[oznetmaster.github.io/WiserHeatAPIv2](
 
 - `WiserHeatAPIv2` — the main library project published to NuGet
 - `WiserHeatApp.Wpf` — a WPF desktop application for interacting with and monitoring a Wiser system
+- `WiserHeatAPIv2.Tests` — automated offline NUnit tests for both supported frameworks
 - `WiserHeatAPIv2Test` — a console-based test utility for exercising the API against a real hub
 
 ---

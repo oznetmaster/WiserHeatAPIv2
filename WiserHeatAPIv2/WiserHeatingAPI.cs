@@ -1,7 +1,8 @@
-// Copyright © 2026 Neil Colvin.
+﻿// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.IO;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -55,6 +56,11 @@ public class WiserAPI : IDisposable
 	/// Both <paramref name="host"/> and <paramref name="secret"/> must be non-empty.
 	/// </remarks>
 	public WiserAPI (string? host, string? secret, WiserUnits units = WiserUnits.Metric)
+		: this (host, secret, units, null)
+		{
+		}
+
+	internal WiserAPI (string? host, string? secret, WiserUnits units, HttpMessageHandler? transport)
 		{
 		var logger = (log4net.Repository.Hierarchy.Logger)((log4net.Core.LogImpl)_lOGGER).Logger;
 #if DEBUG
@@ -77,7 +83,7 @@ public class WiserAPI : IDisposable
 
 		// Read hub data if hub IP and secret exist
 		_wiserRestController = !string.IsNullOrEmpty (_wiserApiConnection.Host) && !string.IsNullOrEmpty (_wiserApiConnection.Secret)
-			? new WiserRestController (_wiserApiConnection)
+			? new WiserRestController (_wiserApiConnection, transport)
 			: throw new WiserHubConnectionException ("Missing or incomplete connection information");
 		}
 

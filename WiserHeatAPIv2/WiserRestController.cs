@@ -1,4 +1,4 @@
-// Copyright © 2026 Neil Colvin.
+﻿// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Net;
@@ -203,6 +203,13 @@ public partial class WiserRestController : IDisposable
 	/// Thrown when <paramref name="wiserConnection"/> is <see langword="null"/>.
 	/// </exception>
 	public WiserRestController (WiserConnection wiserConnection)
+		: this (wiserConnection, null)
+		{
+		}
+
+	// Allows the offline suite to supply a transport without opening network connections.
+	// The controller owns and disposes the supplied handler, just like its default handler.
+	internal WiserRestController (WiserConnection wiserConnection, HttpMessageHandler? transport)
 		{
 		var logger = (log4net.Repository.Hierarchy.Logger)((log4net.Core.LogImpl)_logger).Logger;
 #if DEBUG
@@ -218,7 +225,7 @@ public partial class WiserRestController : IDisposable
 		ServicePointManager.DefaultConnectionLimit = 10;
 #endif
 
-		var handler = new HttpClientHandler
+		var handler = transport ?? new HttpClientHandler
 			{
 			AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
 			UseProxy = false,
@@ -234,7 +241,6 @@ public partial class WiserRestController : IDisposable
 			{
 			Timeout = TimeSpan.FromSeconds (REST_TIMEOUT)
 			};
-		_httpClient.DefaultRequestHeaders.Add ("SECRET", _wiserConnection.Secret);
 		_httpClient.DefaultRequestHeaders.Accept.Add (new MediaTypeWithQualityHeaderValue ("application/json"));
 		_httpClient.DefaultRequestHeaders.UserAgent.Clear ();
 		_httpClient.DefaultRequestHeaders.UserAgent.Add (
@@ -255,17 +261,7 @@ public partial class WiserRestController : IDisposable
 				_ => throw new ArgumentOutOfRangeException (nameof (action), action, "Invalid WiserRestAction"),
 				};
 
-		using var req = new HttpRequestMessage (method, url);
-		if (data != null && method != HttpMethod.Get)
-			req.Content = data;
-		// v2 firmware quirk: schedules endpoint is more reliable with HTTP/1.0
-		if (url.Contains ("/schedules/", StringComparison.OrdinalIgnoreCase))
-			{
-			req.Version = new Version (1, 0);
-#if !NETFRAMEWORK
-			req.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
-#endif
-			}
+		using var req = await CreateRequestAsync (method, url, data).ConfigureAwait (false);
 
 		HttpResponseMessage resp = await _httpClient!.SendAsync (req, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait (false);
 
@@ -284,29 +280,56 @@ public partial class WiserRestController : IDisposable
 			{
 			resp.Dispose ();
 			var httpsUrl = url.StartsWith ("http://", StringComparison.OrdinalIgnoreCase) ? "https://" + url[7..] : url;
-			using var req2 = new HttpRequestMessage (method, httpsUrl);
-			if (data != null && method != HttpMethod.Get)
-				req2.Content = data;
-			if (httpsUrl.Contains ("/schedules/", StringComparison.OrdinalIgnoreCase))
-				req2.Version = new Version (1, 0);
+			using var req2 = await CreateRequestAsync (method, httpsUrl, data).ConfigureAwait (false);
 			resp = await _httpClient!.SendAsync (req2, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait (false);
 			}
 
 		return resp;
 		}
+
+	private async Task<HttpRequestMessage> CreateRequestAsync (HttpMethod method, string url, StringContent? data)
+		{
+		var request = new HttpRequestMessage (method, url);
+		try
+			{
+			request.Headers.Add ("SECRET", _wiserConnection.Secret);
+			if (data != null && method != HttpMethod.Get)
+				{
+				// Each attempt owns its content; disposing a request must not invalidate a retry.
+				request.Content = new ByteArrayContent (await data.ReadAsByteArrayAsync ().ConfigureAwait (false));
+				foreach (var header in data.Headers)
+					_ = request.Content.Headers.TryAddWithoutValidation (header.Key, header.Value);
+				}
+			// Apply the firmware workaround to both initial and redirected schedule requests.
+			if (url.Contains ("/schedules/", StringComparison.OrdinalIgnoreCase))
+				{
+				request.Version = new Version (1, 0);
+#if !NETFRAMEWORK
+				request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+#endif
+				}
+			return request;
+			}
+		catch
+			{
+			request.Dispose ();
+			throw;
+			}
+		}
+
 	/// <summary>
 	/// Executes an HTTP request with basic retry handling.
 	/// </summary>
 	/// <param name="action">The HTTP verb to use.</param>
 	/// <param name="url">The absolute request URL.</param>
-	/// <param name="data">Optional JSON content to send for non-GET requests.</param>
+	/// <param name="data">Optional JSON content to send for non-GET requests. Ownership remains with the caller.</param>
 	/// <param name="cancellationToken">Token to cancel the request and any retries.</param>
 	/// <returns>
 	/// The final <see cref="HttpResponseMessage"/> returned by the hub, or <see langword="null"/> if
 	/// no response could be obtained (rare; typically an exception is thrown instead).
 	/// </returns>
 	/// <remarks>
-	/// On transient 5xx/408/413 responses the call is retried up to <see cref="RestConstants.REST_RETRIES"/> times
+	/// On 500/502/503/504/413 responses the call is retried up to <see cref="RestConstants.REST_RETRIES"/> times
 	/// with exponential backoff. Non-success responses are still returned to the caller for inspection.
 	/// </remarks>
 	/// <exception cref="WiserHubConnectionException">
@@ -344,6 +367,7 @@ public partial class WiserRestController : IDisposable
 					retryCount--;
 					if (retryCount >= 0)
 						{
+						response.Dispose ();
 						await Task.Delay (delay, cancellationToken).ConfigureAwait (false);
 						delay = TimeSpan.FromSeconds (delay.TotalSeconds * backoffFactor);
 						}
@@ -360,7 +384,7 @@ public partial class WiserRestController : IDisposable
 				throw new WiserHubConnectionException (
 					 $"Connection error trying to communicate with Wiser Hub {_wiserConnection.Host}. Error is {ex.Message}");
 				}
-			catch (TaskCanceledException ex)
+			catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
 				{
 				_logger.Error ("Task Canceled Exception", ex);
 				throw new WiserHubConnectionException (
@@ -374,12 +398,8 @@ public partial class WiserRestController : IDisposable
 
 	private async Task<bool> DoHubActionAsync (WiserRestAction action, string url, object? data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
 		{
-		StringContent? jsonContent = null;
-		if (data != null)
-			{
-			var jsonData = JsonConvert.SerializeObject (data);
-			jsonContent = new StringContent (jsonData, Encoding.UTF8, "application/json");
-			}
+		using var jsonContent = data == null ? null
+			: new StringContent (JsonConvert.SerializeObject (data), Encoding.UTF8, "application/json");
 
 		try
 			{
@@ -401,9 +421,10 @@ public partial class WiserRestController : IDisposable
 				return true;
 				}
 			}
-		catch (WiserHubConnectionException)
+		catch (Exception ex) when (ex is WiserHubConnectionException or WiserHubAuthenticationException or WiserHubRESTException
+			|| (ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
 			{
-			throw; // Re-throw custom exception
+			throw; // Preserve endpoint errors and caller cancellation.
 			}
 		catch (Exception ex)
 			{
@@ -413,7 +434,7 @@ public partial class WiserRestController : IDisposable
 			}
 		}
 
-	private static readonly Regex _nonAscii = ValidAsciiRegex ();
+	private static readonly Regex _invalidJsonControls = InvalidJsonControlsRegex ();
 
 	/// <summary>
 	/// Gets a hub data payload as a dictionary.
@@ -437,12 +458,8 @@ public partial class WiserRestController : IDisposable
 	/// <exception cref="WiserHubConnectionException">A connection or timeout error occurred.</exception>
 	public async Task<Dictionary<string, object>> GetHubDataAsync (string url, object? data = null, bool raiseForEndpointError = true, CancellationToken cancellationToken = default)
 		{
-		StringContent? jsonContent = null;
-		if (data != null)
-			{
-			var jsonData = JsonConvert.SerializeObject (data);
-			jsonContent = new StringContent (jsonData, Encoding.UTF8, "application/json");
-			}
+		using var jsonContent = data == null ? null
+			: new StringContent (JsonConvert.SerializeObject (data), Encoding.UTF8, "application/json");
 
 		try
 			{
@@ -468,9 +485,9 @@ public partial class WiserRestController : IDisposable
 #endif
 				if (content.Length > 0)
 					{
-					// Remove non-ASCII characters (equivalent to the Python regex)
-					var text = Encoding.UTF8.GetString (content);
-					var cleanedContent = _nonAscii.Replace (text, string.Empty);
+					// Strip invalid control characters while preserving UTF-8 room and device names.
+					var text = Encoding.UTF8.GetString (content).TrimStart ('\uFEFF');
+					var cleanedContent = _invalidJsonControls.Replace (text, string.Empty);
 					JToken? cleaned = JsonConvert.DeserializeObject<JToken> (cleanedContent);
 					if (cleaned != null)
 						return (Dictionary<string, object>?)ConvertJTokenToObject (cleaned) ?? [];
@@ -479,9 +496,10 @@ public partial class WiserRestController : IDisposable
 				return [];
 				}
 			}
-		catch (WiserHubConnectionException)
+		catch (Exception ex) when (ex is WiserHubConnectionException or WiserHubAuthenticationException or WiserHubRESTException
+			|| (ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
 			{
-			throw; // Re-throw custom exception
+			throw; // Preserve endpoint errors and caller cancellation.
 			}
 		catch (Exception ex)
 			{
@@ -648,10 +666,10 @@ public partial class WiserRestController : IDisposable
 
 #if NETFRAMEWORK
 	// .NET Framework 4.7.2 does not support GeneratedRegexAttribute; provide a normal method.
-	private static Regex ValidAsciiRegex () =>
-		new(@"[^\u0020-\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+	private static Regex InvalidJsonControlsRegex () =>
+		new(@"[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 #else
-	[GeneratedRegex (@"[^\u0020-\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
-	private static partial Regex ValidAsciiRegex ();
+	[GeneratedRegex (@"[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]+", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+	private static partial Regex InvalidJsonControlsRegex ();
 #endif
 	}
