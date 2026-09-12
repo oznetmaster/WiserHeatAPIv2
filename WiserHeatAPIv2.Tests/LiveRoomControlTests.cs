@@ -1,13 +1,12 @@
-﻿// Copyright © 2026 Neil Colvin.
+// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 namespace WiserHeatAPIv2.Tests;
 
-/// <summary>Explicitly selected control tests for one room named in private settings.</summary>
+/// <summary>Opt-in control tests for one room named in private settings.</summary>
 [TestFixture]
 [Category ("Live")]
 [Category ("LiveControl")]
-[Explicit ("Select this fixture explicitly to operate the room specified by controlRoomName.")]
 [NonParallelizable]
 public sealed class LiveRoomControlTests
 	{

@@ -1,6 +1,8 @@
-﻿# Changelog
+# Changelog
 
 ## Unreleased
+
+- Remove NUnit `Explicit` from the room-control fixture to use the same live-settings opt-in as the other fixtures. The `Live`/`LiveControl` categories, configured-room requirement and state restoration remain unchanged.
 
 - Document console and WPF settings-file lookup, local build copying, per-clone exclusions, and direct links to each sample; distinguish these inputs from the NUnit live-test JSON settings.
 

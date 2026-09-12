@@ -1,4 +1,4 @@
-﻿# WiserHeatAPIv2
+# WiserHeatAPIv2
 
 A .NET client library for the **Drayton Wiser Heating** local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities.
 
@@ -137,7 +137,7 @@ await api.ReadHubDataAsync();
 
 ## Automated Tests
 
-`WiserHeatAPIv2.Tests` contains an offline NUnit 4 suite, an opt-in read-only live fixture, and explicitly selected room control tests included in the main Visual Studio solution. It targets **.NET Framework 4.7.2 and .NET 10**, uses `LangVersion=latest`, and runs through Visual Studio Test Explorer with the NUnit adapter.
+`WiserHeatAPIv2.Tests` contains an offline NUnit 4 suite, an opt-in read-only live fixture, and opt-in room control tests included in the main Visual Studio solution. It targets **.NET Framework 4.7.2 and .NET 10**, uses `LangVersion=latest`, and runs through Visual Studio Test Explorer with the NUnit adapter.
 
 On Windows, with the .NET 10 SDK and .NET Framework 4.7.2 targeting pack installed:
 
@@ -171,9 +171,9 @@ The NUnit parameter `TestDataDirectory` overrides the settings directory, and `E
 
 Actual `LiveTestSettings.json` files are private runtime inputs, never NuGet content, and are not copied to build or publish output. Keep yours outside the checkout. This local checkout also excludes that filename through `.git/info/exclude`; exclusions are local and are not distributed to other clones. Only the empty example belongs in Git. The existing console continues to use its separate `wiserkeys.params` file; enter the same hub and secret in the live-test settings.
 
-### Explicit Room Control Tests
+### Room Control Tests
 
-`LiveRoomControlTests` has the `Live` and `LiveControl` categories and NUnit's `Explicit` attribute. It requires live testing to be enabled and `controlRoomName` to identify exactly one room in private settings. Generic run-all operations do not opt this fixture in; select it explicitly in Test Explorer or use:
+`LiveRoomControlTests` has the `Live` and `LiveControl` categories and follows the same settings-based opt-in as the other live fixtures. It requires live testing to be enabled and `controlRoomName` to identify exactly one room in private settings. It does not use NUnit's `Explicit` attribute. Once live testing is enabled, Run All can include these tests; use the read-only filter above to exclude device changes. To run only the control fixture, select it in Test Explorer or use:
 
 ```powershell
 dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj -c Release -f net10.0 --filter "FullyQualifiedName~LiveRoomControlTests"
@@ -225,7 +225,7 @@ Full API documentation is published at **[oznetmaster.github.io/WiserHeatAPIv2](
 
 - `WiserHeatAPIv2` — the main library project published to NuGet
 - `WiserHeatApp.Wpf` — a WPF desktop application for interacting with and monitoring a Wiser system
-- `WiserHeatAPIv2.Tests` — offline NUnit tests, opt-in hub reads, and explicit room control tests for both supported frameworks
+- `WiserHeatAPIv2.Tests` — offline NUnit tests, opt-in hub reads, and opt-in room control tests for both supported frameworks
 - `WiserHeatAPIv2Test` — a console-based test utility for exercising the API against a real hub
 
 ---
