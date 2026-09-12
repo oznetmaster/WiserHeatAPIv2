@@ -1,0 +1,7 @@
+﻿{
+  "enabled": false,
+  "hubHost": "",
+  "secret": "",
+  "timeoutSeconds": 60,
+  "controlRoomName": ""
+}

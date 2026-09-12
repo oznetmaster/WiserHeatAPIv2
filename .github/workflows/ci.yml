@@ -28,7 +28,7 @@ jobs:
         run: dotnet build WiserHeatAPIv2.sln --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
 
       - name: Run offline NUnit tests on both target frameworks
-        run: dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj --configuration Release --no-build --no-restore --logger "trx;LogFilePrefix=wiser" --results-directory TestResults
+        run: dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj --configuration Release --no-build --no-restore --filter "TestCategory!=Live" --logger "trx;LogFilePrefix=wiser" --results-directory TestResults
 
       - name: Upload test results
         if: always()

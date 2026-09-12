@@ -137,19 +137,51 @@ await api.ReadHubDataAsync();
 
 ## Automated Tests
 
-`WiserHeatAPIv2.Tests` is an offline NUnit 4 suite included in the main Visual Studio solution. It targets **.NET Framework 4.7.2 and .NET 10**, uses `LangVersion=latest`, and runs through Visual Studio Test Explorer with the NUnit adapter.
+`WiserHeatAPIv2.Tests` contains an offline NUnit 4 suite, an opt-in read-only live fixture, and explicitly selected room control tests included in the main Visual Studio solution. It targets **.NET Framework 4.7.2 and .NET 10**, uses `LangVersion=latest`, and runs through Visual Studio Test Explorer with the NUnit adapter.
 
 On Windows, with the .NET 10 SDK and .NET Framework 4.7.2 targeting pack installed:
 
 ```powershell
-dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj --configuration Release
+dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj --configuration Release --filter "TestCategory!=Live"
 ```
 
 To run only one target, add `--framework net472` or `--framework net10.0`. In Visual Studio, build the solution, open **Test > Test Explorer**, and run `WiserHeatAPIv2.Tests`.
 
-The suite covers HTTP verbs, authentication, redirects, retry limits and response disposal, cancellation versus timeouts, JSON response handling, temperature and telemetry models, room and device commands, heating schedule export and assignment, initialization, refresh, and disposal. Synthetic hub responses are supplied through an in-memory HTTP handler; no hub, network access, secret, or local settings file is required. The tests do not operate physical devices.
+The offline suite covers HTTP verbs, authentication, redirects, retry limits and response disposal, cancellation versus timeouts, JSON response handling, temperature and telemetry models, room and device commands, heating schedule export and assignment, initialization, refresh, and disposal. Synthetic hub responses are supplied through an in-memory HTTP handler; no hub, network access, secret, or local settings file is required. The tests do not operate physical devices.
 
-GitHub CI runs both framework targets and uploads test results before packing the library. The test project is not packable and is not published to NuGet. This suite verifies client behavior against simulated responses; it does not validate discovery, real firmware behavior, or every device family.
+GitHub CI excludes the `Live` category and runs the offline suite on both framework targets and uploads test results before packing the library. The test project is not packable and is not published to NuGet. The offline suite verifies client behavior against simulated responses; it does not validate discovery, real firmware behavior, or every device family.
+
+Validation on both frameworks: **138 offline tests passed**, **six read-only live tests passed** with the optional OpenTherm test skipped, and **both room control tests passed** when explicitly selected. Live validation used a real hub; control tests were run sequentially and followed by a readback confirming restoration.
+
+The live suites are available from the repository and are not included in the published library package. The current published release remains **v1.1.0.5**; subsequent source changes are listed under **Unreleased** in the changelog.
+
+## Read-only Live Tests
+
+`LiveHubTests` is a separate fixture in the `Live` category. It reads hub information, rooms, device collections, telemetry, schedules, and optional OpenTherm data, and checks repeated refreshes. It sends no control commands. One authenticated snapshot is shared for the fixture; the refresh test performs two further reads. Missing rooms, devices, schedules, or optional OpenTherm data produce explicit skips where applicable.
+
+Copy [LiveTestSettings.example.json](WiserHeatAPIv2.Tests/LiveTestSettings.example.json) to `%LOCALAPPDATA%\WiserHeatAPIv2\LiveTestSettings.json`. Enter the hub hostname/IP and existing secret, then set `enabled` to `true` when you want local live testing. `timeoutSeconds` limits each initialization or refresh operation (1–120 seconds; default 60). Use a hostname when available to avoid depending on a fixed IP address.
+
+```powershell
+dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj -c Release -f net10.0 --filter "TestCategory=Live&TestCategory!=LiveControl"
+```
+
+Use `-f net472` to test the .NET Framework target. In Visual Studio Test Explorer, select the `LiveHubTests` fixture after enabling the private settings. Merely selecting it does not bypass the settings flag. Ordinary test runs skip the live fixture unless enabled; use `--filter "TestCategory!=Live"` to guarantee offline execution even when your local flag is enabled.
+
+The NUnit parameter `TestDataDirectory` overrides the settings directory, and `EnableLiveTests=true` overrides `enabled:false` for a selected live run. `EnableLiveTests=false` disables it before reading credentials. These parameters follow the runner convention used by other test suites; a processor test package has not yet been added.
+
+Actual `LiveTestSettings.json` files are private runtime inputs, never NuGet content, and are not copied to build or publish output. Keep yours outside the checkout. This local checkout also excludes that filename through `.git/info/exclude`; exclusions are local and are not distributed to other clones. Only the empty example belongs in Git. The existing console continues to use its separate `wiserkeys.params` file; enter the same hub and secret in the live-test settings.
+
+### Explicit Room Control Tests
+
+`LiveRoomControlTests` has the `Live` and `LiveControl` categories and NUnit's `Explicit` attribute. It requires live testing to be enabled and `controlRoomName` to identify exactly one room in private settings. Generic run-all operations do not opt this fixture in; select it explicitly in Test Explorer or use:
+
+```powershell
+dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj -c Release -f net10.0 --filter "FullyQualifiedName~LiveRoomControlTests"
+```
+
+Run one framework or runner at a time against a room. The tests toggle and restore window detection, and apply a one-minute setpoint override 0.5°C below the current value before cancelling it and verifying schedule control has resumed. The temperature test requires Auto mode following a schedule with no existing override, boost, or timer; other initial states are skipped. It preserves the selected schedule and follows its current setpoint if the schedule changes during the test.
+
+Each test reads its starting state from the hub and restores the setting in `finally`, using a separate cleanup timeout even if the command or assertion fails. Restoration is verified by reading back the hub state, and cleanup failures are reported alongside the original test failure. A terminated process or unreachable hub can prevent cleanup; the temperature override expires after one minute, but an interrupted window-detection test may need manual restoration. These tests do not change room mode, schedule assignments, room names, boosts, or hot-water settings.
 
 ## Test Console
 
@@ -167,7 +199,7 @@ Full API documentation is published at **[oznetmaster.github.io/WiserHeatAPIv2](
 
 - `WiserHeatAPIv2` — the main library project published to NuGet
 - `WiserHeatApp.Wpf` — a WPF desktop application for interacting with and monitoring a Wiser system
-- `WiserHeatAPIv2.Tests` — automated offline NUnit tests for both supported frameworks
+- `WiserHeatAPIv2.Tests` — offline NUnit tests, opt-in hub reads, and explicit room control tests for both supported frameworks
 - `WiserHeatAPIv2Test` — a console-based test utility for exercising the API against a real hub
 
 ---

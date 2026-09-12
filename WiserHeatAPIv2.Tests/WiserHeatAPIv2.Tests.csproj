@@ -15,4 +15,7 @@
     <PackageReference Include="NUnit.Analyzers" Version="4.14.0" PrivateAssets="all" />
     <ProjectReference Include="../WiserHeatAPIv2/WiserHeatAPIv2.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="LiveTestSettings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" Pack="false" />
+  </ItemGroup>
 </Project>

@@ -1,5 +1,27 @@
 ﻿# Changelog
 
+## Unreleased
+
+These changes are published as source on GitHub. No new version, release tag, GitHub release, or NuGet package has been created for them; the latest package remains 1.1.0.5.
+
+### Added
+
+- Seven opt-in, read-only Wiser hub live tests with private JSON settings, a local enable flag, and NUnit runner parameter overrides.
+- Two explicitly selected room control tests with private room selection, initial-state capture, cleanup after failed commands or assertions, and verified restoration. The temperature test requires schedule-controlled Auto mode without existing overrides and uses a one-minute override before restoring schedule control.
+- Offline configuration and restoration tests, bringing the offline suite to 138 tests per framework.
+- README instructions covering offline, read-only live, and room control execution, private settings, and optional capability skips.
+
+### Changed
+
+- CI and package publishing explicitly exclude the Live category.
+- Update log4net from 3.3.1 to 3.4.0 in the library and console, and YamlDotNet from 18.0.0 to 18.1.0 in the library. These dependency changes apply to source builds and have not been released to NuGet.
+
+### Validation
+
+- All 138 offline tests passed on net472 and net10.0.
+- Six read-only live tests passed on each framework; OpenTherm skipped because the hub returned no data for this optional capability.
+- Both room control tests passed on each framework. Final hub readback confirmed the original scheduled setpoint, Auto mode, window-detection setting, and absence of an active override.
+
 ## [1.1.0.5](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.5) — 2026-09-12
 
 ### Added

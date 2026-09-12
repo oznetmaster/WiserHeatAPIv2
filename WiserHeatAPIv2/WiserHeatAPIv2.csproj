@@ -74,10 +74,10 @@
 
   <!-- Packages common to both TFMs -->
   <ItemGroup>
-    <PackageReference Include="log4net" Version="3.3.1" />
+    <PackageReference Include="log4net" Version="3.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
-    <PackageReference Include="YamlDotNet" Version="18.0.0" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 
   <!-- Polyfills only for pre-.NET5 targets -->
