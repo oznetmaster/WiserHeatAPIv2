@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Document console and WPF settings-file lookup, local build copying, per-clone exclusions, and direct links to each sample; distinguish these inputs from the NUnit live-test JSON settings.
+
 - Remove pre-existing console and WPF credential files from tracked source, add placeholder examples, and explicitly exclude private settings from application publishing. Local copies remain available. This removes the files from current source; older Git history and tags still require separate remediation.
 
 

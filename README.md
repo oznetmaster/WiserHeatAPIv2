@@ -187,7 +187,31 @@ Each test reads its starting state from the hub and restores the setting in `fin
 
 The solution includes `WiserHeatAPIv2Test`, a console application that exercises hub discovery, initialization, device listing, room inspection, and general API validation against a real Wiser installation.
 
-The console and WPF project each provide `wiserkeys.example.params`. Copy it locally to `wiserkeys.params` and supply your own hub and secret. The real file is private, is not tracked, and is excluded from publishing and packaging. Keep the filename in your clone’s `.git/info/exclude` (local exclusions are not distributed with clones). Local builds can still copy the private file to their output for these applications.
+The console and WPF application load `wiserkeys.params` when it is present. Each project includes a sample in GitHub:
+
+| Project | Sample file | Where the application reads the private file |
+|---|---|---|
+| Console (`WiserHeatAPIv2Test`) | [wiserkeys.example.params](WiserHeatAPIv2Test/wiserkeys.example.params) | The current working directory; the console reports a missing file and exits if none is present. |
+| WPF (`WiserHeatApp.Wpf`) | [wiserkeys.example.params](WiserHeatApp.Wpf/wiserkeys.example.params) | The application directory; the settings page uses it to prefill the hub and secret when present. |
+
+Copy the sample **inside the project folder** to `wiserkeys.params`, then replace the placeholder values:
+
+```ini
+wiserkey=your_wiser_secret_here
+wiserhubip=your_wiser_hub_hostname_or_ip
+```
+
+When the real file exists in the project folder, local builds copy it to the application's output directory. If you start the console from a terminal, run it with that output directory as the working directory. The console also accepts `wiserhubip=discover` to discover a hub; when multiple hubs are found, specify the intended host instead.
+
+Before adding your real credentials, put this filename in your clone's **`.git/info/exclude`**:
+
+```text
+wiserkeys.params
+```
+
+Only the sample is tracked. The real file remains local and is excluded from publishing and packaging. Local exclusions are not distributed with clones, so each clone needs that entry.
+
+The **NUnit live tests use a different file**, [LiveTestSettings.example.json](WiserHeatAPIv2.Tests/LiveTestSettings.example.json), copied to the private location described above. They do not automatically read `wiserkeys.params`; use the same hub and secret in the JSON settings.
 
 ---
 
