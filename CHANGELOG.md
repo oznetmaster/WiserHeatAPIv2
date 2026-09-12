@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## Unreleased
+
+- Remove pre-existing console and WPF credential files from tracked source, add placeholder examples, and explicitly exclude private settings from application publishing. Local copies remain available. This removes the files from current source; older Git history and tags still require separate remediation.
+
+
 ## [1.1.0.6](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.6) — 2026-09-12
 
 Patch release updating runtime dependencies and adding live-test coverage. Public library API signatures are unchanged.

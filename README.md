@@ -187,6 +187,8 @@ Each test reads its starting state from the hub and restores the setting in `fin
 
 The solution includes `WiserHeatAPIv2Test`, a console application that exercises hub discovery, initialization, device listing, room inspection, and general API validation against a real Wiser installation.
 
+The console and WPF project each provide `wiserkeys.example.params`. Copy it locally to `wiserkeys.params` and supply your own hub and secret. The real file is private, is not tracked, and is excluded from publishing and packaging. Keep the filename in your clone’s `.git/info/exclude` (local exclusions are not distributed with clones). Local builds can still copy the private file to their output for these applications.
+
 ---
 
 ## Documentation

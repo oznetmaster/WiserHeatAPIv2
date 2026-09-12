@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup>
  <OutputType>WinExe</OutputType>
  <TargetFramework>net10.0-windows</TargetFramework>
@@ -26,6 +26,8 @@
  </ItemGroup>
  <ItemGroup>
    <None Update="wiserkeys.params">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+      <Pack>false</Pack>
      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
    </None>
  </ItemGroup>
