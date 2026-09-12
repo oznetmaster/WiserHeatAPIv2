@@ -1,8 +1,8 @@
 ﻿# Changelog
 
-## Unreleased
+## [1.1.0.6](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.6) — 2026-09-12
 
-These changes are published as source on GitHub. No new version, release tag, GitHub release, or NuGet package has been created for them; the latest package remains 1.1.0.5.
+Patch release updating runtime dependencies and adding live-test coverage. Public library API signatures are unchanged.
 
 ### Added
 
@@ -14,7 +14,7 @@ These changes are published as source on GitHub. No new version, release tag, Gi
 ### Changed
 
 - CI and package publishing explicitly exclude the Live category.
-- Update log4net from 3.3.1 to 3.4.0 in the library and console, and YamlDotNet from 18.0.0 to 18.1.0 in the library. These dependency changes apply to source builds and have not been released to NuGet.
+- Update log4net from 3.3.1 to 3.4.0 in the library and console, and YamlDotNet from 18.0.0 to 18.1.0 in the library. The NuGet package now requires these updated dependency versions.
 
 ### Validation
 

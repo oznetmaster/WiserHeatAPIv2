@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net472;net10.0</TargetFrameworks>
     <OutputType>Library</OutputType>
@@ -19,11 +19,11 @@
     <Company>Neil Colvin</Company>
     <Product>WiserHeatAPIv2</Product>
     <Copyright>Copyright © 2026 Neil Colvin</Copyright>
-    <AssemblyVersion>1.1.0.5</AssemblyVersion>
-    <FileVersion>1.1.0.5</FileVersion>
+    <AssemblyVersion>1.1.0.6</AssemblyVersion>
+    <FileVersion>1.1.0.6</FileVersion>
     <PackageId>WiserHeatAPIv2</PackageId>
-    <Version>1.1.0.5</Version>
-    <PackageReleaseNotes>Fix HTTP retry content disposal, preserve authentication and endpoint errors, distinguish caller cancellation from transport timeouts, apply updated secrets to subsequent requests, preserve Unicode response names, and retain HTTP/1.0 for redirected schedule requests. Add 112 offline NUnit tests for net472 and net10.0. See CHANGELOG.md for details.</PackageReleaseNotes>
+    <Version>1.1.0.6</Version>
+    <PackageReleaseNotes>Update log4net to 3.4.0 and YamlDotNet to 18.1.0. Add opt-in read-only hub tests and explicitly selected room control tests with verified restoration. All 138 offline tests pass on both target frameworks; live reads and room controls were validated on a real hub. Public library API signatures are unchanged. See CHANGELOG.md for details.</PackageReleaseNotes>
     <Authors>Neil Colvin</Authors>
     <PackageTags>wiser;drayton;heating;smart-home;iot;rest;api;nuget</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

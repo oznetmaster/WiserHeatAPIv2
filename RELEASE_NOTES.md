@@ -1,20 +1,17 @@
-# WiserHeatAPIv2 v1.1.0.5
+﻿# WiserHeatAPIv2 v1.1.0.6
 
-This patch fixes HTTP failures found while adding the library's offline NUnit suite.
+This patch updates the library's runtime dependencies to **log4net 3.4.0** and **YamlDotNet 18.1.0**. Public library API signatures are unchanged.
 
-- Retry requests retain their original payload after a transient response; intermediate responses are disposed before retrying.
-- REST reads and commands preserve authentication and endpoint exception types.
-- Caller cancellation remains cancellation rather than being reported as a timeout; actual transport timeouts still report connection errors.
-- Updated connection secrets take effect on subsequent requests.
-- UTF-8 room and device names preserve accented and non-Latin characters.
-- Redirected schedule requests retain HTTP/1.0 and their content headers.
+The repository now includes seven opt-in read-only hub tests and two explicitly selected room control tests. Control tests capture the starting state, restore it even after a failed command or assertion, and verify the result by reading the hub. They use a privately configured room, skip temperature changes when an existing override prevents reliable restoration, and require explicit selection.
 
-The new NUnit suite is included in the existing Visual Studio solution and covers requests, error handling, models, commands, schedules, refreshes, and disposal. CI and package publishing run it on both supported frameworks.
+Private settings and credentials remain outside the published package. Only an empty settings example is included in source. CI and release publishing run the offline suite and exclude all live tests.
 
-Validation: **112 tests passed on .NET Framework 4.7.2 and 112 passed on .NET 10**. The complete Release solution build passed with zero warnings or errors. Tests use simulated responses and do not require or operate a physical hub.
+Validation on **both net472 and net10.0**:
 
-Public API signatures are unchanged. Callers of the REST controller can now catch its documented authentication and endpoint exceptions directly; code relying on every failure being wrapped as a connection error should account for these more specific exceptions.
+- **138 offline tests passed** per framework.
+- **Six read-only live tests passed**; the optional OpenTherm check skipped because the hub returned no data.
+- **Both room control tests passed**, with the original scheduled setpoint, Auto mode, window-detection setting, and absence of an override confirmed afterward.
 
-Only the library is published to NuGet. The test project is not packable.
+Only the library is published to NuGet. The test suites are available in the repository and are not NuGet packages.
 
-See [CHANGELOG.md](https://github.com/oznetmaster/WiserHeatAPIv2/blob/v1.1.0.5/CHANGELOG.md) for the detailed changelog.
+See [CHANGELOG.md](https://github.com/oznetmaster/WiserHeatAPIv2/blob/v1.1.0.6/CHANGELOG.md) and the [README](https://github.com/oznetmaster/WiserHeatAPIv2/blob/v1.1.0.6/README.md) for details and test setup instructions.

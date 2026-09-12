@@ -153,7 +153,7 @@ GitHub CI excludes the `Live` category and runs the offline suite on both framew
 
 Validation on both frameworks: **138 offline tests passed**, **six read-only live tests passed** with the optional OpenTherm test skipped, and **both room control tests passed** when explicitly selected. Live validation used a real hub; control tests were run sequentially and followed by a readback confirming restoration.
 
-The live suites are available from the repository and are not included in the published library package. The current published release remains **v1.1.0.5**; subsequent source changes are listed under **Unreleased** in the changelog.
+The live suites are available from the repository and are not included in the published library package. **v1.1.0.6** updates the library dependencies to log4net **3.4.0** and YamlDotNet **18.1.0**, with unchanged public API signatures. See the changelog for release details.
 
 ## Read-only Live Tests
 
