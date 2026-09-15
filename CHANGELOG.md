@@ -1,5 +1,10 @@
 # Changelog
 
+## CI validation - 2026-09-15 (no package release)
+
+- Revalidate the current default-branch source after successful release workflows, including version commits created by GitHub Actions.
+- Allow maintainers to configure exact-source, App-specific checks that must pass before publishing through `RELEASE_REQUIRED_CHECKS`; missing, failed or unconfirmed checks block the release.
+
 ## Test and development tooling - 2026-09-15 (no library release)
 
 - Remove NUnit `Explicit` from the room-control fixture to use the same live-settings opt-in as the other fixtures. The `Live`/`LiveControl` categories, configured-room requirement and state restoration remain unchanged.
