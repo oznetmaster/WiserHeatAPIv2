@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## Test and development tooling - 2026-09-15 (no library release)
 
 - Remove NUnit `Explicit` from the room-control fixture to use the same live-settings opt-in as the other fixtures. The `Live`/`LiveControl` categories, configured-room requirement and state restoration remain unchanged.
 
