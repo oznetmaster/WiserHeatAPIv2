@@ -1,5 +1,8 @@
 # WiserHeatAPIv2
 
+For shipped changes, see the [changelog](CHANGELOG.md). Test, CI and build history is recorded separately in [development and validation history](DEVELOPMENT-HISTORY.md).
+
+
 A .NET client library for the **Drayton Wiser Heating** local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities.
 
 Drayton, Wiser, and Schneider Electric are trademarks of Schneider Electric SE, its subsidiaries, or affiliated companies. This project is an independent, unofficial .NET library and is not affiliated with or endorsed by Schneider Electric.
