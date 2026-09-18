@@ -138,6 +138,10 @@ await api.ReadHubDataAsync();
 
 ---
 
+### Check schedule command results
+
+Always check the Boolean returned by schedule operations, including JSON import and `SetScheduleFromWsDataAsync`. A rejected request or connection failure must not be treated as a successful update. A successful command response does not independently confirm that the requested schedule is now applied; refresh the hub state when that confirmation is required. After a connection failure, read the current state before deciding whether another write is appropriate.
+
 ## Automated Tests
 
 `WiserHeatAPIv2.Tests` contains an offline NUnit 4 suite, an opt-in read-only live fixture, and opt-in room control tests included in the main Visual Studio solution. It targets **.NET Framework 4.7.2 and .NET 10**, uses `LangVersion=latest`, and runs through Visual Studio Test Explorer with the NUnit adapter.

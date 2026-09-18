@@ -407,8 +407,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 		{
 		try
 			{
-			_ = await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (ScheduleData1), toId, cancellationToken).ConfigureAwait (false);
-			return true;
+			return await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (ScheduleData1), toId, cancellationToken).ConfigureAwait (false);
 			}
 		catch (Exception ex)
 			{
@@ -431,8 +430,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 			{
 			if (Id != 1000)
 				{
-				_ = await SendScheduleCommandAsync ("DELETE", new Dictionary<string, object> (), cancellationToken: cancellationToken).ConfigureAwait (false);
-				return true;
+				return await SendScheduleCommandAsync ("DELETE", new Dictionary<string, object> (), cancellationToken: cancellationToken).ConfigureAwait (false);
 				}
 			else
 				{
@@ -505,8 +503,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 		{
 		try
 			{
-			_ = await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (scheduleData), cancellationToken: cancellationToken).ConfigureAwait (false);
-			return true;
+			return await SendScheduleCommandAsync ("UPDATE", RemoveScheduleElements (scheduleData), cancellationToken: cancellationToken).ConfigureAwait (false);
 			}
 		catch (Exception ex)
 			{
@@ -531,8 +528,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 			IDictionary<string, object>? scheduleData = JsonConvert.DeserializeObject<IDictionary<string, object>> (File.ReadAllText (scheduleFile));
 			if (ValidateScheduleType (scheduleData))
 				{
-				_ = await SetScheduleAsync (RemoveScheduleElements (scheduleData!), cancellationToken).ConfigureAwait (false);
-				return true;
+				return await SetScheduleAsync (RemoveScheduleElements (scheduleData!), cancellationToken).ConfigureAwait (false);
 				}
 			else
 				{
@@ -579,8 +575,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 					return false;
 					}
 
-				_ = await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
-				return true;
+				return await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
 				}
 			else
 				{
@@ -633,8 +628,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 					return false;
 					}
 
-				_ = await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
-				return true;
+				return await SetScheduleAsync (schedule, cancellationToken).ConfigureAwait (false);
 				}
 			else
 				{
@@ -693,8 +687,7 @@ public class WiserHeatingSchedule (WiserRestController wiserRestController, stri
 
 		try
 			{
-			_ = await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
-			return true;
+			return await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
 			}
 		catch (Exception ex)
 			{
@@ -942,8 +935,7 @@ public class WiserOnOffSchedule (WiserRestController wiserRestController, string
 
 		try
 			{
-			_ = await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
-			return true;
+			return await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
 			}
 		catch (Exception ex)
 			{
@@ -1244,8 +1236,7 @@ public class WiserLevelSchedule (WiserRestController wiserRestController, string
 
 		try
 			{
-			_ = await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
-			return true;
+			return await SendScheduleCommandAsync ("ASSIGN", scheduleData, cancellationToken: cancellationToken).ConfigureAwait (false);
 			}
 		catch (Exception ex)
 			{

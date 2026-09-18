@@ -11,6 +11,13 @@ See the [product changelog](CHANGELOG.md) for shipped changes. This document pre
 
 <!-- development-history -->
 
+## Schedule command outcomes - 2026-09-18
+
+- Reproduced four false-success cases in the JSON-import and editor entry points before the fix. Direct assignment already handled thrown request errors correctly; its forwarded Boolean is now preserved as well.
+- Added 33 synthetic-response regression cases covering heating, on/off and level assignment/unassignment; copy, delete and direct update; JSON import and editor updates. These exercise accepted requests, rejected requests and lost connections, verify that these paths send one write, and preserve the existing model snapshot.
+- All 171 offline tests passed on each desktop target framework. The same 171 tests, including every new regression case, passed in the separate processor validation environment. The temporary test instance and uploaded package storage were removed, and the execution reservation was released. No real heating or hot-water commands were sent.
+- These tests do not establish YAML parser round-trip coverage or device-state readback after a command; those are separate concerns.
+
 ## Offline release workflow option - 2026-09-15 (no package release)
 
 - Allow an explicit manual release when local hardware or the self-hosted runner is unavailable, with the reason and exact source recorded in the workflow summary.

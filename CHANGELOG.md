@@ -2,6 +2,15 @@
 
 This changelog records shipped features, fixes, compatibility and runtime dependency changes. See [development and validation history](DEVELOPMENT-HISTORY.md) for tests, CI, build tooling and work not yet released.
 
+## [1.1.1](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.1) - 2026-09-18
+
+### Fixed
+
+- Schedule JSON import and editor updates now return failure when the underlying update fails, instead of incorrectly returning success.
+- Schedule copy, delete, update, assignment and import methods preserve the underlying command result consistently.
+
+Public API signatures and runtime dependencies are unchanged.
+
 ## [1.1.0.6](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.6) — 2026-09-12
 
 Patch release updating runtime dependencies. Public library API signatures are unchanged.
