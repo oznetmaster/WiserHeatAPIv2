@@ -235,15 +235,14 @@ public static class WiserTemperatureFunctions
 	/// <returns>The Wiser hub temperature as an integer in tenths of a degree.</returns>
 	public static int ToWiserTemp (double temp, string type = "set_heating", WiserUnits units = WiserUnits.Metric)
 		{
-		temp = (int)(ValidateTemperature (temp, type) * 10);
-
-		// Convert to metric if imperial units set
-		if (units == WiserUnits.Imperial)
+		// Validate physical Celsius values before scaling for the hub. Off and
+		// hot-water values are protocol sentinels, not absolute temperatures.
+		if (units == WiserUnits.Imperial && type != "hotwater" && !(type == "set_heating" && temp == TEMP_OFF))
 			{
-			temp = ConvertFromF (temp);
+			temp = type == "delta" ? Math.Round (temp * 5 / 9, 1) : ConvertFromF (temp);
 			}
 
-		return (int)temp;
+		return (int)(ValidateTemperature (temp, type) * 10);
 		}
 
 	/// <summary>
@@ -279,9 +278,9 @@ public static class WiserTemperatureFunctions
 		var realTemp = temp >= TEMP_ERROR ? TEMP_MINIMUM : ValidateTemperature (Math.Round ((double)temp / 10, 1), type);
 
 		// Convert to imperial if imperial units set
-		if (units == WiserUnits.Imperial)
+		if (units == WiserUnits.Imperial && type != "hotwater" && !(type == "set_heating" && realTemp == TEMP_OFF))
 			{
-			realTemp = ConvertToF (realTemp);
+			realTemp = type == "delta" ? Math.Round (realTemp * 9 / 5, 1) : ConvertToF (realTemp);
 			}
 
 		return realTemp;
@@ -636,6 +635,11 @@ public class WiserElectricalLevelDevice (WiserRestController wiserRestController
 /// </remarks>
 public class WiserScheduleNext (string scheduleType, Dictionary<string, object> data)
 	{
+	private readonly Func<WiserUnits> _units = () => WiserUnits.Metric;
+
+	internal WiserScheduleNext (string scheduleType, Dictionary<string, object> data, Func<WiserUnits> units)
+		: this (scheduleType, data) => _units = units;
+
 	/// <summary>Gets the day name for the next scheduled event.</summary>
 	public string Day => data.GetStringOr ("Day", "");
 
@@ -688,7 +692,7 @@ public class WiserScheduleNext (string scheduleType, Dictionary<string, object> 
 		scheduleType switch
 			{
 				var t when t == TEXT_HEATING =>
-					 WiserTemperatureFunctions.FromWiserTemp (data.TryGetValue ("DegreesC", out var temp) ? temp : 0),
+					 WiserTemperatureFunctions.FromWiserTemp (data.TryGetValue ("DegreesC", out var temp) ? temp : 0, units: _units ()),
 				var t when t == TEXT_ON_OFF =>
 					 data.TryGetValue ("State", out var state) ? state : null,
 				var t when t == TEXT_LEVEL =>

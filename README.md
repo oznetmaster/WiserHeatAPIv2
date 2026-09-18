@@ -2,6 +2,8 @@
 
 For shipped changes, see the [changelog](CHANGELOG.md). Test, CI and build history is recorded separately in [development and validation history](DEVELOPMENT-HISTORY.md).
 
+Pending source corrections to Fahrenheit handling are described in [temperature units](docs/temperature-units.md); they are not included in published version 1.1.1.
+
 
 A .NET client library for the **Drayton Wiser Heating** local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities.
 

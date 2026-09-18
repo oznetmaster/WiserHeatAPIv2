@@ -1,5 +1,9 @@
 # Development and validation history
 
+## Temperature unit regressions - 2026-09-18 (source work, not released)
+
+Synthetic characterization of published 1.1.1 reproduced Imperial room readings returning Celsius, room commands treating Fahrenheit as Celsius, and the public conversion helper converting after scaling and clamping. New regressions also cover temperature differences, Off and hot-water sentinels, existing model unit changes, system targets and schedule conversion. The corrected ordinary-build library passes 200 offline tests on each of .NET Framework 4.7.2 and .NET 10. The first focused run reproduced 21 failures before the corrections; its evidence remains retained. Optional build-symbol models and downstream UI limits remain under review before release. See [temperature unit semantics](docs/temperature-units.md).
+
 See the [product changelog](CHANGELOG.md) for shipped changes. This document preserves test, CI and build history. Dated development entries describe work at that time, not a published product version or completed acceptance. Version headings identify the release alongside which development work was recorded.
 
 ## Where changes belong

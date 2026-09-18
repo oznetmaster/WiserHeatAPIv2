@@ -11,11 +11,11 @@ public class WiserHeatingActuator (WiserRestController wiserRestController, Dict
 	{
 	/// <summary>Gets the current occupied setpoint temperature.</summary>
 	public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-			 DeviceTypeData.TryGetValue ("OccupiedHeatingSetPoint", out var setPoint) ? ConvertInvariant.ToInt32 (setPoint) : Constants.TEMP_OFF);
+			 DeviceTypeData.TryGetValue ("OccupiedHeatingSetPoint", out var setPoint) ? ConvertInvariant.ToInt32 (setPoint) : Constants.TEMP_OFF, units: WiserRestController.Units);
 
 	/// <summary>Gets the current measured temperature.</summary>
 	public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		  DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? ConvertInvariant.ToInt32 (temp) : Constants.TEMP_OFF, "current");
+		  DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? ConvertInvariant.ToInt32 (temp) : Constants.TEMP_OFF, "current", WiserRestController.Units);
 
 	/// <summary>Gets the delivered energy summation value.</summary>
 	public int DeliveredPower => DeviceTypeData.TryGetValue ("CurrentSummationDelivered", out var power) ? ConvertInvariant.ToInt32 (power) : 0;

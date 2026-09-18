@@ -236,7 +236,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 				 {
 					 nameof (WiserScheduleType.Heating) =>
 							  WiserTemperatureFunctions.FromWiserTemp (
-									 ScheduleData1.TryGetValue ("CurrentSetpoint", out var setpoint) ? setpoint : Constants.TEMP_MINIMUM),
+									 ScheduleData1.TryGetValue ("CurrentSetpoint", out var setpoint) ? setpoint : Constants.TEMP_MINIMUM, units: WiserRestController.Units),
 
 					 nameof (WiserScheduleType.OnOff) =>
 							  ScheduleData1.TryGetValue ("CurrentState", out var state) ? state : Constants.TEXT_UNKNOWN,
@@ -274,7 +274,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// </remarks>
 	public WiserScheduleNext? Next =>
 			 ScheduleData1.TryGetValue ("Next", out var next) && next is Dictionary<string, object> nextDict
-					? new WiserScheduleNext (Type, nextDict)
+					? new WiserScheduleNext (Type, nextDict, () => WiserRestController.Units)
 					: null;
 
 	/// <summary>
@@ -743,7 +743,7 @@ public class WiserHeatingSchedule (WiserRestController wiserRestController, stri
 					  {
 							{ TEXT_TIME, time },
 							{ genericSetpoint ? TEXT_SETPOINT : TEXT_TEMP,
-							  WiserTemperatureFunctions.FromWiserTemp(temps[i]) }
+							  WiserTemperatureFunctions.FromWiserTemp (temps[i], units: WiserRestController.Units) }
 					  });
 				}
 			}
@@ -784,7 +784,7 @@ public class WiserHeatingSchedule (WiserRestController wiserRestController, stri
 					? TEMP_OFF
 					: ConvertInvariant.ToDouble (tempValue);
 
-				temps.Add (WiserTemperatureFunctions.ToWiserTemp (temp));
+				temps.Add (WiserTemperatureFunctions.ToWiserTemp (temp, units: WiserRestController.Units));
 				}
 			}
 
@@ -1169,7 +1169,7 @@ public class WiserLevelSchedule (WiserRestController wiserRestController, string
 	/// <value>The next scheduled change as a <see cref="WiserScheduleNext"/> object.</value>
 	public new WiserScheduleNext? Next => ScheduleData1.TryGetValue ("Next", out var next)
 			? next is Dictionary<string, object> nextDict
-				 ? new WiserScheduleNext (Type, nextDict)
+				 ? new WiserScheduleNext (Type, nextDict, () => WiserRestController.Units)
 				 : new WiserScheduleNext (Type, new Dictionary<string, object> { { "Day", "" }, { "Time", 0 }, { "Level", 0 } })
 			: null;
 

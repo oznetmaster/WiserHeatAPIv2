@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 Neil Colvin.
+// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Net;
@@ -187,6 +187,7 @@ public enum WiserRestAction
 public partial class WiserRestController : IDisposable
 	{
 	private readonly WiserConnection _wiserConnection;
+	internal WiserUnits Units => _wiserConnection.Units;
 	private HttpClient? _httpClient;
 	private static readonly ILog _logger = log4net.LogManager.GetLogger (typeof (WiserRestController));
 

@@ -27,7 +27,7 @@ public class WiserUFHController : WiserDevice
 		}
 	/// <summary>Gets the current measured temperature in user units.</summary>
 	public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TEMP_OFF, "current");
+		 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : Constants.TEMP_OFF, "current", WiserRestController.Units);
 
 	/// <summary>Gets whether dew is currently detected, if available.</summary>
 	public bool? DewDetected => DeviceTypeData.TryGetValue ("DewDetected", out var detected) ? ConvertInvariant.ToBoolean (detected) : null;

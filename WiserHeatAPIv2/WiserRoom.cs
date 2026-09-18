@@ -1,9 +1,6 @@
-//-----------------------------------------------------------------------
-// <copyright file="WiserRoom.cs" company="">
-//     Author:  
-//     Copyright (c) . All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
+// Copyright © 2026 Neil Colvin.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -216,14 +213,14 @@ public class WiserRoom
 	/// </summary>
 	/// <value>The target temperature as a double value in the configured unit system.</value>
 	public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("CurrentSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM);
+		 _data.TryGetValue ("CurrentSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM, units: _wiserRestController.Units);
 
 	/// <summary>
 	/// Gets the current measured room temperature in user units.
 	/// </summary>
 	/// <value>The measured temperature as a double value in the configured unit system.</value>
 	public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("CalculatedTemperature", out var temp) ? temp : TEMP_MINIMUM, "current");
+		 _data.TryGetValue ("CalculatedTemperature", out var temp) ? temp : TEMP_MINIMUM, "current", _wiserRestController.Units);
 
 	/// <summary>
 	/// Gets the current measured room humidity from an attached room stat device.
@@ -268,7 +265,7 @@ public class WiserRoom
 	/// </summary>
 	/// <value>The displayed setpoint as a double value in the configured unit system.</value>
 	public double DisplayedSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("DisplayedSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM, "current");
+		 _data.TryGetValue ("DisplayedSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM, "current", _wiserRestController.Units);
 
 #if HEATACTUATOR
 	/// <summary>
@@ -329,7 +326,7 @@ public class WiserRoom
 	/// </summary>
 	/// <value>The manual setpoint as a double value in the configured unit system.</value>
 	public double ManualTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM);
+		 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM, units: _wiserRestController.Units);
 
 	/// <summary>
 	/// Gets 
@@ -473,7 +470,17 @@ public class WiserRoom
 	/// Gets the override target temperature (if an override is active) in user units.
 	/// </summary>
 	/// <value>The override setpoint as a double value, or 0 if no override is active.</value>
-	public double OverrideTargetTemperature => _data.TryGetValue ("OverrideSetpoint", out var setPoint) ? ConvertInvariant.ToDouble (setPoint) / 10 : 0;
+	public double OverrideTargetTemperature
+		{
+		get
+			{
+			if (!_data.TryGetValue ("OverrideSetpoint", out var setPoint))
+				return 0;
+			double temperature = ConvertInvariant.ToDouble (setPoint) / 10;
+			return _wiserRestController.Units == WiserUnits.Imperial && temperature != TEMP_OFF
+				? Math.Round (temperature * 9 / 5 + 32, 1) : temperature;
+			}
+		}
 
 	/// <summary>
 	/// Gets the type of override currently applied to this room.
@@ -513,7 +520,7 @@ public class WiserRoom
 	/// </summary>
 	/// <value>The scheduled setpoint as a double value in the configured unit system.</value>
 	public double ScheduledTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("ScheduledSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM);
+		 _data.TryGetValue ("ScheduledSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM, units: _wiserRestController.Units);
 
 	/// <summary>
 	/// Gets the list of smart valve device identifiers associated with this room.
@@ -573,7 +580,7 @@ public class WiserRoom
 					{
 					Type = "Boost",
 					DurationMinutes = duration,
-					IncreaseSetPointBy = WiserTemperatureFunctions.ToWiserTemp (incTemp, "delta")
+					IncreaseSetPointBy = WiserTemperatureFunctions.ToWiserTemp (incTemp, "delta", _wiserRestController.Units)
 					}
 				}, cancellationToken: cancellationToken);
 
@@ -609,7 +616,7 @@ public class WiserRoom
 			RequestOverride = new
 				{
 				Type = TEXT_MANUAL,
-				SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
+				SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp, units: _wiserRestController.Units)
 				}
 			}, cancellationToken: cancellationToken);
 
@@ -633,7 +640,7 @@ public class WiserRoom
 				{
 				Type = TEXT_MANUAL,
 				DurationMinutes = duration,
-				SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
+				SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp, units: _wiserRestController.Units)
 				}
 			}, cancellationToken: cancellationToken);
 
@@ -659,7 +666,7 @@ public class WiserRoom
 					{
 					Type = TEXT_MANUAL,
 					DurationMinutes = (int)Math.Ceiling ((Schedule.Next.DateTime - DateTime.Now).TotalMinutes),
-					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp)
+					SetPoint = WiserTemperatureFunctions.ToWiserTemp (temp, units: _wiserRestController.Units)
 					}
 				}, cancellationToken: cancellationToken);
 

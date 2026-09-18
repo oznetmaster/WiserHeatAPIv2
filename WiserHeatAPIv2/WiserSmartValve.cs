@@ -13,11 +13,11 @@ public class WiserSmartValve (WiserRestController wiserRestController, IDictiona
 
 	/// <summary>Gets the current target (setpoint) temperature in user units.</summary>
 	public double CurrentTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 DeviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0);
+		 DeviceTypeData.TryGetValue ("SetPoint", out var setPoint) ? setPoint : 0, units: WiserRestController.Units);
 
 	/// <summary>Gets the current measured temperature in user units.</summary>
 	public double CurrentTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current");
+		 DeviceTypeData.TryGetValue ("MeasuredTemperature", out var temp) ? temp : 0, "current", WiserRestController.Units);
 
 	/// <summary>Gets the mounting orientation if provided by the device.</summary>
 	public string? MountingOrientation => DeviceTypeData.GetNullableStringOr ("MountingOrientation");

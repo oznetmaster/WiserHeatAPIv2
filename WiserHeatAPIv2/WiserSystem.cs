@@ -186,10 +186,10 @@ public class WiserSystem
 	/// <summary>Gets or sets the Away mode target temperature.</summary>
 	public double AwayModeTargetTemperature
 		{
-		get => WiserTemperatureFunctions.FromWiserTemp (_awayModeTargetTemperature);
+		get => WiserTemperatureFunctions.FromWiserTemp (_awayModeTargetTemperature, units: _wiserRestController.Units);
 		set
 			{
-			var temp = WiserTemperatureFunctions.ToWiserTemp (value);
+			var temp = WiserTemperatureFunctions.ToWiserTemp (value, units: _wiserRestController.Units);
 			if (SendCommandAsync (new
 				{
 				AwayModeSetPointLimit = temp
@@ -239,10 +239,10 @@ public class WiserSystem
 	/// <summary>Gets or sets the Degraded Mode target temperature.</summary>
 	public double DegradedModeTargetTemperature
 		{
-		get => WiserTemperatureFunctions.FromWiserTemp (_degradedModeTargetTemperature);
+		get => WiserTemperatureFunctions.FromWiserTemp (_degradedModeTargetTemperature, units: _wiserRestController.Units);
 		set
 			{
-			var temp = WiserTemperatureFunctions.ToWiserTemp (value);
+			var temp = WiserTemperatureFunctions.ToWiserTemp (value, units: _wiserRestController.Units);
 			if (SendCommandAsync (new
 				{
 				DegradedModeSetpointThreshold = temp
@@ -415,7 +415,7 @@ public class WiserSystem
 				{
 				Type = "Boost",
 				DurationMinutes = duration,
-				IncreaseSetPointBy = WiserTemperatureFunctions.ToWiserTemp (incTemp, "delta")
+				IncreaseSetPointBy = WiserTemperatureFunctions.ToWiserTemp (incTemp, "delta", _wiserRestController.Units)
 				}
 			}, cancellationToken: cancellationToken);
 
