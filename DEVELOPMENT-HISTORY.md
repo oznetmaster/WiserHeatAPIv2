@@ -1,5 +1,10 @@
 # Development and validation history
 
+## Version 1.1.2 validation - 2026-09-18
+
+The full offline suite passes 205 tests on each supported framework. An Off-to-manual regression reproduced an unintended intermediate scheduled-target write; the correction sends only the requested target when already in the hub's Manual/Off state. A dependent application was also tested using a separately versioned local NuGet package containing the corrections, and its net472 build passed. No physical heating command was used in these checks. The product changes are summarized in the changelog and release notes; final publication is performed by the normal release workflow and its configured checks.
+
+
 ## Temperature model review - 2026-09-18 (source work after 1.1.1)
 
 The remaining OpenTherm unit regression was reproduced offline and corrected. Models created through the system view, including retained operational telemetry views, follow later connection-unit changes. Existing public constructors keep their Celsius behavior. Heating-actuator readings and Off values are covered as well. Both feature symbols are enabled in the normal Release build. The full offline suite passes on net472 and net10.0; net472 retains the existing RuntimeHelpers compiler warning. This work has not yet been packaged or published. See [temperature units](docs/temperature-units.md).

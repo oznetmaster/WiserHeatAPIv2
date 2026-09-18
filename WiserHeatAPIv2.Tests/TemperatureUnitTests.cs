@@ -6,6 +6,20 @@ namespace WiserHeatAPIv2.Tests;
 [TestFixture]
 public sealed class TemperatureUnitTests
 	{
+	[TestCase (WiserUnits.Metric, 5)]
+	[TestCase (WiserUnits.Imperial, 41)]
+	public async Task ManualTemperature_FromOffSendsOnlyTheRequestedTarget (WiserUnits units, double requested)
+		{
+		using var hub = new ScriptedHub ();
+		using var controller = new WiserRestController (new WiserConnection ("hub.example", "test-secret") { Units = units }, hub);
+		var room = new WiserRoom (controller, ScriptedHub.Data ("""{"id":4,"Mode":"Manual","CurrentSetPoint":-200,"ScheduledSetPoint":230}"""), null, []);
+		hub.Reply ();
+		Assert.That (await room.SetManualTemperatureAsync (requested), Is.True);
+		Assert.That (hub.Requests, Has.Count.EqualTo (1), "Off is already Manual at the hub; do not briefly restore the scheduled target before the requested value.");
+		Assert.That (JObject.Parse (hub.Requests.Single ().Body)["RequestOverride"]!["SetPoint"]!.Value<int> (), Is.EqualTo (50));
+		hub.AssertComplete ();
+		}
+
 	[Test]
 	public void OpenThermViews_FollowLiveConnectionUnitsWithoutChangingRawData ()
 		{

@@ -19,11 +19,11 @@
     <Company>Neil Colvin</Company>
     <Product>WiserHeatAPIv2</Product>
     <Copyright>Copyright © 2026 Neil Colvin</Copyright>
-    <AssemblyVersion>1.1.1.0</AssemblyVersion>
-    <FileVersion>1.1.1.0</FileVersion>
+    <AssemblyVersion>1.1.2.0</AssemblyVersion>
+    <FileVersion>1.1.2.0</FileVersion>
     <PackageId>WiserHeatAPIv2</PackageId>
-    <Version>1.1.1</Version>
-    <PackageReleaseNotes>Fix schedule JSON-import and editor methods reporting success after a rejected or disconnected request. Preserve underlying command results throughout schedule forwarding methods. Public API signatures are unchanged. See CHANGELOG.md.</PackageReleaseNotes>
+    <Version>1.1.2</Version>
+    <PackageReleaseNotes>Fix Fahrenheit readings and command conversion across heating models, schedules and OpenTherm while preserving control sentinels and raw Celsius data. Avoid briefly restoring the scheduled target when setting a manual temperature from Off. Public API signatures are unchanged. See CHANGELOG.md.</PackageReleaseNotes>
     <Authors>Neil Colvin</Authors>
     <PackageTags>wiser;drayton;heating;smart-home;iot;rest;api;nuget</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

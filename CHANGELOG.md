@@ -2,6 +2,16 @@
 
 This changelog records shipped features, fixes, compatibility and runtime dependency changes. See [development and validation history](DEVELOPMENT-HISTORY.md) for tests, CI, build tooling and work not yet released.
 
+## [1.1.2](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.2) - 2026-09-18
+
+### Fixed
+
+- Fahrenheit readings and commands now follow the configured units across heating models, system targets, converted schedules and OpenTherm telemetry, including later unit changes.
+- Convert Fahrenheit before enforcing the existing physical heating limits. Boost increments use temperature differences, while Off/hot-water control values and raw hub data retain their meanings.
+- Setting a manual target from Off no longer briefly restores the previous scheduled target before applying the requested value.
+
+Public API signatures and runtime dependencies are unchanged. See [temperature units](docs/temperature-units.md) for the distinction between converted model values and raw hub data.
+
 ## [1.1.1](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.1) - 2026-09-18
 
 ### Fixed

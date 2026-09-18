@@ -685,7 +685,9 @@ public class WiserRoom
 	/// </remarks>
 	public Task<bool> SetManualTemperatureAsync (double temp, CancellationToken cancellationToken = default)
 		{
-		if (Mode != WiserHeatingMode.Manual.ToString ())
+		// Off is the library's view of the hub's Manual mode with the Off setpoint.
+		// Re-entering Manual would briefly restore the scheduled temperature first.
+		if (Mode != WiserHeatingMode.Manual.ToString () && Mode != WiserHeatingMode.Off.ToString ())
 			{
 			Mode = WiserHeatingMode.Manual.ToString ();
 			}
