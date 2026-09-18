@@ -6,6 +6,54 @@ namespace WiserHeatAPIv2.Tests;
 [TestFixture]
 public sealed class TemperatureUnitTests
 	{
+	[Test]
+	public void OpenThermViews_FollowLiveConnectionUnitsWithoutChangingRawData ()
+		{
+		using var hub = new ScriptedHub ();
+		var connection = new WiserConnection ("hub.example", "test-secret");
+		using var controller = new WiserRestController (connection, hub);
+		var raw = ScriptedHub.Data ("""{"roomTemperature":200,"roomSetpoint":210,"chFlowActiveLowerSetpoint":300,"chFlowActiveUpperSetpoint":800,"ch1FlowSetpoint":500,"ch2FlowSetpoint":450,"dhwFlowSetpoint":600,"operationalData":{"Ch1FlowTemperature":500,"ChReturnTemperature":400,"Dhw1Temperature":550,"ChPressureBar":15}}""");
+		var system = new WiserSystem (controller, new Dictionary<string, object> (), new Dictionary<string, object> (), [], raw);
+		var model = system.Opentherm!;
+		var operational = model.OperationalData;
+		Assert.That (model.RoomTemperature, Is.EqualTo (20));
+		connection.Units = WiserUnits.Imperial;
+		Assert.That (new[] { model.RoomTemperature, model.RoomSetpoint, model.ChFlowActiveLowerSetpoint, model.ChFlowActiveUpperSetpoint, model.Ch1FlowSetpoint, model.Ch2FlowSetpoint, model.HwFlowSetpoint },
+			Is.EqualTo (new[] { 68, 69.8, 86, 176, 122, 113, 140 }));
+		Assert.That (new[] { operational.ChFlowTemperature, operational.ChReturnTemperature, operational.HwTemperature }, Is.EqualTo (new[] { 122, 104, 131 }));
+		Assert.That (operational.ChPressureBar, Is.EqualTo (1.5));
+		connection.Units = WiserUnits.Metric;
+		Assert.That (model.RoomTemperature, Is.EqualTo (20));
+		Assert.That (operational.ChFlowTemperature, Is.EqualTo (50));
+		Assert.That (Convert.ToInt32 (raw["roomTemperature"]), Is.EqualTo (200));
+		Assert.That (hub.Requests, Is.Empty);
+		}
+
+	[Test]
+	public void OpenThermPublicConstructors_KeepCelsiusCompatibility ()
+		{
+		var model = new WiserOpentherm (ScriptedHub.Data ("""{"roomTemperature":200}"""), "Connected");
+		var operational = new WiserOpenThermOperationalData (ScriptedHub.Data ("""{"Ch1FlowTemperature":500}"""));
+		Assert.That (model.RoomTemperature, Is.EqualTo (20));
+		Assert.That (operational.ChFlowTemperature, Is.EqualTo (50));
+		}
+
+	[Test]
+	public void HeatingActuator_FollowsUnitsAndPreservesOffSentinel ()
+		{
+		using var hub = new ScriptedHub ();
+		var connection = new WiserConnection ("hub.example", "test-secret") { Units = WiserUnits.Imperial };
+		using var controller = new WiserRestController (connection, hub);
+		var typeData = ScriptedHub.Data ("""{"OccupiedHeatingSetPoint":210,"MeasuredTemperature":200}""");
+		var actuator = new WiserHeatingActuator (controller, ScriptedHub.Data ("""{"id":4}"""), typeData);
+		Assert.That (actuator.CurrentTargetTemperature, Is.EqualTo (69.8));
+		Assert.That (actuator.CurrentTemperature, Is.EqualTo (68));
+		typeData["OccupiedHeatingSetPoint"] = -200;
+		Assert.That (actuator.CurrentTargetTemperature, Is.EqualTo (-20));
+		connection.Units = WiserUnits.Metric;
+		Assert.That (actuator.CurrentTemperature, Is.EqualTo (20));
+		}
+
 	[TestCase (41, 50)]
 	[TestCase (68, 200)]
 	[TestCase (69.8, 210)]

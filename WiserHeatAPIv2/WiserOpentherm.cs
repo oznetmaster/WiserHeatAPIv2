@@ -8,34 +8,45 @@ namespace WiserHeatApiV2;
 /// <summary>
 /// Represents OpenTherm configuration and live data from the hub.
 /// </summary>
-public class WiserOpentherm (IDictionary<string, object> data, string enabledStatus)
+public class WiserOpentherm
 	{
-	internal readonly IDictionary<string, object> _data = data;
+	internal readonly IDictionary<string, object> _data;
+	private readonly Func<WiserUnits> _units;
+
+	/// <summary>Creates a standalone Celsius view of OpenTherm data.</summary>
+	public WiserOpentherm (IDictionary<string, object> data, string enabledStatus) : this (data, enabledStatus, () => WiserUnits.Metric) { }
+
+	internal WiserOpentherm (IDictionary<string, object> data, string enabledStatus, Func<WiserUnits> units)
+		{
+		_data = data;
+		ConnectionStatus = enabledStatus;
+		_units = units;
+		}
 
 	/// <summary>Gets the CH flow active lower setpoint temperature.</summary>
 	public double ChFlowActiveLowerSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("chFlowActiveLowerSetpoint", out var value) ? value : null, "current");
+		 _data.TryGetValue ("chFlowActiveLowerSetpoint", out var value) ? value : null, "current", _units ());
 
 	/// <summary>Gets the CH flow active upper setpoint temperature.</summary>
 	public double ChFlowActiveUpperSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("chFlowActiveUpperSetpoint", out var value) ? value : null, "current");
+		 _data.TryGetValue ("chFlowActiveUpperSetpoint", out var value) ? value : null, "current", _units ());
 
 	/// <summary>Gets a value indicating whether CH1 flow is enabled.</summary>
 	public bool Ch1FlowEnabled => _data.TryGetValue ("ch1FlowEnable", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets the CH1 flow setpoint temperature.</summary>
 	public double Ch1FlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("ch1FlowSetpoint", out var value) ? value : null, "current");
+		 _data.TryGetValue ("ch1FlowSetpoint", out var value) ? value : null, "current", _units ());
 
 	/// <summary>Gets a value indicating whether CH2 flow is enabled.</summary>
 	public bool Ch2FlowEnabled => _data.TryGetValue ("ch2FlowEnable", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets the CH2 flow setpoint temperature.</summary>
 	public double Ch2FlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("ch2FlowSetpoint", out var value) ? value : null, "current");
+		 _data.TryGetValue ("ch2FlowSetpoint", out var value) ? value : null, "current", _units ());
 
 	/// <summary>Gets the hub-provided connection status string.</summary>
-	public string ConnectionStatus { get; } = enabledStatus;
+	public string ConnectionStatus { get; }
 
 	/// <summary>Gets a value indicating whether OpenTherm is enabled.</summary>
 	public bool Enabled => _data.TryGetValue ("Enabled", out var value) && ConvertInvariant.ToBoolean (value);
@@ -45,15 +56,15 @@ public class WiserOpentherm (IDictionary<string, object> data, string enabledSta
 
 	/// <summary>Gets the hot water flow setpoint temperature.</summary>
 	public double HwFlowSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("dhwFlowSetpoint", out var value) ? value : null, "current");
+		 _data.TryGetValue ("dhwFlowSetpoint", out var value) ? value : null, "current", _units ());
 
 	/// <summary>Gets the operating mode string, if available.</summary>
 	public string? OperatingMode => _data.TryGetValue ("operatingMode", out var value) ? value.ToString () : null;
 
 	/// <summary>Gets detailed operational data.</summary>
 	public WiserOpenThermOperationalData OperationalData => _data.TryGetValue ("operationalData", out var data) && data is Dictionary<string, object> dataDict
-				? new WiserOpenThermOperationalData (dataDict)
-				: new WiserOpenThermOperationalData ([]);
+				? new WiserOpenThermOperationalData (dataDict, _units)
+				: new WiserOpenThermOperationalData ([], _units);
 
 	/// <summary>Gets predefined remote boiler parameters.</summary>
 	public WiserOpenThermBoilerParameters BoilerParameters => _data.TryGetValue ("preDefinedRemoteBoilerParameters", out var data) && data is Dictionary<string, object> dataDict
@@ -62,11 +73,11 @@ public class WiserOpentherm (IDictionary<string, object> data, string enabledSta
 
 	/// <summary>Gets the room setpoint temperature.</summary>
 	public double RoomSetpoint => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("roomSetpoint", out var value) ? value : null, "current");
+		 _data.TryGetValue ("roomSetpoint", out var value) ? value : null, "current", _units ());
 
 	/// <summary>Gets the current room temperature.</summary>
 	public double RoomTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 _data.TryGetValue ("roomTemperature", out var value) ? value : null, "current");
+		 _data.TryGetValue ("roomTemperature", out var value) ? value : null, "current", _units ());
 
 	/// <summary>Gets the id of the tracked room, if any.</summary>
 	public int? TrackedRoomId => _data.TryGetValue ("TrackedRoomId", out var value) ? (int?)ConvertInvariant.ToInt32 (value) : null;
@@ -93,22 +104,34 @@ public class WiserOpenThermBoilerParameters (Dictionary<string, object> data)
 /// <summary>
 /// Represents operational telemetry from the OpenTherm interface.
 /// </summary>
-public class WiserOpenThermOperationalData (Dictionary<string, object> data)
+public class WiserOpenThermOperationalData
 	{
+	private readonly Dictionary<string, object> data;
+	private readonly Func<WiserUnits> _units;
+
+	/// <summary>Creates a standalone Celsius view of operational telemetry.</summary>
+	public WiserOpenThermOperationalData (Dictionary<string, object> data) : this (data, () => WiserUnits.Metric) { }
+
+	internal WiserOpenThermOperationalData (Dictionary<string, object> data, Func<WiserUnits> units)
+		{
+		this.data = data;
+		_units = units;
+		}
+
 	/// <summary>Gets the central heating pressure in bar.</summary>
 	public double ChPressureBar => data.TryGetValue ("ChPressureBar", out var value) ? ConvertInvariant.ToDouble (value) / 10 : 0;
 
 	/// <summary>Gets the CH flow temperature.</summary>
 	public double ChFlowTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 data.TryGetValue ("Ch1FlowTemperature", out var value) ? value : (int?)null, "current");
+		 data.TryGetValue ("Ch1FlowTemperature", out var value) ? value : (int?)null, "current", _units ());
 
 	/// <summary>Gets the CH return temperature.</summary>
 	public double ChReturnTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 data.TryGetValue ("ChReturnTemperature", out var value) ? value : (int?)null, "current");
+		 data.TryGetValue ("ChReturnTemperature", out var value) ? value : (int?)null, "current", _units ());
 
 	/// <summary>Gets the hot water temperature.</summary>
 	public double HwTemperature => WiserTemperatureFunctions.FromWiserTemp (
-		 data.TryGetValue ("Dhw1Temperature", out var value) ? value : (int?)null, "current");
+		 data.TryGetValue ("Dhw1Temperature", out var value) ? value : (int?)null, "current", _units ());
 
 	/// <summary>Gets the relative modulation level, if available.</summary>
 	public int? RelativeModulationLevel => data.TryGetValue ("RelativeModulationLevel", out var value) ? (int?)ConvertInvariant.ToInt32 (value) : null;

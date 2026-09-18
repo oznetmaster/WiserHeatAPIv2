@@ -1,5 +1,10 @@
 # Development and validation history
 
+## Temperature model review - 2026-09-18 (source work after 1.1.1)
+
+The remaining OpenTherm unit regression was reproduced offline and corrected. Models created through the system view, including retained operational telemetry views, follow later connection-unit changes. Existing public constructors keep their Celsius behavior. Heating-actuator readings and Off values are covered as well. Both feature symbols are enabled in the normal Release build. The full offline suite passes on net472 and net10.0; net472 retains the existing RuntimeHelpers compiler warning. This work has not yet been packaged or published. See [temperature units](docs/temperature-units.md).
+
+
 ## Temperature unit regressions - 2026-09-18 (source work, not released)
 
 Synthetic characterization of published 1.1.1 reproduced Imperial room readings returning Celsius, room commands treating Fahrenheit as Celsius, and the public conversion helper converting after scaling and clamping. New regressions also cover temperature differences, Off and hot-water sentinels, existing model unit changes, system targets and schedule conversion. The corrected ordinary-build library passes 200 offline tests on each of .NET Framework 4.7.2 and .NET 10. The first focused run reproduced 21 failures before the corrections; its evidence remains retained. Optional build-symbol models and downstream UI limits remain under review before release. See [temperature unit semantics](docs/temperature-units.md).

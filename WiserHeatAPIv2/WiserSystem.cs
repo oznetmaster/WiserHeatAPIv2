@@ -58,7 +58,7 @@ public class WiserSystem
 			 ? stationDict : []);
 #if OPENTHERM
 		Opentherm = new WiserOpentherm (openthermData,
-			 _systemData.GetStringOr ("OpenThermConnectionStatus"));
+			 _systemData.GetStringOr ("OpenThermConnectionStatus"), () => _wiserRestController.Units);
 #endif
 		Signal = new WiserSignalStrength (_deviceData);
 		_upgradeData = new WiserFirmwareUpgradeInfo (_data.TryGetValue ("UpgradeInfo", out var upgrade) && upgrade is List<object> upgradeList
