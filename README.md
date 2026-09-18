@@ -5,7 +5,7 @@ For shipped changes, see the [changelog](CHANGELOG.md). Test, CI and build histo
 Version 1.1.2 corrects Fahrenheit model readings and commands. See [temperature units](docs/temperature-units.md) for conversions, limits and control values, and [release notes](RELEASE_NOTES.md) for the patch details.
 
 
-A .NET client library for the **Drayton Wiser Heating** local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities.
+A .NET client library for the **Drayton Wiser Heating (UK and Ireland)** local REST API, enabling discovery, monitoring, scheduling, and control of Wiser hubs, rooms, devices, hot water, smart plugs, lights, shutters, and related entities.
 
 Drayton, Wiser, and Schneider Electric are trademarks of Schneider Electric SE, its subsidiaries, or affiliated companies. This project is an independent, unofficial .NET library and is not affiliated with or endorsed by Schneider Electric.
 
@@ -26,6 +26,18 @@ See the [changelog](https://github.com/oznetmaster/WiserHeatAPIv2/blob/master/CH
 |---|---|
 | .NET 10 | ✅ |
 | .NET Framework 4.7.2 | ✅ |
+
+---
+
+## Wiser Hub Compatibility
+
+This project targets the [Drayton Wiser Heating system](https://www.draytoncontrols.co.uk/products/smart-heating/wiser), covered by Schneider Electric's [UK and Ireland system guide](https://productinfo.se.com/wiser_home/wiser-home-sug-uk/English/System%20User%20Guide_Wiser_Home_UK%20%28Bookmap%29_DD00620149.xml).
+
+Current live testing has been performed with a **Wiser v2 hub**. Earlier versions of this library operated with a Wiser v1 hub, but the interface and library have since changed. The current version has not been revalidated on v1 hardware, so v1 compatibility is unverified and is not guaranteed.
+
+Here, v1 and v2 identify the Wiser hub hardware generation.
+
+Other regional systems and product families sold under the Wiser name have not been validated with this library. In particular, local API compatibility with continental European Wiser Home hubs has not been established. A shared brand or app does not establish compatibility.
 
 ---
 
