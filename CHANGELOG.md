@@ -2,6 +2,15 @@
 
 This changelog records shipped features, fixes, compatibility and runtime dependency changes. See [development and validation history](DEVELOPMENT-HISTORY.md) for tests, CI, build tooling and work not yet released.
 
+## [1.1.3](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.3) - 2026-09-20
+
+### Fixed
+
+- Honor caller cancellation while reading an HTTP response body, including error responses. A stalled hub response can no longer bypass the caller's read deadline after its headers have arrived.
+- Read the response stream with cancellation on .NET Framework and Mono; retain native cancellable buffering on modern .NET. Cancelling one response leaves the client available for subsequent requests.
+
+Public API signatures, target frameworks and runtime dependencies are unchanged.
+
 ## [1.1.2](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.2) - 2026-09-18
 
 ### Fixed

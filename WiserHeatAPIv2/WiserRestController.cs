@@ -414,7 +414,7 @@ public partial class WiserRestController : IDisposable
 
 			if (!response.IsSuccessStatusCode)
 				{
-				await ProcessNokResponseAsync (response, raiseForEndpointError).ConfigureAwait (false);
+				await ProcessNokResponseAsync (response, raiseForEndpointError, cancellationToken).ConfigureAwait (false);
 				return false; // Return empty object on failure
 				}
 			else
@@ -474,16 +474,12 @@ public partial class WiserRestController : IDisposable
 
 			if (!response.IsSuccessStatusCode)
 				{
-				await ProcessNokResponseAsync (response, raiseForEndpointError).ConfigureAwait (false);
+				await ProcessNokResponseAsync (response, raiseForEndpointError, cancellationToken).ConfigureAwait (false);
 				return []; // Return empty object on failure
 				}
 			else
 				{
-#if NETFRAMEWORK
-				var content = await response.Content.ReadAsByteArrayAsync ().ConfigureAwait (false);
-#else
-				var content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false); 
-#endif
+				var content = await ReadResponseBytesAsync (response, cancellationToken).ConfigureAwait (false);
 				if (content.Length > 0)
 					{
 					// Strip invalid control characters while preserving UTF-8 room and device names.
@@ -518,9 +514,38 @@ public partial class WiserRestController : IDisposable
 	//  return new Dictionary<string, object>();
 	//}
 
-	private async Task ProcessNokResponseAsync (HttpResponseMessage response, bool raiseForEndpointError = true)
+	// ResponseHeadersRead finishes SendAsync before the body has been consumed.
+	// net472 has no cancellable HttpContent buffering overload. Read its stream
+	// directly so cancellation reaches Mono's transport as well as desktop .NET.
+	private static async Task<byte[]> ReadResponseBytesAsync (HttpResponseMessage response, CancellationToken cancellationToken)
 		{
-		var errorMessage = await response.Content.ReadAsStringAsync ().ConfigureAwait (false);
+		cancellationToken.ThrowIfCancellationRequested ();
+		try
+			{
+#if NETFRAMEWORK
+			using var stream = await response.Content.ReadAsStreamAsync ().ConfigureAwait (false);
+			using var cancellation = cancellationToken.Register (stream.Dispose);
+			using var buffer = new System.IO.MemoryStream ();
+			await stream.CopyToAsync (buffer, 81920, cancellationToken).ConfigureAwait (false);
+			byte[] result = buffer.ToArray ();
+#else
+			byte[] result = await response.Content.ReadAsByteArrayAsync (cancellationToken).ConfigureAwait (false);
+#endif
+			cancellationToken.ThrowIfCancellationRequested ();
+			return result;
+			}
+		catch (Exception) when (cancellationToken.IsCancellationRequested)
+			{
+			throw new OperationCanceledException (cancellationToken);
+			}
+		}
+
+	private async Task ProcessNokResponseAsync (HttpResponseMessage response, bool raiseForEndpointError, CancellationToken cancellationToken)
+		{
+		byte[] bytes = await ReadResponseBytesAsync (response, cancellationToken).ConfigureAwait (false);
+		using var buffered = new ByteArrayContent (bytes);
+		buffered.Headers.ContentType = response.Content.Headers.ContentType;
+		var errorMessage = await buffered.ReadAsStringAsync ().ConfigureAwait (false);
 		if (response.StatusCode == HttpStatusCode.Unauthorized)
 			{
 			throw new WiserHubAuthenticationException ($"Error authenticating to Wiser Hub {_wiserConnection.Host}. Check your secret key.  Message: {errorMessage}");
