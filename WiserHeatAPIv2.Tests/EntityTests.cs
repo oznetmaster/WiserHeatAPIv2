@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 Neil Colvin.
+// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 namespace WiserHeatAPIv2.Tests;
@@ -100,11 +100,11 @@ public sealed class EntityTests
 		}
 
 	[Test]
-	public void Room_InvalidModeAndMissingScheduleSendNoCommands ()
+	public async System.Threading.Tasks.Task Room_InvalidModeAndMissingScheduleSendNoCommands ()
 		{
 		var room = Room ();
-		Assert.ThrowsAsync<ArgumentException> (async () => await room.SetModeAsync ("invalid"));
-		Assert.ThrowsAsync<InvalidOperationException> (async () => await room.ScheduleAdvanceAsync ());
+		await Assert.ThrowsAsync<ArgumentException> (async () => await room.SetModeAsync ("invalid"));
+		await Assert.ThrowsAsync<InvalidOperationException> (async () => await room.ScheduleAdvanceAsync ());
 		Assert.That (_hub.Requests, Is.Empty);
 		}
 
@@ -130,7 +130,7 @@ public sealed class EntityTests
 		Assert.That (_hub.Requests[0].Url, Is.EqualTo ("http://hub.example/data/v2/domain/SmartPlug/8"));
 		Assert.That (JObject.Parse (_hub.Requests[0].Body)["RequestOutput"]!.Value<string> (), Is.EqualTo ("On"));
 		_hub.Reply ("denied", HttpStatusCode.Unauthorized);
-		Assert.ThrowsAsync<WiserHubAuthenticationException> (async () => await plug.TurnOffAsync ());
+		await Assert.ThrowsAsync<WiserHubAuthenticationException> (async () => await plug.TurnOffAsync ());
 		Assert.That (plug.IsOn, Is.True);
 		_hub.Reply ();
 		Assert.That (await plug.TurnOffAsync (), Is.True);

@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 Neil Colvin.
+// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 namespace WiserHeatAPIv2.Tests;
@@ -54,12 +54,12 @@ public sealed class ApiLifecycleTests
 		}
 
 	[Test]
-	public void FailedInitialization_ReportsFailure ()
+	public async System.Threading.Tasks.Task FailedInitialization_ReportsFailure ()
 		{
 		using var hub = new ScriptedHub ();
 		using var api = new WiserAPI ("hub.example", "test-secret", WiserUnits.Metric, hub);
 		hub.Reply ("denied", HttpStatusCode.Unauthorized);
-		Assert.ThrowsAsync<WiserHubConnectionException> (async () => await api.InitializeAsync ());
+		await Assert.ThrowsAsync<WiserHubConnectionException> (async () => await api.InitializeAsync ());
 		}
 
 	[TestCase ("", "secret")]

@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 Neil Colvin.
+// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 namespace WiserHeatAPIv2.Tests;
@@ -28,16 +28,16 @@ public sealed class RoomControlSupportTests
 			_ => fail ? throw new InvalidOperationException ("Command response lost") : Task.CompletedTask,
 			token => { Assert.That (token.IsCancellationRequested, Is.False); restored = true; return Task.CompletedTask; }, 10);
 		if (fail)
-			Assert.ThrowsAsync<InvalidOperationException> (async () => await Run ());
+			await Assert.ThrowsAsync<InvalidOperationException> (async () => await Run ());
 		else
 			await Run ();
 		Assert.That (restored, Is.True);
 		}
 
 	[Test]
-	public void RestorationFailure_PreservesBothFailures ()
+	public async System.Threading.Tasks.Task RestorationFailure_PreservesBothFailures ()
 		{
-		var error = Assert.ThrowsAsync<AggregateException> (async () => await RoomControlSupport.ChangeAndRestoreAsync (
+		var error = await Assert.ThrowsAsync<AggregateException> (async () => await RoomControlSupport.ChangeAndRestoreAsync (
 			_ => throw new InvalidOperationException ("exercise"), _ => throw new InvalidOperationException ("cleanup"), 10));
 		Assert.That (error!.InnerExceptions.Select (e => e.Message), Is.EqualTo (new[] { "exercise", "cleanup" }));
 		}

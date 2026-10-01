@@ -49,7 +49,7 @@ public sealed class ResponseBodyCancellationTests
 			Assert.That (pending.IsCompleted, Is.False, "The server must still be withholding the response.");
 			cancellation.Cancel ();
 			Assert.That (await Task.WhenAny (pending, Task.Delay (TimeSpan.FromSeconds (2))), Is.SameAs (pending), "Cancellation must stop the real HTTP transport while its peer remains connected.");
-			Assert.CatchAsync<OperationCanceledException> (async () => await pending);
+			await Assert.CatchAsync<OperationCanceledException> (async () => await pending);
 			}
 		finally
 			{
@@ -80,7 +80,7 @@ public sealed class ResponseBodyCancellationTests
 			Assert.That (await Task.WhenAny (body.ReadStarted.Task, Task.Delay (TimeSpan.FromSeconds (3))), Is.SameAs (body.ReadStarted.Task), "Response headers were returned, but the body read did not begin.");
 			cancellation.Cancel ();
 			Assert.That (await Task.WhenAny (pending, Task.Delay (TimeSpan.FromSeconds (2))), Is.SameAs (pending), "Caller cancellation must end the body read, not wait for the network stream to recover.");
-			Assert.CatchAsync<OperationCanceledException> (async () => await pending);
+			await Assert.CatchAsync<OperationCanceledException> (async () => await pending);
 			Assert.That (body.Disposed, Is.True, "Cancellation must release the response stream.");
 			hub.Reply ("{\"ok\":true}");
 			var recovered = await controller.GetHubDataAsync ("http://hub.example/data/v2/domain/");

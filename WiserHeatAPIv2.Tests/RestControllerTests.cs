@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 Neil Colvin.
+// Copyright © 2026 Neil Colvin.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 namespace WiserHeatAPIv2.Tests;
@@ -113,19 +113,19 @@ public sealed class RestControllerTests
 	[TestCase (404, typeof (WiserHubRESTException))]
 	[TestCase (400, typeof (WiserHubRESTException))]
 	[TestCase (408, typeof (WiserHubConnectionException))]
-	public void FailedRead_PreservesTheDocumentedExceptionType (int status, Type exceptionType)
+	public async System.Threading.Tasks.Task FailedRead_PreservesTheDocumentedExceptionType (int status, Type exceptionType)
 		{
 		_hub.Reply ("denied", (HttpStatusCode)status);
-		Assert.ThrowsAsync (exceptionType, async () => await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/"));
+		await Assert.ThrowsAsync (exceptionType, async () => await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/"));
 		Assert.That (_hub.Requests, Has.Count.EqualTo (1));
 		}
 
 	[TestCase (401, typeof (WiserHubAuthenticationException))]
 	[TestCase (404, typeof (WiserHubRESTException))]
-	public void FailedCommand_PreservesTheDocumentedExceptionType (int status, Type exceptionType)
+	public async System.Threading.Tasks.Task FailedCommand_PreservesTheDocumentedExceptionType (int status, Type exceptionType)
 		{
 		_hub.Reply ("denied", (HttpStatusCode)status);
-		Assert.ThrowsAsync (exceptionType, async () => await _controller.SendCommandAsync ("Room/4", new { Name = "Study" }));
+		await Assert.ThrowsAsync (exceptionType, async () => await _controller.SendCommandAsync ("Room/4", new { Name = "Study" }));
 		}
 
 	[Test]
@@ -137,7 +137,7 @@ public sealed class RestControllerTests
 
 	[TestCase ("read")]
 	[TestCase ("command")]
-	public void CallerCancellation_RemainsCancellation (string operation)
+	public async System.Threading.Tasks.Task CallerCancellation_RemainsCancellation (string operation)
 		{
 		using var cancellation = new CancellationTokenSource ();
 		_hub.Respond ((_, token) =>
@@ -146,7 +146,7 @@ public sealed class RestControllerTests
 				token.ThrowIfCancellationRequested ();
 				throw new InvalidOperationException ("Cancellation was not forwarded.");
 			});
-		Assert.CatchAsync<OperationCanceledException> (async () =>
+		await Assert.CatchAsync<OperationCanceledException> (async () =>
 			{
 				if (operation == "read")
 					await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/", cancellationToken: cancellation.Token);
@@ -156,10 +156,10 @@ public sealed class RestControllerTests
 		}
 
 	[Test]
-	public void TransportFailure_IsReportedAsAConnectionError ()
+	public async System.Threading.Tasks.Task TransportFailure_IsReportedAsAConnectionError ()
 		{
 		_hub.Respond ((_, _) => throw new HttpRequestException ("connection unavailable"));
-		var error = Assert.ThrowsAsync<WiserHubConnectionException> (async () => await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/"));
+		var error = await Assert.ThrowsAsync<WiserHubConnectionException> (async () => await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/"));
 		Assert.That (error!.Message, Does.Contain ("hub.example"));
 		}
 
@@ -183,10 +183,10 @@ public sealed class RestControllerTests
 		}
 
 	[Test]
-	public void MalformedResponse_IsReportedAsAConnectionError ()
+	public async System.Threading.Tasks.Task MalformedResponse_IsReportedAsAConnectionError ()
 		{
 		_hub.Reply ("not json");
-		Assert.ThrowsAsync<WiserHubConnectionException> (async () => await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/"));
+		await Assert.ThrowsAsync<WiserHubConnectionException> (async () => await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/"));
 		}
 
 	[Test]
@@ -198,10 +198,10 @@ public sealed class RestControllerTests
 		}
 
 	[Test]
-	public void TransportTimeout_StillProducesAConnectionError ()
+	public async System.Threading.Tasks.Task TransportTimeout_StillProducesAConnectionError ()
 		{
 		_hub.Respond ((_, _) => throw new TaskCanceledException ("simulated transport timeout"));
-		var error = Assert.ThrowsAsync<WiserHubConnectionException> (async () =>
+		var error = await Assert.ThrowsAsync<WiserHubConnectionException> (async () =>
 			await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/"));
 		Assert.That (error!.Message, Does.Contain ("Timeout"));
 		}
@@ -227,7 +227,7 @@ public sealed class RestControllerTests
 		}
 
 	[Test]
-	public void CancellationDuringBackoff_DisposesResponseAndDoesNotRetry ()
+	public async System.Threading.Tasks.Task CancellationDuringBackoff_DisposesResponseAndDoesNotRetry ()
 		{
 		using var cancellation = new CancellationTokenSource ();
 		using var content = new TrackingContent ();
@@ -236,7 +236,7 @@ public sealed class RestControllerTests
 				cancellation.Cancel ();
 				return Task.FromResult (new HttpResponseMessage (HttpStatusCode.ServiceUnavailable) { Content = content });
 			});
-		Assert.CatchAsync<OperationCanceledException> (async () =>
+		await Assert.CatchAsync<OperationCanceledException> (async () =>
 			await _controller.GetHubDataAsync ("http://hub.example/data/v2/domain/", cancellationToken: cancellation.Token));
 		Assert.That (_hub.Requests, Has.Count.EqualTo (1));
 		Assert.That (content.Disposed, Is.True);
