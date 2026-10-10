@@ -2,7 +2,9 @@
 
 This changelog records shipped features, fixes, compatibility and runtime dependency changes. See [development and validation history](DEVELOPMENT-HISTORY.md) for tests, CI, build tooling and work not yet released.
 
-## [1.1.3](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.3) - 2026-09-20
+## 1.1.3 — 2026-09-20
+
+[Release notes](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.3)
 
 ### Fixed
 
@@ -11,7 +13,9 @@ This changelog records shipped features, fixes, compatibility and runtime depend
 
 Public API signatures, target frameworks and runtime dependencies are unchanged.
 
-## [1.1.2](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.2) - 2026-09-18
+## 1.1.2 — 2026-09-18
+
+[Release notes](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.2)
 
 ### Fixed
 
@@ -21,7 +25,9 @@ Public API signatures, target frameworks and runtime dependencies are unchanged.
 
 Public API signatures and runtime dependencies are unchanged. See [temperature units](docs/temperature-units.md) for the distinction between converted model values and raw hub data.
 
-## [1.1.1](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.1) - 2026-09-18
+## 1.1.1 — 2026-09-18
+
+[Release notes](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.1)
 
 ### Fixed
 
@@ -30,7 +36,9 @@ Public API signatures and runtime dependencies are unchanged. See [temperature u
 
 Public API signatures and runtime dependencies are unchanged.
 
-## [1.1.0.6](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.6) — 2026-09-12
+## 1.1.0.6 — 2026-09-12
+
+[Release notes](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.6)
 
 Patch release updating runtime dependencies. Public library API signatures are unchanged.
 
@@ -38,7 +46,9 @@ Patch release updating runtime dependencies. Public library API signatures are u
 
 - Update log4net from 3.3.1 to 3.4.0 in the library and console, and YamlDotNet from 18.0.0 to 18.1.0 in the library. The NuGet package now requires these updated dependency versions.
 
-## [1.1.0.5](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.5) — 2026-09-12
+## 1.1.0.5 — 2026-09-12
+
+[Release notes](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.0.5)
 
 ### Fixed
 
