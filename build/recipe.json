@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "tasks": {
+    "ci-build-restore": {
+      "commands": [
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "restore",
+            "WiserHeatAPIv2.sln"
+          ]
+        }
+      ]
+    },
+    "ci-build-build": {
+      "commands": [
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "build",
+            "WiserHeatAPIv2.sln",
+            "--configuration",
+            "Release",
+            "--no-restore",
+            "-p:ContinuousIntegrationBuild=true"
+          ]
+        }
+      ]
+    },
+    "ci-build-run-offline-nunit-tests-on-both-target-frameworks": {
+      "commands": [
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "test",
+            "WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "--no-restore",
+            "--filter",
+            "TestCategory!=Live",
+            "--logger",
+            "trx;LogFilePrefix=wiser",
+            "--results-directory",
+            "TestResults"
+          ]
+        }
+      ],
+      "results": [
+        "TestResults/**/*.trx"
+      ]
+    },
+    "ci-build-pack-library": {
+      "commands": [
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "pack",
+            "WiserHeatAPIv2/WiserHeatAPIv2.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:ContinuousIntegrationBuild=true",
+            "-o",
+            "${env:BUILD_INPUT_0}/artifacts"
+          ]
+        }
+      ]
+    }
+  }
+}

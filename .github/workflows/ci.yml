@@ -22,14 +22,17 @@ jobs:
             10.0.x
 
       - name: Restore
-        run: dotnet restore WiserHeatAPIv2.sln
-
+        uses: oznetmaster/BuildAutomation@6f20e1937d3bab8ba7e545a3a77b6fe689f63f2e
+        with:
+          task: ci-build-restore
       - name: Build
-        run: dotnet build WiserHeatAPIv2.sln --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
-
+        uses: oznetmaster/BuildAutomation@6f20e1937d3bab8ba7e545a3a77b6fe689f63f2e
+        with:
+          task: ci-build-build
       - name: Run offline NUnit tests on both target frameworks
-        run: dotnet test WiserHeatAPIv2.Tests/WiserHeatAPIv2.Tests.csproj --configuration Release --no-build --no-restore --filter "TestCategory!=Live" --logger "trx;LogFilePrefix=wiser" --results-directory TestResults
-
+        uses: oznetmaster/BuildAutomation@6f20e1937d3bab8ba7e545a3a77b6fe689f63f2e
+        with:
+          task: ci-build-run-offline-nunit-tests-on-both-target-frameworks
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,8 +42,11 @@ jobs:
           if-no-files-found: warn
 
       - name: Pack library
-        run: dotnet pack WiserHeatAPIv2/WiserHeatAPIv2.csproj --configuration Release --no-build -p:ContinuousIntegrationBuild=true -o ${{ github.workspace }}/artifacts
-
+        uses: oznetmaster/BuildAutomation@6f20e1937d3bab8ba7e545a3a77b6fe689f63f2e
+        with:
+          task: ci-build-pack-library
+        env:
+          BUILD_INPUT_0: ${{ github.workspace }}
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
