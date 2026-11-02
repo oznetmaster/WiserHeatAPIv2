@@ -64,6 +64,7 @@ public class WiserDevice
 	/// <remarks>
 	/// Setter is synchronous and delegates to <see cref="SetDeviceLockEnabledAsync(bool, CancellationToken)"/>, blocking until completion. Exceptions from the async operation are propagated synchronously.
 	/// </remarks>
+	/// <value>Whether the device lock is enabled.</value>
 	public bool DeviceLockEnabled
 		{
 		get => _deviceLockEnabled;
@@ -108,6 +109,7 @@ public class WiserDevice
 		}
 
 	/// <summary>Gets whether the device is currently in identify mode.</summary>
+	/// <value>Whether the device is currently in identify mode.</value>
 	public bool Identify
 		{
 		get; private set;
@@ -150,6 +152,7 @@ public class WiserDevice
 	/// name. Exceptions from the operation are propagated synchronously.
 	/// </remarks>
 	/// <exception cref="ArgumentException">Thrown if the new name is null or whitespace.</exception>
+	/// <value>The device name.</value>
 	public string Name
 		{
 		get => _name;
@@ -174,12 +177,14 @@ public class WiserDevice
 		}
 
 	/// <summary>Gets the room id for this device, if any.</summary>
+	/// <value>The room id for this device, if any.</value>
 	public int RoomId
 		{
 		get;
 		}
 
 	/// <summary>Gets the type id for this device.</summary>
+	/// <value>The type id for this device.</value>
 	public int DeviceTypeId
 		{
 		get;
@@ -192,6 +197,7 @@ public class WiserDevice
 	public string FirmwareVersion => Data.GetStringOr ("ActiveFirmwareVersion");
 
 	/// <summary>Gets the unique device id.</summary>
+	/// <value>The unique device id.</value>
 	public int Id
 		{
 		get;
@@ -204,6 +210,7 @@ public class WiserDevice
 	public virtual string Model => Data.GetStringOr ("ModelIdentifier");
 
 	/// <summary>Gets the Zigbee node id.</summary>
+	/// <value>The Zigbee node id.</value>
 	public int NodeId => Data.TryGetValue ("NodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
 
 	/// <summary>
@@ -219,9 +226,11 @@ public class WiserDevice
 	public string ProductModel => Data.GetStringOr ("ProductModel");
 
 	/// <summary>Gets the parent node id (if any).</summary>
+	/// <value>The parent node id (if any).</value>
 	public int ParentNodeId => Data.TryGetValue ("ParentNodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
 
 	/// <summary>Gets the product type.</summary>
+	/// <value>The product type.</value>
 	public string ProductType
 		{
 		get;
@@ -234,24 +243,28 @@ public class WiserDevice
 	public string SerialNumber => Data.GetStringOr ("SerialNumber");
 
 	/// <summary>Gets radio signal metrics for this device.</summary>
+	/// <value>Radio signal metrics for this device.</value>
 	public WiserSignalStrength Signal
 		{
 		get;
 		}
 
 	/// <summary>Gets the REST controller used to communicate with the hub.</summary>
+	/// <value>The REST controller used to communicate with the hub.</value>
 	protected WiserRestController WiserRestController
 		{
 		get;
 		}
 
 	/// <summary>Gets the raw device data dictionary.</summary>
+	/// <value>The raw device data dictionary.</value>
 	protected IDictionary<string, object> Data
 		{
 		get;
 		}
 
 	/// <summary>Gets the device-type specific data dictionary.</summary>
+	/// <value>The device-type specific data dictionary.</value>
 	protected IDictionary<string, object> DeviceTypeData
 		{
 		get;

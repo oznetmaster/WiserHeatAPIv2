@@ -16,15 +16,21 @@ namespace WiserHeatApiV2;
 /// <summary>
 /// Represents a discovered Wiser Hub endpoint.
 /// </summary>
+/// <param name="ipAddress">The IP address of the hub endpoint.</param>
+/// <param name="port">The HTTP port; defaults to 80.</param>
 public class WiserDiscoveredHub (IPAddress ipAddress, int port = 80)
 	{
 	/// <summary>Gets the hub IP address.</summary>
+	/// <value>The hub IP address.</value>
 	public IPAddress IpAddress { get; } = ipAddress;
 	/// <summary>Gets the HTTP port used by the hub.</summary>
+	/// <value>The HTTP port used by the hub.</value>
 	public int Port { get; } = port;
 	/// <summary>Gets the base URL to the hub (including port when non-default).</summary>
+	/// <value>The base URL to the hub (including port when non-default).</value>
 	public string Url => Port == 80 ? $"http://{IpAddress}" : $"http://{IpAddress}:{Port}";
 	/// <summary>Gets the discovery timestamp.</summary>
+	/// <value>The discovery timestamp.</value>
 	public DateTime DiscoveredAt { get; } = DateTime.Now;
 
 	/// <inheritdoc />
@@ -37,24 +43,31 @@ public class WiserDiscoveredHub (IPAddress ipAddress, int port = 80)
 public class WiserDiscoveryOptions
 	{
 	/// <summary>Gets or sets the overall discovery timeout in seconds.</summary>
+	/// <value>The overall discovery timeout in seconds.</value>
 	public int TimeoutSeconds { get; set; } = 30;
 	/// <summary>Gets or sets the maximum concurrent network operations.</summary>
+	/// <value>The maximum concurrent network operations.</value>
 	public int MaxConcurrency { get; set; } = 50;
 	/// <summary>Gets or sets the ICMP ping timeout in milliseconds.</summary>
+	/// <value>The ICMP ping timeout in milliseconds.</value>
 	public int PingTimeout { get; set; } = 500;
 	/// <summary>Gets or sets the HTTP probe timeout in milliseconds.</summary>
+	/// <value>The HTTP probe timeout in milliseconds.</value>
 	public int HttpTimeout { get; set; } = 1500;
 	/// <summary>Gets or sets whether to display progress output.</summary>
+	/// <value>Whether to display progress output.</value>
 	public bool ShowProgress
 		{
 		get; set;
 		}
 	/// <summary>Gets or sets whether to display verbose debug output.</summary>
+	/// <value>Whether to display verbose debug output.</value>
 	public bool ShowDebug
 		{
 		get; set;
 		}
 	/// <summary>Gets or sets the maximum number of hubs to return; 0 for unlimited.</summary>
+	/// <value>The maximum number of hubs to return; 0 for unlimited.</value>
 	public int MaxResults
 		{
 		get; set;
@@ -71,26 +84,31 @@ public class NetworkInfo
 		;
 
 	/// <summary>Gets the base network IP (x.y.z.0).</summary>
+	/// <value>The base network IP (x.y.z.0).</value>
 	public IPAddress NetworkBase
 		{
 		get;
 		}
 	/// <summary>Gets the calculated network address.</summary>
+	/// <value>The calculated network address.</value>
 	public IPAddress NetworkAddress
 		{
 		get;
 		}
 	/// <summary>Gets the subnet mask.</summary>
+	/// <value>The subnet mask.</value>
 	public IPAddress SubnetMask
 		{
 		get;
 		}
 	/// <summary>Gets the calculated broadcast address.</summary>
+	/// <value>The calculated broadcast address.</value>
 	public IPAddress BroadcastAddress
 		{
 		get;
 		}
 	/// <summary>Gets the number of usable host addresses in the subnet.</summary>
+	/// <value>The number of usable host addresses in the subnet.</value>
 	public int HostCount
 		{
 		get;
@@ -152,6 +170,9 @@ public class WiserHubDiscovery
 	/// <summary>
 	/// Discover Wiser Hubs as they are found (streaming results)
 	/// </summary>
+	/// <param name="options">The discovery settings; null uses the default settings.</param>
+	/// <param name="cancellationToken">A token used to cancel the operation.</param>
+	/// <returns>An asynchronous sequence of hubs as they are discovered.</returns>
 	public static async IAsyncEnumerable<WiserDiscoveredHub> DiscoverHubsAsyncEnumerable (
 		 WiserDiscoveryOptions? options = null,
 		 [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -548,6 +569,9 @@ public class WiserHubDiscovery
 	/// <summary>
 	/// Tests if a specific IP address is a Wiser Hub
 	/// </summary>
+	/// <param name="ipAddress">The IP address of the hub endpoint.</param>
+	/// <param name="port">The HTTP port; defaults to 80.</param>
+	/// <returns>A task containing true if the endpoint returns a recognized hub response; otherwise false.</returns>
 	public static async Task<bool> IsWiserHubAsync (IPAddress ipAddress, int port = 80)
 		{
 		try
@@ -575,6 +599,9 @@ public class WiserHubDiscovery
 	/// <summary>
 	/// Backward compatible method that collects all results
 	/// </summary>
+	/// <param name="options">The discovery settings; null uses the default settings.</param>
+	/// <param name="cancellationToken">A token used to cancel the operation.</param>
+	/// <returns>A task containing all hubs found during discovery.</returns>
 	public static async Task<ConcurrentBag<WiserDiscoveredHub>> DiscoverHubsAsync (
 		 WiserDiscoveryOptions? options = null,
 		 CancellationToken cancellationToken = default)
@@ -592,6 +619,12 @@ public class WiserHubDiscovery
 	/// <summary>
 	/// Streaming version of QuickScanRangeAsync
 	/// </summary>
+	/// <param name="networkBase">An IPv4 address identifying the /24 network to scan.</param>
+	/// <param name="startIp">Reserved host-range start value; the current implementation scans the full /24 network.</param>
+	/// <param name="endIp">Reserved host-range end value; the current implementation scans the full /24 network.</param>
+	/// <param name="options">The discovery settings; null uses the default settings.</param>
+	/// <param name="cancellationToken">A token used to cancel the operation.</param>
+	/// <returns>An asynchronous sequence of hubs discovered on the specified /24 network.</returns>
 	public static async IAsyncEnumerable<WiserDiscoveredHub> QuickScanRangeAsyncEnumerable (
 		 IPAddress networkBase,
 		 int startIp = 0,
@@ -611,6 +644,11 @@ public class WiserHubDiscovery
 	/// <summary>
 	/// Backward compatible QuickScanRangeAsync
 	/// </summary>
+	/// <param name="networkBase">An IPv4 address identifying the /24 network to scan.</param>
+	/// <param name="startIp">Reserved host-range start value; the current implementation scans the full /24 network.</param>
+	/// <param name="endIp">Reserved host-range end value; the current implementation scans the full /24 network.</param>
+	/// <param name="options">The discovery settings; null uses the default settings.</param>
+	/// <returns>A task containing the hubs discovered on the specified /24 network.</returns>
 	public static async Task<ConcurrentBag<WiserDiscoveredHub>> QuickScanRangeAsync (
 		 IPAddress networkBase,
 		 int startIp = 0,

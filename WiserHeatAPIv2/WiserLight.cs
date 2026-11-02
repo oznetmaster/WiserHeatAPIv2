@@ -19,6 +19,10 @@ public class WiserLight : WiserElectricalLevelDevice
 	//private string _name;
 
 	/// <summary>Initializes a new instance of the <see cref="WiserLight"/> class.</summary>
+	/// <param name="wiserRestController">The controller used to communicate with the hub.</param>
+	/// <param name="data">The hub data used to populate this device or view.</param>
+	/// <param name="deviceTypeData">The device-type-specific data returned by the hub.</param>
+	/// <param name="schedule">The schedule associated with this device.</param>
 	public WiserLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule)
 		 : base (wiserRestController, data, deviceTypeData)
 		{
@@ -37,9 +41,12 @@ public class WiserLight : WiserElectricalLevelDevice
 		}
 
 	/// <summary>Synchronously sends a command to the light.</summary>
+	/// <param name="cmd">The command payload to send to the device endpoint.</param>
 	protected void SendCommand (object cmd) => _ = SendCommandAsync (cmd).GetAwaiter ().GetResult ();
 
 	/// <summary>Asynchronously sends a command to the light.</summary>
+	/// <param name="cmd">The command payload to send to the device endpoint.</param>
+	/// <returns>A task containing true if the hub accepts the light command; otherwise false.</returns>
 	protected async Task<bool> SendCommandAsync (object cmd)
 		{
 		var url = WISER_REST_LIGHT.FormatInvariant (LightId);
@@ -49,23 +56,30 @@ public class WiserLight : WiserElectricalLevelDevice
 		}
 
 	/// <summary>Validates a light operating mode value.</summary>
+	/// <param name="mode">The operating mode to validate.</param>
+	/// <returns>True if the mode matches a supported mode, ignoring case; otherwise false.</returns>
 	protected static bool ValidateMode (string mode) =>
 		AvailableModes.Any (m => m.Equals (mode, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>Validates a light away-mode action value.</summary>
+	/// <param name="action">The away-mode action to validate.</param>
+	/// <returns>True if the action matches a supported non-null away action, ignoring case; otherwise false.</returns>
 	protected static bool ValidateAwayAction (string? action) =>
 		action is not null && AvailableAwayModeActions.Any (a => a.Equals (action, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>Gets the list of allowed modes.</summary>
+	/// <value>The list of allowed modes.</value>
 	public static List<string> AvailableModes => [.. GetValues<WiserLightMode> ()
 		 .Select (m => m.ToString ())];
 
 	/// <summary>Gets the list of allowed away-mode actions.</summary>
+	/// <value>The list of allowed away-mode actions.</value>
 	public static List<string> AvailableAwayModeActions => [.. GetValues<WiserAwayAction> ()
 		 .Where (a => a is WiserAwayAction.Off or WiserAwayAction.NoChange)
 		 .Select (a => a.ToString ())];
 
 	/// <summary>Gets or sets the away-mode action for the light.</summary>
+	/// <value>The away-mode action for the light.</value>
 	public string? AwayModeAction
 		{
 		get => AwayAction;
@@ -89,21 +103,27 @@ public class WiserLight : WiserElectricalLevelDevice
 		}
 
 	/// <summary>Gets the light control source.</summary>
+	/// <value>The light control source.</value>
 	public string? ControlSource => DeviceTypeData.GetStringOr ("ControlSource");
 
 	/// <summary>Gets the current state reported by the hub.</summary>
+	/// <value>The current state reported by the hub.</value>
 	public string? CurrentState => DeviceTypeData.GetStringOr ("CurrentState", "0");
 
 	/// <summary>Gets a value indicating whether the light supports dimming.</summary>
+	/// <value>A value indicating whether the light supports dimming.</value>
 	public bool IsDimmable => DeviceTypeData.TryGetValue ("IsDimmable", out var dimmable) && ConvertInvariant.ToBoolean (dimmable);
 
 	/// <summary>Gets a value indicating whether the light is currently on.</summary>
+	/// <value>A value indicating whether the light is currently on.</value>
 	public bool IsOn => _currentState == Constants.TEXT_ON;
 
 	/// <summary>Gets the light device type id.</summary>
+	/// <value>The light device type id.</value>
 	public int LightId => DeviceTypeId;
 
 	/// <summary>Gets or sets the operating mode.</summary>
+	/// <value>The operating mode.</value>
 	public string Mode
 		{
 		get => _mode;
@@ -162,27 +182,33 @@ public class WiserLight : WiserElectricalLevelDevice
 	*/
 
 	/// <summary>Gets the assigned schedule for the light, if any.</summary>
+	/// <value>The assigned schedule for the light, if any.</value>
 	public WiserSchedule? Schedule => Schedule1;
 
 	/// <summary>Gets the schedule id assigned to the light.</summary>
+	/// <value>The schedule id assigned to the light.</value>
 	public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 	/// <summary>Gets the target on/off state (0/1).</summary>
+	/// <value>The target on/off state (0/1).</value>
 	public int TargetState => DeviceTypeData.TryGetValue ("TargetState", out var state) ? ConvertInvariant.ToInt32 (state) : 0;
 
 	/// <summary>Gets the internal schedule reference.</summary>
+	/// <value>The internal schedule reference.</value>
 	protected WiserSchedule? Schedule1
 		{
 		get;
 		}
 
 	/// <summary>Gets or sets the away action backing value.</summary>
+	/// <value>The away action backing value.</value>
 	protected string? AwayAction
 		{
 		get; set;
 		}
 
 	/// <summary>Turns the light on.</summary>
+	/// <returns>A task containing true if the hub accepts the on command; otherwise false.</returns>
 	public async Task<bool> TurnOnAsync ()
 		{
 		var result = await SendCommandAsync (new
@@ -201,6 +227,7 @@ public class WiserLight : WiserElectricalLevelDevice
 		}
 
 	/// <summary>Turns the light off.</summary>
+	/// <returns>A task containing true if the hub accepts the off command; otherwise false.</returns>
 	public async Task<bool> TurnOffAsync ()
 		{
 		var result = await SendCommandAsync (new
@@ -222,22 +249,31 @@ public class WiserLight : WiserElectricalLevelDevice
 /// <summary>
 /// Represents a dimmable light with level control.
 /// </summary>
+/// <param name="wiserRestController">The controller used to communicate with the hub.</param>
+/// <param name="data">The hub data used to populate this device or view.</param>
+/// <param name="deviceTypeData">The device-type-specific data returned by the hub.</param>
+/// <param name="schedule">The schedule associated with this device.</param>
 public class WiserDimmableLight (WiserRestController wiserRestController, Dictionary<string, object> data, Dictionary<string, object> deviceTypeData, WiserSchedule schedule) : WiserLight (wiserRestController, data, deviceTypeData, schedule)
 	{
 	/// <summary>Represents output range limits for a dimmable light.</summary>
+	/// <param name="data">The output-range settings, or null when unavailable.</param>
 	public class WiserOutputRange (Dictionary<string, object>? data)
 		{
 		/// <summary>Gets the minimum output value, if provided.</summary>
+		/// <value>The minimum output value, if provided.</value>
 		public int? Minimum => data?.TryGetValue ("Minimum", out var min) == true ? (int?)ConvertInvariant.ToInt32 (min) : null;
 
 		/// <summary>Gets the maximum output value, if provided.</summary>
+		/// <value>The maximum output value, if provided.</value>
 		public int? Maximum => data?.TryGetValue ("Maximum", out var max) == true ? (int?)ConvertInvariant.ToInt32 (max) : null;
 		}
 
 	/// <summary>Gets the current level value reported by the hub.</summary>
+	/// <value>The current level value reported by the hub.</value>
 	public int CurrentLevel => DeviceTypeData.TryGetValue ("CurrentLevel", out var level) ? ConvertInvariant.ToInt32 (level) : 0;
 
 	/// <summary>Gets or sets the current brightness percentage (0..100).</summary>
+	/// <value>The current brightness percentage (0..100).</value>
 	public int CurrentPercentage
 		{
 		get => DeviceTypeData.TryGetValue ("CurrentPercentage", out var percentage) ? ConvertInvariant.ToInt32 (percentage) : 0;
@@ -262,20 +298,25 @@ public class WiserDimmableLight (WiserRestController wiserRestController, Dictio
 		}
 
 	/// <summary>Gets the last manual level.</summary>
+	/// <value>The last manual level.</value>
 	public int ManualLevel => DeviceTypeData.TryGetValue ("ManualLevel", out var level) ? ConvertInvariant.ToInt32 (level) : 0;
 
 	/// <summary>Gets the current override level.</summary>
+	/// <value>The current override level.</value>
 	public int OverrideLevel => DeviceTypeData.TryGetValue ("OverrideLevel", out var level) ? ConvertInvariant.ToInt32 (level) : 0;
 
 	/// <summary>Gets the configured output range for the device.</summary>
+	/// <value>The configured output range for the device.</value>
 	public WiserOutputRange OutputRange => DeviceTypeData.TryGetValue ("OutputRange", out var range) && range is Dictionary<string, object> rangeDict
 				? new WiserOutputRange (rangeDict)
 				: new WiserOutputRange (null);
 
 	/// <summary>Gets the scheduled brightness percentage.</summary>
+	/// <value>The scheduled brightness percentage.</value>
 	public int ScheduledPercentage => Data.TryGetValue ("ScheduledPercentage", out var percentage) ? ConvertInvariant.ToInt32 (percentage) : 0;
 
 	/// <summary>Gets the target brightness percentage.</summary>
+	/// <value>The target brightness percentage.</value>
 	public int TargetPercentage => DeviceTypeData.TryGetValue ("TargetPercentage", out var percentage) ? ConvertInvariant.ToInt32 (percentage) : 0;
 	}
 
@@ -285,28 +326,39 @@ public class WiserDimmableLight (WiserRestController wiserRestController, Dictio
 public class WiserLights
 	{
 		/// <summary>Gets all light devices.</summary>
+		/// <value>All light devices.</value>
 		public List<WiserLight> All { get; } = [];
 
 		/// <summary>Gets the list of allowed modes.</summary>
+		/// <value>The list of allowed modes.</value>
 		public static List<string> AvailableModes => [.. GetValues<WiserLightMode> ()
 			 .Select (m => m.ToString ())];
 
 		/// <summary>Gets the number of lights.</summary>
+		/// <value>The number of lights.</value>
 		public int Count => All.Count;
 
 		/// <summary>Gets all dimmable lights.</summary>
+		/// <value>All dimmable lights.</value>
 		public List<WiserDimmableLight> DimmableLights => [.. All.OfType<WiserDimmableLight> ()];
 
 		/// <summary>Gets all on/off-only lights.</summary>
+		/// <value>All on/off-only lights.</value>
 		public List<WiserLight> OnOffLights => [.. All.Where (light => !light.IsDimmable)];
 
 		/// <summary>Finds a light by its device id.</summary>
+		/// <param name="id">The device identifier to look up.</param>
+		/// <returns>The first matching light, or <see langword="null"/> if none matches.</returns>
 		public WiserLight? GetById (int id) => All.FirstOrDefault (light => light.Id == id);
 
 		/// <summary>Finds a light by its light id.</summary>
+		/// <param name="lightId">The light identifier to look up.</param>
+		/// <returns>The first matching light, or <see langword="null"/> if none matches.</returns>
 		public WiserLight? GetByLightId (int lightId) => All.FirstOrDefault (light => light.LightId == lightId);
 
 		/// <summary>Gets all lights assigned to a room id.</summary>
+		/// <param name="roomId">The identifier of the room whose devices are requested.</param>
+		/// <returns>All lights assigned to the room, or an empty list if none match.</returns>
 		public List<WiserLight> GetByRoomId (int roomId) => [.. All.Where (light => light.RoomId == roomId)];
 	}
 #endif

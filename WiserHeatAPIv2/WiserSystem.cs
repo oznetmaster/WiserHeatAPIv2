@@ -30,6 +30,11 @@ public class WiserSystem
 	/// <summary>
 	/// Creates a WiserSystem view from hub domain/network/device data.
 	/// </summary>
+	/// <param name="wiserRestController">The controller used to communicate with the hub.</param>
+	/// <param name="domainData">The system domain data returned by the hub.</param>
+	/// <param name="networkData">The network data returned by the hub.</param>
+	/// <param name="deviceData">The device records returned by the hub.</param>
+	/// <param name="openthermData">The OpenTherm data returned by the hub.</param>
 	public WiserSystem (WiserRestController wiserRestController, IDictionary<string, object> domainData,
 						IDictionary<string, object> networkData, List<Dictionary<string, object>> deviceData,
 						IDictionary<string, object> openthermData)
@@ -81,6 +86,10 @@ public class WiserSystem
 	/// <summary>
 	/// Update the system state using latest hub data payloads.
 	/// </summary>
+	/// <param name="domainData">The system domain data returned by the hub.</param>
+	/// <param name="networkData">The network data returned by the hub.</param>
+	/// <param name="deviceData">The device records returned by the hub.</param>
+	/// <param name="openthermData">The OpenTherm data returned by the hub.</param>
 	public void Update (IDictionary<string, object> domainData, IDictionary<string, object> networkData, List<Dictionary<string, object>> deviceData, IDictionary<string, object> openthermData)
 		{
 		if (domainData != null)
@@ -113,9 +122,11 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets the active system version string.</summary>
+	/// <value>The active system version string.</value>
 	public string? ActiveSystemVersion => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("ActiveSystemVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets or sets whether automatic daylight saving is enabled.</summary>
+	/// <value>Whether automatic daylight saving is enabled.</value>
 	public bool AutomaticDaylightSavingEnabled
 		{
 		get => _automaticDaylightSaving;
@@ -132,6 +143,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets or sets whether Away mode is enabled.</summary>
+	/// <value>Whether Away mode is enabled.</value>
 	public bool AwayModeEnabled
 		{
 		get => IsAwayModeEnabled;
@@ -168,6 +180,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets or sets whether Away mode affects hot water.</summary>
+	/// <value>Whether Away mode affects hot water.</value>
 	public bool AwayModeAffectsHotwater
 		{
 		get => _awayModeAffectsHotwater;
@@ -184,6 +197,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets or sets the Away mode target temperature.</summary>
+	/// <value>The Away mode target temperature.</value>
 	public double AwayModeTargetTemperature
 		{
 		get => WiserTemperatureFunctions.FromWiserTemp (_awayModeTargetTemperature, units: _wiserRestController.Units);
@@ -201,26 +215,31 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets the boiler fuel type string.</summary>
+	/// <value>The boiler fuel type string.</value>
 	public string? BoilerFuelType => _systemData == null ? Constants.TEXT_UNKNOWN : _systemData.TryGetValue ("BoilerSettings", out var settings) && settings is Dictionary<string, object> settingsDict
 		 ? settingsDict.TryGetValue ("FuelType", out var fuelType) ? fuelType.ToString () : Constants.TEXT_UNKNOWN
 		 : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets the hub brand name, if supplied.</summary>
+	/// <value>The hub brand name, if supplied.</value>
 	public string? BrandName => _systemData == null ? null : _systemData.TryGetValue ("BrandName", out var brand) ? brand.ToString () : null;
 
 	/// <summary>Gets reported controller capability flags.</summary>
+	/// <value>Reported controller capability flags.</value>
 	public WiserHubCapabilitiesInfo? Capabilities
 		{
 		get; private set;
 		}
 
 	/// <summary>Gets cloud connectivity state/details.</summary>
+	/// <value>Cloud connectivity state/details.</value>
 	public WiserCloud? Cloud
 		{
 		get; private set;
 		}
 
 	/// <summary>Gets or sets Wiser Comfort Mode.</summary>
+	/// <value>Wiser Comfort Mode.</value>
 	public bool ComfortModeEnabled
 		{
 		get => _comfortModeEnabled;
@@ -237,6 +256,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets or sets the Degraded Mode target temperature.</summary>
+	/// <value>The Degraded Mode target temperature.</value>
 	public double DegradedModeTargetTemperature
 		{
 		get => WiserTemperatureFunctions.FromWiserTemp (_degradedModeTargetTemperature, units: _wiserRestController.Units);
@@ -254,6 +274,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets or sets Eco mode.</summary>
+	/// <value>Eco mode.</value>
 	public bool EcoModeEnabled
 		{
 		get => _systemData != null && _systemData.TryGetValue ("EcoModeEnabled", out var eco) && ConvertInvariant.ToBoolean (eco);
@@ -270,53 +291,67 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets whether firmware over-the-air is enabled.</summary>
+	/// <value>Whether firmware over-the-air is enabled.</value>
 	public bool FirmwareOverTheAirEnabled => _systemData!.TryGetValue ("FotaEnabled", out var fota) && ConvertInvariant.ToBoolean (fota);
 
 	/// <summary>Gets the hub firmware version string.</summary>
+	/// <value>The hub firmware version string.</value>
 	public string? FirmwareVersion => _deviceData!.TryGetValue ("ActiveFirmwareVersion", out var version) ? version.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets the hub GPS geo position.</summary>
+	/// <value>The hub GPS geo position.</value>
 	public WiserGPS GeoPosition => new (_systemData!.TryGetValue ("GeoPosition", out var geo) && geo is Dictionary<string, object> geoDict
 		 ? geoDict : []);
 
 	/// <summary>Gets the hardware generation of the hub.</summary>
+	/// <value>The hardware generation of the hub.</value>
 	public int HardwareGeneration => _systemData!.TryGetValue ("HardwareGeneration", out var gen) ? ConvertInvariant.ToInt32 (gen) : 0;
 
 	/// <summary>Gets whether the heating button override is active.</summary>
+	/// <value>Whether the heating button override is active.</value>
 	public bool HeatingButtonOverrideState => _systemData!.TryGetValue ("HeatingButtonOverrideState", out var state) && state.ToString () == Constants.TEXT_ON;
 
 	/// <summary>Gets whether the hot water button override is active.</summary>
+	/// <value>Whether the hot water button override is active.</value>
 	public bool HotwaterButtonOverrideState => _systemData!.TryGetValue ("HotWaterButtonOverrideState", out var state) && state.ToString () == Constants.TEXT_ON;
 
 	/// <summary>Gets the hub time reported by the controller.</summary>
+	/// <value>The hub time reported by the controller.</value>
 	public DateTime HubTime
 		{
 		get; private set;
 		}
 
 	/// <summary>Gets the controller device id.</summary>
+	/// <value>The controller device id.</value>
 	public int Id => _deviceData!.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 	/// <summary>Gets a value indicating Away mode is enabled.</summary>
+	/// <value>A value indicating Away mode is enabled.</value>
 	public bool IsAwayModeEnabled => _overrideType == "Away";
 
 	/// <summary>Gets the model identifier for the controller.</summary>
+	/// <value>The model identifier for the controller.</value>
 	public string? Model => _deviceData!.TryGetValue ("ModelIdentifier", out var model) ? model.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets the host name of the controller.</summary>
+	/// <value>The host name of the controller.</value>
 	public string Name => Network?.Hostname ?? "No Name";
 
 	/// <summary>Gets the network information for the controller.</summary>
+	/// <value>The network information for the controller.</value>
 	public WiserNetwork? Network
 		{
 		get; private set;
 		}
 
 	/// <summary>Gets the controller Zigbee node id.</summary>
+	/// <value>The controller Zigbee node id.</value>
 	public int NodeId => _deviceData!.TryGetValue ("NodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
 
 #if OPENTHERM
 	/// <summary>Gets OpenTherm telemetry and status, if supported.</summary>
+	/// <value>OpenTherm telemetry and status, if supported.</value>
 	public WiserOpentherm? Opentherm
 		{
 		get; private set;
@@ -324,34 +359,42 @@ public class WiserSystem
 #endif
 
 	/// <summary>Gets the pairing status string.</summary>
+	/// <value>The pairing status string.</value>
 	public string? PairingStatus => _systemData!.TryGetValue ("PairingStatus", out var status) ? status.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets the parent Zigbee node id.</summary>
+	/// <value>The parent Zigbee node id.</value>
 	public int ParentNodeId => _deviceData!.TryGetValue ("ParentNodeId", out var nodeId) ? ConvertInvariant.ToInt32 (nodeId) : 0;
 
 	/// <summary>Gets the product type string.</summary>
+	/// <value>The product type string.</value>
 	public string? ProductType => _deviceData!.TryGetValue ("ProductType", out var type) ? type.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets Zigbee signal metrics for the controller.</summary>
+	/// <value>Zigbee signal metrics for the controller.</value>
 	public WiserSignalStrength? Signal
 		{
 		get; private set;
 		}
 
 	/// <summary>Gets formatted sunrise times for the week.</summary>
+	/// <value>Formatted sunrise times for the week.</value>
 	public Dictionary<string, string> SunriseTimes => _systemData!.TryGetValue ("SunriseTimes", out var times) && times is List<object> timesList
 			 ? SpecialTimes.SunriseTimes ([.. timesList.Select (ConvertInvariant.ToInt32)])
 			 : [];
 
 	/// <summary>Gets formatted sunset times for the week.</summary>
+	/// <value>Formatted sunset times for the week.</value>
 	public Dictionary<string, string> SunsetTimes => _systemData!.TryGetValue ("SunsetTimes", out var times) && times is List<object> timesList
 			 ? SpecialTimes.SunsetTimes ([.. timesList.Select (ConvertInvariant.ToInt32)])
 			 : [];
 
 	/// <summary>Gets the system mode string.</summary>
+	/// <value>The system mode string.</value>
 	public string? SystemMode => _systemData!.TryGetValue ("SystemMode", out var mode) ? mode.ToString () : Constants.TEXT_UNKNOWN;
 
 	/// <summary>Gets or sets the time zone offset in minutes.</summary>
+	/// <value>The time zone offset in minutes.</value>
 	public int TimezoneOffset
 		{
 		get => _timezoneOffset;
@@ -368,9 +411,11 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets whether any user overrides are active.</summary>
+	/// <value>Whether any user overrides are active.</value>
 	public bool UserOverridesActive => _systemData!.TryGetValue ("UserOverridesActive", out var active) && ConvertInvariant.ToBoolean (active);
 
 	/// <summary>Gets or sets whether valve protection is enabled.</summary>
+	/// <value>Whether valve protection is enabled.</value>
 	public bool ValveProtectionEnabled
 		{
 		get => _valveProtectionEnabled;
@@ -387,6 +432,7 @@ public class WiserSystem
 		}
 
 	/// <summary>Gets Zigbee radio info for the hub.</summary>
+	/// <value>Zigbee radio info for the hub.</value>
 	public WiserZigbee? Zigbee
 		{
 		get; private set;
@@ -422,6 +468,8 @@ public class WiserSystem
 	/// <summary>
 	/// Cancels all user overrides across the system.
 	/// </summary>
+	/// <param name="cancellationToken">A token used to cancel the operation.</param>
+	/// <returns>A task containing true if the hub accepts the cancellation command; otherwise false.</returns>
 	public Task<bool> CancelAllOverridesAsync (CancellationToken cancellationToken = default) =>
 		SendCommandAsync (new
 			{

@@ -189,6 +189,7 @@ public class WiserNetwork
 /// Values are populated from an individual entry in the hub's DetectedAccessPoints list. Properties return <see langword="null"/>
 /// when the corresponding field is not present in the payload.
 /// </remarks>
+/// <param name="data">One detected-access-point record returned by the hub.</param>
 public class WiserDetectedNetwork (Dictionary<string, object> data)
 	{
 	/// <summary>

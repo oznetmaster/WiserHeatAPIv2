@@ -336,6 +336,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Logger instance for schedule operations. This logger is used for logging errors and information related to schedule actions and is initialized for the WiserSchedule type.
 	/// </remarks>
+	/// <value>Logger instance for schedule operations.</value>
 	protected static ILog Logger { get; set; } = log4net.LogManager.GetLogger (typeof (WiserSchedule));
 
 	/// <summary>
@@ -344,6 +345,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the REST controller used to communicate with the Wiser hub. This controller is used for all RESTful interactions with the hub and is set during construction.
 	/// </remarks>
+	/// <value>The REST controller used to communicate with the Wiser hub.</value>
 	protected WiserRestController WiserRestController { get; } = wiserRestController;
 
 	/// <summary>
@@ -352,6 +354,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the type of the schedule (Heating, OnOff, Level). This property is set during construction and determines the schedule's category.
 	/// </remarks>
+	/// <value>The type of the schedule (Heating, OnOff, Level).</value>
 	protected string Type { get; } = scheduleType;
 
 	/// <summary>
@@ -360,6 +363,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the raw schedule data as a concurrent dictionary. This contains all schedule data before any filtering or conversion and is initialized from the provided schedule data dictionary.
 	/// </remarks>
+	/// <value>The raw schedule data as a concurrent dictionary.</value>
 	protected ConcurrentDictionary<string, object> ScheduleData1 { get; } = new ConcurrentDictionary<string, object> (scheduleData);
 
 	/// <summary>
@@ -368,6 +372,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the dictionary of sunrise times by day. This property is used for schedules that reference sunrise events and is set during construction.
 	/// </remarks>
+	/// <value>The dictionary of sunrise times by day.</value>
 	protected IDictionary<string, string> Sunrises { get; } = sunrises;
 
 	/// <summary>
@@ -376,6 +381,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the dictionary of sunset times by day. This property is used for schedules that reference sunset events and is set during construction.
 	/// </remarks>
+	/// <value>The dictionary of sunset times by day.</value>
 	protected IDictionary<string, string> Sunsets { get; } = sunsets;
 
 	/// <summary>
@@ -384,6 +390,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the list of assignment dictionaries for this schedule. Each assignment dictionary contains details about the assignment (e.g., room or device) and is used for processing assignments.
 	/// </remarks>
+	/// <value>The list of assignment dictionaries for this schedule.</value>
 	protected List<IDictionary<string, object>> Assignments1 { get; } = [];
 
 	/// <summary>
@@ -392,6 +399,7 @@ public abstract class WiserSchedule (WiserRestController wiserRestController, st
 	/// <remarks>
 	/// Gets the list of device IDs assigned to this schedule. This property is used for device-based schedules (e.g., OnOff, Level) and is initialized as an empty list.
 	/// </remarks>
+	/// <value>The list of device IDs assigned to this schedule.</value>
 	protected List<int> DeviceIds1 { get; } = [];
 
 	/// <summary>
@@ -1542,6 +1550,7 @@ public class WiserSchedules
 	/// <summary>
 	/// Gets all schedules in the system.
 	/// </summary>
+	/// <value>All schedules in the system.</value>
 	public List<WiserSchedule> All => [.. HeatingSchedules.Cast<WiserSchedule> (),
 		 .. OnoffSchedules.Cast<WiserSchedule> (),
 #if LIGHT
@@ -1552,23 +1561,27 @@ public class WiserSchedules
 	/// <summary>
 	/// Gets the total number of schedules.
 	/// </summary>
+	/// <value>The total number of schedules.</value>
 	public int Count => All.Count;
 
 	/// <summary>
 	/// Gets the list of heating schedules.
 	/// </summary>
+	/// <value>The list of heating schedules.</value>
 	public List<WiserHeatingSchedule> HeatingSchedules { get; } = [];
 
 #if LIGHT
 	/// <summary>
 	/// Gets the list of level schedules.
 	/// </summary>
+	/// <value>/// Gets the list of level schedules. ///</value>
 	public List<WiserLevelSchedule> LevelSchedules { get; } = [];
 #endif
 
 	/// <summary>
 	/// Gets the list of on/off schedules.
 	/// </summary>
+	/// <value>The list of on/off schedules.</value>
 	public List<WiserOnOffSchedule> OnoffSchedules { get; } = [];
 
 	/// <summary>

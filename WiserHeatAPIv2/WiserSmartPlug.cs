@@ -57,6 +57,7 @@ public class WiserSmartPlug : WiserDevice
 	/// Gets the supported operating modes for a smart plug.
 	/// </summary>
 	/// <remarks>Values are derived from <see cref="WiserSmartPlugMode"/> (e.g., Auto, Manual).</remarks>
+	/// <value>The supported operating modes for a smart plug.</value>
 	public static List<string> AvailableModes => [.. GetValues<WiserSmartPlugMode> ()
 		 .Select (m => m.ToString ())];
 
@@ -64,6 +65,7 @@ public class WiserSmartPlug : WiserDevice
 	/// Gets the supported Away mode actions for smart plugs.
 	/// </summary>
 	/// <remarks>Permitted values are <see cref="WiserAwayAction.Off"/> and <see cref="WiserAwayAction.NoChange"/>.</remarks>
+	/// <value>The supported Away mode actions for smart plugs.</value>
 	public static List<string> AvailableAwayModeActions => [.. GetValues<WiserAwayAction> ()
  		 .Where (a => a is WiserAwayAction.Off or WiserAwayAction.NoChange)
  		 .Select (a => a.ToString ())];
@@ -163,6 +165,7 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets the control source description reported by the hub (e.g., Auto, Manual, Schedule).
 	/// </summary>
+	/// <value>The control source description reported by the hub (e.g., Auto, Manual, Schedule).</value>
 	public string ControlSource => DeviceTypeData.GetStringOr ("ControlSource");
 
 	/// <summary>
@@ -180,6 +183,7 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets the manual state string when the plug is under manual control.
 	/// </summary>
+	/// <value>The manual state string when the plug is under manual control.</value>
 	public string ManualState => DeviceTypeData.GetStringOr ("ManualState");
 
 	/// <summary>
@@ -220,11 +224,13 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets whether the plug output is currently on.
 	/// </summary>
+	/// <value>Whether the plug output is currently on.</value>
 	public bool IsOn => _outputState == Constants.TEXT_ON;
 
 	/// <summary>
 	/// Gets the schedule assigned to this plug, if any.
 	/// </summary>
+	/// <value>The schedule assigned to this plug, if any.</value>
 	public WiserSchedule? Schedule
 		{
 		get;
@@ -233,11 +239,13 @@ public class WiserSmartPlug : WiserDevice
 	/// <summary>
 	/// Gets the schedule identifier associated with this plug, if any.
 	/// </summary>
+	/// <value>The schedule identifier associated with this plug, if any.</value>
 	public int ScheduleId => DeviceTypeData.TryGetValue ("ScheduleId", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 	/// <summary>
 	/// Gets the current scheduled state reported by the hub.
 	/// </summary>
+	/// <value>The current scheduled state reported by the hub.</value>
 	public string ScheduledState => DeviceTypeData.GetStringOr ("ScheduledState");
 
 	/// <summary>
@@ -295,14 +303,17 @@ public class WiserSmartPlug : WiserDevice
 public class WiserSmartPlugs
 	{
 		/// <summary>Gets all smart plugs.</summary>
+		/// <value>All smart plugs.</value>
 		public List<WiserSmartPlug> All { get; } = [];
 
 		/// <summary>Gets supported smart plug modes.</summary>
 		/// <remarks>Values are derived from <see cref="WiserSmartPlugMode"/>.</remarks>
+		/// <value>Supported smart plug modes.</value>
 		public static List<string> AvailableModes => [.. GetValues<WiserSmartPlugMode> ()
 			 .Select (m => m.ToString ())];
 
 		/// <summary>Gets the number of smart plugs.</summary>
+		/// <value>The number of smart plugs.</value>
 		public int Count => All.Count;
 
 		/// <summary>

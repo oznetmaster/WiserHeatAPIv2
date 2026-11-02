@@ -328,10 +328,8 @@ public class WiserRoom
 	public double ManualTargetTemperature => WiserTemperatureFunctions.FromWiserTemp (
 		 _data.TryGetValue ("ManualSetPoint", out var setPoint) ? setPoint : TEMP_MINIMUM, units: _wiserRestController.Units);
 
-	/// <summary>
-	/// Gets 
-	/// </summary>
-	/// <value></value>
+	/// <summary>Gets or sets the room heating mode.</summary>
+	/// <value>The room heating mode.</value>
 	/// <remarks>
 	/// Setter is synchronous and delegates to <see cref="SetModeAsync(string, CancellationToken)"/>.
 	/// Setting the mode may cancel active overrides and can change the target temperature (e.g., setting Off applies a special off setpoint).
@@ -420,6 +418,7 @@ public class WiserRoom
 	/// Setter is synchronous and delegates to <see cref="SetNameAsync(string, CancellationToken)"/>.
 	/// The hub may normalize the name (e.g., title-case).
 	/// </remarks>
+	/// <value>The room name.</value>
 	public string Name
 		{
 		get => _name;
@@ -460,10 +459,12 @@ public class WiserRoom
 
 #if HEATACTUATOR
 	/// <summary>Gets the number of heating actuators associated with this room.</summary>
+	/// <value>The number of heating actuators associated with this room.</value>
 	public int NumberOfHeatingActuators => HeatingActuatorIds.Count;
 #endif
 
 	/// <summary>Gets the number of smart valves associated with this room.</summary>
+	/// <value>The number of smart valves associated with this room.</value>
 	public int NumberOfSmartvalves => SmartvalveIds.Count;
 
 	/// <summary>
@@ -736,6 +737,7 @@ public class WiserRoom
 	/// Gets or sets whether window detection is enabled for this room.
 	/// </summary>
 	/// <remarks>Setter is synchronous and delegates to <see cref="SetWindowDetectionActiveAsync(bool, CancellationToken)"/>.</remarks>
+	/// <value>Whether window detection is enabled for this room.</value>
 	public bool WindowDetectionActive
 		{
 		get => _windowDetectionActive;

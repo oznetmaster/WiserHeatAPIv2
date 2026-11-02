@@ -364,14 +364,17 @@ public class WiserBattery (IDictionary<string, object> data)
 public class WiserSignalStrength (IDictionary<string, object> data)
 	{
 	/// <summary>Gets the hub-provided textual signal strength.</summary>
+	/// <value>The hub-provided textual signal strength.</value>
 	public string DisplayedSignalStrength => data.GetStringOr ("DisplayedSignalStrength");
 
 	/// <summary>Gets the LQI value for controller reception, if available.</summary>
+	/// <value>The LQI value for controller reception, if available.</value>
 	public int? ControllerReceptionLqi => data.TryGetValue ("ReceptionOfController", out var reception) && reception is Dictionary<string, object> receptionDict
 				? receptionDict.TryGetValue ("Lqi", out var lqi) ? ConvertInvariant.ToInt32 (lqi) : null
 				: null;
 
 	/// <summary>Gets the RSSI value for controller reception, if available.</summary>
+	/// <value>The RSSI value for controller reception, if available.</value>
 	public int? ControllerReceptionRssi => data.TryGetValue ("ReceptionOfController", out var reception) && reception is Dictionary<string, object> receptionDict
 				? receptionDict.TryGetValue ("Rssi", out var rssi) ? ConvertInvariant.ToInt32 (rssi) : null
 				: null;
@@ -383,11 +386,13 @@ public class WiserSignalStrength (IDictionary<string, object> data)
 			 : 0;
 
 	/// <summary>Gets the LQI value for device reception, if available.</summary>
+	/// <value>The LQI value for device reception, if available.</value>
 	public int? DeviceReceptionLqi => data.TryGetValue ("ReceptionOfDevice", out var reception) && reception is Dictionary<string, object> receptionDict
 				? receptionDict.TryGetValue ("Lqi", out var lqi) ? ConvertInvariant.ToInt32 (lqi) : null
 				: null;
 
 	/// <summary>Gets the RSSI value for device reception, if available.</summary>
+	/// <value>The RSSI value for device reception, if available.</value>
 	public int? DeviceReceptionRssi => data.TryGetValue ("ReceptionOfDevice", out var reception) && reception is Dictionary<string, object> receptionDict
 				? receptionDict.TryGetValue ("Rssi", out var rssi) ? ConvertInvariant.ToInt32 (rssi) : null
 				: null;
@@ -460,9 +465,11 @@ public class WiserCloud (string cloudStatus, Dictionary<string, object> data)
 public class WiserFirmwareUpgradeItem (Dictionary<string, object> data)
 	{
 	/// <summary>Gets the numeric identifier for the firmware item.</summary>
+	/// <value>The numeric identifier for the firmware item.</value>
 	public int Id => data.TryGetValue ("id", out var id) ? ConvertInvariant.ToInt32 (id) : 0;
 
 	/// <summary>Gets the firmware filename string.</summary>
+	/// <value>The firmware filename string.</value>
 	public string Filename => data.GetStringOr ("FirmwareFilename");
 	}
 
@@ -483,6 +490,7 @@ public class WiserFirmwareUpgradeInfo
 		}
 
 	/// <summary>Gets all firmware items.</summary>
+	/// <value>All firmware items.</value>
 	public List<WiserFirmwareUpgradeItem> All { get; } = [];
 
 	/// <summary>Finds an item by its identifier.</summary>
@@ -499,39 +507,51 @@ public class WiserFirmwareUpgradeInfo
 public class WiserHubCapabilitiesInfo (Dictionary<string, object> data)
 	{
 	/// <summary>Gets all capability flags as a flat dictionary.</summary>
+	/// <value>All capability flags as a flat dictionary.</value>
 	public Dictionary<string, object> All => new (data);
 
 	/// <summary>Gets a value indicating whether Smart Plug is supported.</summary>
+	/// <value>A value indicating whether Smart Plug is supported.</value>
 	public bool SmartPlug => data.TryGetValue ("SmartPlug", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether TRVs (iTRV) are supported.</summary>
+	/// <value>A value indicating whether TRVs (iTRV) are supported.</value>
 	public bool ITRV => data.TryGetValue ("ITRV", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether room stats are supported.</summary>
+	/// <value>A value indicating whether room stats are supported.</value>
 	public bool Roomstat => data.TryGetValue ("Roomstat", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether underfloor heating is supported.</summary>
+	/// <value>A value indicating whether underfloor heating is supported.</value>
 	public bool UFH => data.TryGetValue ("UFH", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether UFH floor temperature sensor is supported.</summary>
+	/// <value>A value indicating whether UFH floor temperature sensor is supported.</value>
 	public bool UFHFloorTempSensor => data.TryGetValue ("UFHFloorTempSensor", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether UFH dew sensor is supported.</summary>
+	/// <value>A value indicating whether UFH dew sensor is supported.</value>
 	public bool UFHDewSensor => data.TryGetValue ("UFHDewSensor", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether Heating Actuator is supported.</summary>
+	/// <value>A value indicating whether Heating Actuator is supported.</value>
 	public bool HACT => data.TryGetValue ("HACT", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether Lighting Actuator is supported.</summary>
+	/// <value>A value indicating whether Lighting Actuator is supported.</value>
 	public bool LACT => data.TryGetValue ("LACT", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether Light devices are supported.</summary>
+	/// <value>A value indicating whether Light devices are supported.</value>
 	public bool Light => data.TryGetValue ("Light", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether Shutter devices are supported.</summary>
+	/// <value>A value indicating whether Shutter devices are supported.</value>
 	public bool Shutter => data.TryGetValue ("Shutter", out var value) && ConvertInvariant.ToBoolean (value);
 
 	/// <summary>Gets a value indicating whether Load Controller is supported.</summary>
+	/// <value>A value indicating whether Load Controller is supported.</value>
 	public bool LoadController => data.TryGetValue ("LoadController", out var value) && ConvertInvariant.ToBoolean (value);
 	}
 
@@ -641,9 +661,11 @@ public class WiserScheduleNext (string scheduleType, Dictionary<string, object> 
 		: this (scheduleType, data) => _units = units;
 
 	/// <summary>Gets the day name for the next scheduled event.</summary>
+	/// <value>The day name for the next scheduled event.</value>
 	public string Day => data.GetStringOr ("Day", "");
 
 	/// <summary>Gets the time of the next event as a TimeSpan.</summary>
+	/// <value>The time of the next event as a TimeSpan.</value>
 	public TimeSpan Time
 		{
 		get
@@ -688,6 +710,7 @@ public class WiserScheduleNext (string scheduleType, Dictionary<string, object> 
 		}
 
 	/// <summary>Gets the next setting (temperature, on/off state, or level) for the schedule.</summary>
+	/// <value>The next setting (temperature, on/off state, or level) for the schedule.</value>
 	public object? Setting =>
 		scheduleType switch
 			{

@@ -117,6 +117,21 @@
         "site": "docfx-site",
         "title": "WiserHeatAPIv2"
       }
+    },
+    "xml-documentation": {
+      "commands": [
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "--version"
+          ]
+        }
+      ]
     }
+  },
+  "xmlDocumentation": {
+    "projects": [
+      "WiserHeatAPIv2/WiserHeatAPIv2.csproj"
+    ]
   }
 }
