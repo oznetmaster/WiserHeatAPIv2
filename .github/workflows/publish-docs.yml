@@ -1,66 +1,49 @@
 name: Publish Docs
-
-on:
-  push:
-    branches:
-      - master
-  workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: true
-
 jobs:
   build-docs:
     runs-on: windows-latest
     env:
       DOCFX_CONFIG: docfx_project/docfx.json
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - name: Check out repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x
 
-      - name: Set up .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            10.0.x
-
-      - name: Build Release
-        run: dotnet build WiserHeatAPIv2/WiserHeatAPIv2.csproj --configuration Release -p:ContinuousIntegrationBuild=true
-
-      - name: Restore local tools
-        run: dotnet tool restore
-
-      - name: Generate DocFX metadata
-        run: dotnet tool run docfx metadata "${{ env.DOCFX_CONFIG }}" --property "TargetFramework=net472;Configuration=Release"
-
-      - name: Build DocFX site
-        run: dotnet tool run docfx build "${{ env.DOCFX_CONFIG }}" --output .\docfx-site
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .\docfx-site
-
+          '
+    - name: Build and verify standard documentation
+      uses: oznetmaster/BuildAutomation@c0a215e202dc1e05a37707720ab12032be610518
+      with:
+        task: documentation
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: .\docfx-site
   deploy-docs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build-docs
-
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+'on':
+  push:
+    branches:
+    - master
+  workflow_dispatch: null

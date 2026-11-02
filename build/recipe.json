@@ -67,6 +67,56 @@
           ]
         }
       ]
+    },
+    "documentation": {
+      "commands": [
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "build",
+            "WiserHeatAPIv2/WiserHeatAPIv2.csproj",
+            "--configuration",
+            "Release",
+            "-p:ContinuousIntegrationBuild=true"
+          ]
+        },
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "tool",
+            "restore"
+          ]
+        },
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "tool",
+            "run",
+            "docfx",
+            "metadata",
+            "docfx_project/docfx.json",
+            "--property",
+            "TargetFramework=net472;Configuration=Release"
+          ]
+        },
+        {
+          "executable": "dotnet",
+          "arguments": [
+            "tool",
+            "run",
+            "docfx",
+            "build",
+            "docfx_project/docfx.json",
+            "--output",
+            "./docfx-site"
+          ]
+        }
+      ],
+      "documentation": {
+        "config": "docfx_project/docfx.json",
+        "site": "docfx-site",
+        "title": "WiserHeatAPIv2"
+      }
     }
   }
 }

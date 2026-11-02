@@ -365,3 +365,7 @@ FodyWeavers.xsd
 # Shared Cake build downloads and invocation receipts
 /artifacts/build-components/
 /artifacts/build-automation/
+
+# Generated documentation output
+/docfx_project/api/
+/docfx-site/

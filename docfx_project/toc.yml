@@ -1,7 +1,10 @@
 - name: Home
   href: index.md
-- name: Getting Started
-  href: articles/intro.md
+- name: Guides
+  href: guides/
 - name: API Reference
-  href: api/
-  homepage: api/index.md
+  href: reference/
+- name: GitHub
+  href: https://github.com/oznetmaster/WiserHeatAPIv2
+- name: NuGet
+  href: https://www.nuget.org/profiles/oznetmaster

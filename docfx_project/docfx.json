@@ -39,10 +39,22 @@
         "files": [
           "toc.yml"
         ]
+      },
+      {
+        "files": [
+          "toc.yml",
+          "guides/**.md",
+          "guides/**/toc.yml",
+          "reference/**.md",
+          "reference/**/toc.yml"
+        ]
       }
     ],
     "globalMetadata": {
-      "_appTitle": "WiserHeatAPIv2 API"
+      "_appTitle": "WiserHeatAPIv2",
+      "_appName": "WiserHeatAPIv2",
+      "_appFooter": "Copyright (c) 2026 Neil Colvin.",
+      "_enableSearch": true
     },
     "template": [
       "default",
