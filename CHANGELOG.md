@@ -2,6 +2,10 @@
 
 This changelog records shipped features, fixes, compatibility and runtime dependency changes. See [development and validation history](DEVELOPMENT-HISTORY.md) for tests, CI, build tooling and work not yet released.
 
+## Unreleased
+
+- Future binary library releases include separate portable-PDB symbol packages on GitHub and NuGet, verified against the matching Release DLLs for each framework.
+
 ## [1.1.4](https://github.com/oznetmaster/WiserHeatAPIv2/releases/tag/v1.1.4) — 2026-11-10
 
 - Hub refreshes serialize the complete multi-endpoint read and entity update, retaining existing entity identities. Disposal cancels queued refreshes and prevents late publication before disposing the transport. System updates replace their private dictionary rather than clearing caller-owned data. Automatic transient retries apply only to GET; writes are not replayed because a failure response does not prove that the hub rejected the operation. Entity collections remain mutable live views: applications must coordinate their own collection edits and enumeration and await refresh completion before consuming related values.
