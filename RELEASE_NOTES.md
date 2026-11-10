@@ -1,9 +1,14 @@
-# WiserHeatAPIv2 v1.1.3
+# WiserHeatAPIv2 1.1.4
 
-This patch fixes cancellation of HTTP response-body reads. Previously, a hub could return its response headers and then stop sending data, leaving a request waiting beyond the caller's cancellation deadline. Error responses had the same gap.
+This patch corrects the audited reliability issues while retaining the existing public API and supported frameworks.
 
-The .NET Framework build now reads the response stream with cancellation, including on Mono. Modern .NET retains its native cancellable content read. The response is released when cancelled, and the client remains available for subsequent requests. Public API signatures, target frameworks and runtime dependencies are unchanged.
+- Hub refreshes serialize the complete multi-endpoint read and entity update, retaining existing entity identities. Disposal cancels queued refreshes and prevents late publication before disposing the transport. System updates replace their private dictionary rather than clearing caller-owned data. Automatic transient retries apply only to GET; writes are not replayed because a failure response does not prove that the hub rejected the operation. Entity collections remain mutable live views: applications must coordinate their own collection edits and enumeration and await refresh completion before consuming related values.
 
-Validation covers stalled headers, partially transmitted success and error bodies, caller cancellation and client reuse. The complete offline suite passes on .NET Framework 4.7.2, .NET 10 and the tested Mono runtime, including real loopback HTTP connections. These tests do not operate household devices.
+## Validation
 
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+- Offline workstation tests passed in Debug and Release on .NET 10 and .NET Framework 4.7.2: Wiser net10.0: 216; Wiser net472: 216. No failures or skips.
+- 57 selected tests passed in the shared 374-case processor run on Mono 6.12.0.107 (32-bit), with no failures or skips. The merged host's resolved dependency graph was tested; these are not eight independent release-package tests.
+- Fake transports and credentials exercised ordering, cancellation, shutdown and failure recovery. No new household-device or cloud control was performed. Pairing storage is unchanged.
+- Strict XML, formatting and style checks passed. Package and companion-app preparation is verified separately by the shared release pipeline.
+
+See [the changelog](https://github.com/oznetmaster/WiserHeatAPIv2/blob/v1.1.4/CHANGELOG.md) and [validation provenance](https://github.com/oznetmaster/WiserHeatAPIv2/blob/v1.1.4/release-validation/v1.1.4.json).

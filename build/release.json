@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "name": "WiserHeatAPIv2",
+  "versionFile": "WiserHeatAPIv2/WiserHeatAPIv2.csproj",
+  "versionXPath": "/Project/PropertyGroup/Version",
+  "notesFile": "release-notes/v{version}.md",
+  "packages": [
+    {
+      "id": "WiserHeatAPIv2",
+      "frameworks": [
+        "net472",
+        "net10.0"
+      ],
+      "project": "WiserHeatAPIv2/WiserHeatAPIv2.csproj"
+    }
+  ],
+  "applications": [],
+  "documents": [
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "rawLibraries": false,
+  "libraryArchive": false
+}

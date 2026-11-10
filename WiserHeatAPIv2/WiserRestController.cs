@@ -330,8 +330,9 @@ public partial class WiserRestController : IDisposable
 	/// no response could be obtained (rare; typically an exception is thrown instead).
 	/// </returns>
 	/// <remarks>
-	/// On 500/502/503/504/413 responses the call is retried up to <see cref="RestConstants.REST_RETRIES"/> times
-	/// with exponential backoff. Non-success responses are still returned to the caller for inspection.
+	/// GET responses with 500/502/503/504/413 are retried up to <see cref="RestConstants.REST_RETRIES"/> times
+	/// with exponential backoff. Writes are never automatically repeated: an error does not prove that the hub did not apply them.
+	/// Non-success responses are returned to the caller for inspection.
 	/// </remarks>
 	/// <exception cref="WiserHubConnectionException">
 	/// Thrown when a connectivity issue occurs (e.g., DNS, refused connection) or the request times out.
@@ -342,7 +343,7 @@ public partial class WiserRestController : IDisposable
 		 StringContent? data = null,
 		 CancellationToken cancellationToken = default)
 		{
-		var retryCount = REST_RETRIES;
+		var retryCount = action == WiserRestAction.GET ? REST_RETRIES : 0;
 		var delay = TimeSpan.FromSeconds (1);
 		var backoffFactor = 2.0;
 		HttpResponseMessage? response = null;
@@ -545,7 +546,7 @@ public partial class WiserRestController : IDisposable
 		byte[] bytes = await ReadResponseBytesAsync (response, cancellationToken).ConfigureAwait (false);
 		using var buffered = new ByteArrayContent (bytes);
 		buffered.Headers.ContentType = response.Content.Headers.ContentType;
-		var errorMessage = await buffered.ReadAsStringAsync ().ConfigureAwait (false);
+		var errorMessage = await buffered.ReadAsStringAsync (CancellationToken.None).ConfigureAwait (false);
 		if (response.StatusCode == HttpStatusCode.Unauthorized)
 			{
 			throw new WiserHubAuthenticationException ($"Error authenticating to Wiser Hub {_wiserConnection.Host}. Check your secret key.  Message: {errorMessage}");

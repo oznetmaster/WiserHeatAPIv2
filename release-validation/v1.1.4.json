@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "version": "1.1.4",
+  "completedUtc": "2026-11-09T23:12:44.6184403Z",
+  "workstation": [
+    {
+      "configurations": [
+        "Debug",
+        "Release"
+      ],
+      "passed": 216,
+      "suite": "Wiser",
+      "failed": 0,
+      "framework": "net10.0",
+      "skipped": 0
+    },
+    {
+      "configurations": [
+        "Debug",
+        "Release"
+      ],
+      "passed": 216,
+      "suite": "Wiser",
+      "failed": 0,
+      "framework": "net472",
+      "skipped": 0
+    }
+  ],
+  "processor": {
+    "selectedPassed": 57.0,
+    "aggregatePassed": 374,
+    "scope": "Merged offline host with recorded resolved dependencies; fake services and credentials only",
+    "runtime": "Mono 6.12.0.107, 32-bit",
+    "firmware": "4.013.0134",
+    "failed": 0,
+    "skipped": 0
+  },
+  "validatedSourceFiles": [
+    {
+      "Path": "WiserHeatAPIv2.Tests/ConcurrentRefreshTests.cs",
+      "Sha256": "49A5F4E9A5F56B87C51E40F0D27211E58C0C00171257638FAFFEC0E76D106D0F"
+    },
+    {
+      "Path": "WiserHeatAPIv2.Tests/FrameworkTaskWaitExtensions.cs",
+      "Sha256": "012712598B71FC0E96AA97EFCA4AFBA1B9C967A7A43C1EC47B37A9159D67BDFA"
+    },
+    {
+      "Path": "WiserHeatAPIv2.Tests/RestControllerTests.cs",
+      "Sha256": "6D3158649BF4043A80B93AF9552EF16983B8F8B5D032674DB472727825D6801C"
+    },
+    {
+      "Path": "WiserHeatAPIv2/BufferedContentExtensions.cs",
+      "Sha256": "BEBDC4C5BD04F78712B0D3F159B7E53A1E4A6FCBDA169DFAD9F0122D1963A768"
+    },
+    {
+      "Path": "WiserHeatAPIv2/Internal/AsyncOperationGate.cs",
+      "Sha256": "DB4F8B499A10557DDCBED1932489CFBF335F81F09AA7BD6DAD96956BBA0A3F3C"
+    },
+    {
+      "Path": "WiserHeatAPIv2/WiserHeatingAPI.cs",
+      "Sha256": "B58466A857065720433FBC3DAE32541685985261ACA45CB2896F0EDEA5FC8C05"
+    },
+    {
+      "Path": "WiserHeatAPIv2/WiserRestController.cs",
+      "Sha256": "0B61DF00C7E53F66F2D96CD059F3A86A6E0BDDF7636AFDF4608F4E2F40243A14"
+    },
+    {
+      "Path": "WiserHeatAPIv2/WiserSystem.cs",
+      "Sha256": "855A3B84D730CA0A99824066159C6B22215B3585838E9A4AE145BE5C7D5532D4"
+    }
+  ],
+  "publicationChanges": "Version metadata, documentation and shared publication tooling added after validation; runtime source hashes retained."
+}

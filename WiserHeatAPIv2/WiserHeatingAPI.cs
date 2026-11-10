@@ -10,6 +10,8 @@ using log4net;
 
 using Newtonsoft.Json;
 
+using WiserHeatApiV2.Internal;
+
 using static WiserHeatApiV2.RestConstants;
 
 namespace WiserHeatApiV2;
@@ -34,6 +36,7 @@ public class WiserAPI : IDisposable
 	// Connection variables
 	private readonly WiserConnection _wiserApiConnection;
 	private WiserRestController? _wiserRestController;
+	private readonly AsyncOperationGate _operations;
 
 	// Hub Data
 	private Dictionary<string, object> _domainData = [];
@@ -85,6 +88,11 @@ public class WiserAPI : IDisposable
 		_wiserRestController = !string.IsNullOrEmpty (_wiserApiConnection.Host) && !string.IsNullOrEmpty (_wiserApiConnection.Secret)
 			? new WiserRestController (_wiserApiConnection, transport)
 			: throw new WiserHubConnectionException ("Missing or incomplete connection information");
+		_operations = new (typeof (WiserAPI), () =>
+			{
+				_wiserRestController?.Dispose ();
+				_wiserRestController = null;
+			});
 		}
 
 	/// <summary>
@@ -135,6 +143,17 @@ public class WiserAPI : IDisposable
 		{
 		try
 			{
+			using AsyncOperationGate.Operation operation = await _operations.EnterAsync (cancellationToken).ConfigureAwait (false);
+			return await ReadHubDataCoreAsync (operation.Token).ConfigureAwait (false);
+			}
+		catch (OperationCanceledException) { return false; }
+		catch (ObjectDisposedException) { return false; }
+		}
+
+	private async Task<bool> ReadHubDataCoreAsync (CancellationToken cancellationToken)
+		{
+		try
+			{
 			if (_wiserRestController == null)
 				{
 				_lOGGER.Error ("WiserRestController is not initialized. Cannot read hub data.");
@@ -146,17 +165,28 @@ public class WiserAPI : IDisposable
 			Dictionary<string, object> newScheduleData = await _wiserRestController.GetHubDataAsync (WISER_HUB_SCHEDULES.FormatInvariant (_wiserApiConnection.Host), cancellationToken: cancellationToken).ConfigureAwait (false);
 			Dictionary<string, object> newOpenthermData = await _wiserRestController.GetHubDataAsync (WISER_HUB_OPENTHERM.FormatInvariant (_wiserApiConnection.Host), raiseForEndpointError: false, cancellationToken: cancellationToken).ConfigureAwait (false);
 
-			// Update internal data
-			_domainData = newDomainData;
-			_networkData = newNetworkData;
-			_scheduleData = newScheduleData;
-			_openthermData = newOpenthermData;
+			cancellationToken.ThrowIfCancellationRequested ();
+			return _operations.Commit (() => ApplyHubData (newDomainData, newNetworkData, newScheduleData, newOpenthermData));
 			}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return false; }
+		catch (ObjectDisposedException) when (_operations.IsDisposed) { return false; }
 		catch (Exception ex)
 			{
 			_lOGGER.Error (ex);
 			return false;
 			}
+		}
+
+	private bool ApplyHubData (Dictionary<string, object> domain, Dictionary<string, object> network,
+		Dictionary<string, object> schedules, Dictionary<string, object> opentherm)
+		{
+		if (domain.Count == 0 || network.Count == 0 || schedules.Count == 0)
+			return false;
+		_domainData = domain;
+		_networkData = network;
+		_scheduleData = schedules;
+		_openthermData = opentherm;
+		WiserRestController rest = _wiserRestController ?? throw new ObjectDisposedException (nameof (WiserAPI));
 
 		if (_domainData.Count > 0 && _networkData.Count > 0 && _scheduleData.Count > 0)
 			{
@@ -167,17 +197,17 @@ public class WiserAPI : IDisposable
 			if (System != null)
 				System.Update (_domainData, _networkData, deviceData, _openthermData);
 			else
-				System = new WiserSystem (_wiserRestController, _domainData, _networkData, deviceData, _openthermData);
+				System = new WiserSystem (rest, _domainData, _networkData, deviceData, _openthermData);
 
 			if (Schedules != null)
 				Schedules.Update (_scheduleData, System.SunriseTimes, System.SunsetTimes);
 			else
-				Schedules = new WiserSchedules (_wiserRestController, _scheduleData, System.SunriseTimes, System.SunsetTimes);
+				Schedules = new WiserSchedules (rest, _scheduleData, System.SunriseTimes, System.SunsetTimes);
 
 			if (Devices != null)
 				Devices.Update (_domainData, Schedules);
 			else
-				Devices = new WiserDevices (_wiserRestController, _domainData, Schedules);
+				Devices = new WiserDevices (rest, _domainData, Schedules);
 
 			if (!(_domainData.TryGetValue ("Room", out var roomDataObj) && roomDataObj is List<Dictionary<string, object>> roomData))
 				roomData = [];
@@ -185,7 +215,7 @@ public class WiserAPI : IDisposable
 			if (Rooms != null)
 				Rooms.Update (roomData, Schedules, Devices);
 			else
-				Rooms = new WiserRooms (_wiserRestController, roomData, Schedules, Devices);
+				Rooms = new WiserRooms (rest, roomData, Schedules, Devices);
 
 			if (_domainData.TryGetValue ("HotWater", out var hotWaterDataObj) && hotWaterDataObj is List<Dictionary<string, object>> hotWaterData)
 				{
@@ -208,7 +238,7 @@ public class WiserAPI : IDisposable
 					if (Hotwater != null)
 						Hotwater.Update (firstHotWaterData, schedule);
 					else
-						Hotwater = new WiserHotwater (_wiserRestController, firstHotWaterData, schedule);
+						Hotwater = new WiserHotwater (rest, firstHotWaterData, schedule);
 					}
 				}
 
@@ -225,7 +255,7 @@ public class WiserAPI : IDisposable
 				if (Moments != null)
 					Moments.Update (momentData);
 				else
-					Moments = new WiserMoments (_wiserRestController, momentData);
+					Moments = new WiserMoments (rest, momentData);
 				}
 
 			// If gets here with no exceptions then success and return true
@@ -440,13 +470,7 @@ public class WiserAPI : IDisposable
 	/// </remarks>
 	public void Dispose ()
 		{
-		// Dispose of managed resources
-		_wiserRestController?.Dispose ();
-		_wiserRestController = null;
-
-		// Dispose of unmanaged resources if any
-		// (e.g., close any open connections, files, etc.)
-		// Add any additional cleanup code here
+		_operations.Dispose ();
 		GC.SuppressFinalize (this);
 		}
 	}

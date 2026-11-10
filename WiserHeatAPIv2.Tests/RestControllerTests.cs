@@ -25,6 +25,19 @@ public sealed class RestControllerTests
 		_hub.Dispose ();
 		}
 
+	[TestCase (WiserRestAction.POST)]
+	[TestCase (WiserRestAction.PATCH)]
+	[TestCase (WiserRestAction.DELETE)]
+	public async Task WriteFailureIsReturnedWithoutAutomaticReplay (WiserRestAction action)
+		{
+		_hub.Reply ("ambiguous failure", HttpStatusCode.InternalServerError);
+		using var payload = new StringContent ("{}");
+		using var response = await _controller.ExecuteHttpRequestAsync (action, "http://hub.example/data/v2/domain/Room/4", payload);
+		Assert.That (response!.StatusCode, Is.EqualTo (HttpStatusCode.InternalServerError));
+		Assert.That (_hub.Requests, Has.Count.EqualTo (1));
+		_hub.AssertComplete ();
+		}
+
 	[TestCase (WiserRestAction.GET, "GET")]
 	[TestCase (WiserRestAction.POST, "POST")]
 	[TestCase (WiserRestAction.PATCH, "PATCH")]
@@ -96,16 +109,14 @@ public sealed class RestControllerTests
 	[TestCase (502)]
 	[TestCase (503)]
 	[TestCase (504)]
-	public async Task TransientFailure_RetriesWithTheOriginalCommandBody (int status)
+	public async Task AmbiguousCommandFailureIsNotRetried (int status)
 		{
 		_hub.Reply (status: (HttpStatusCode)status);
-		_hub.Reply ();
-		Assert.That (await _controller.SendCommandAsync ("Room/4", new
+		await Assert.ThrowsAsync<WiserHubRESTException> (async () => await _controller.SendCommandAsync ("Room/4", new
 			{
 			Name = "Study"
-			}), Is.True);
-		Assert.That (_hub.Requests, Has.Count.EqualTo (2));
-		Assert.That (_hub.Requests[1].Body, Is.EqualTo (_hub.Requests[0].Body));
+			}));
+		Assert.That (_hub.Requests, Has.Count.EqualTo (1));
 		_hub.AssertComplete ();
 		}
 

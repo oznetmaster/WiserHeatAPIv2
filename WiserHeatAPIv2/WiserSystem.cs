@@ -14,7 +14,10 @@ namespace WiserHeatApiV2;
 public class WiserSystem
 	{
 	private readonly WiserRestController _wiserRestController;
-	private readonly IDictionary<string, object> _data;
+	private volatile Dictionary<string, object> _data;
+#pragma warning disable IDE0330 // Retain Monitor semantics on net472 and processor Mono.
+	private readonly object _updateSync = new ();
+#pragma warning restore IDE0330
 	private Dictionary<string, object>? _systemData;
 	private Dictionary<string, object>? _deviceData;
 	private WiserFirmwareUpgradeInfo? _upgradeData;
@@ -40,7 +43,7 @@ public class WiserSystem
 						IDictionary<string, object> openthermData)
 		{
 		_wiserRestController = wiserRestController;
-		_data = domainData;
+		_data = new Dictionary<string, object> (domainData);
 
 		Build (networkData, deviceData, openthermData);
 		}
@@ -92,14 +95,12 @@ public class WiserSystem
 	/// <param name="openthermData">The OpenTherm data returned by the hub.</param>
 	public void Update (IDictionary<string, object> domainData, IDictionary<string, object> networkData, List<Dictionary<string, object>> deviceData, IDictionary<string, object> openthermData)
 		{
-		if (domainData != null)
+		lock (_updateSync)
 			{
-			_data.Clear ();
-			foreach (KeyValuePair<string, object> kv in domainData)
-				_data[kv.Key] = kv.Value;
+			if (domainData != null)
+				_data = new Dictionary<string, object> (domainData);
+			Build (networkData, deviceData, openthermData);
 			}
-
-		Build (networkData, deviceData, openthermData);
 		}
 
 	private static Dictionary<string, object> GetSystemDevice (List<Dictionary<string, object>> deviceData)
